@@ -38,9 +38,6 @@
     "loom:injected_interfaces": {
       "net/minecraft/class_276": [
         "cn/sh1rocu/tacz/api/mixin/RenderTargetStencil"
-      ],
-      "net/minecraft/class_1309": [
-        "cn/sh1rocu/tacz/api/mixin/ItemHandlerCapability"
       ]
     },
     "cardinal-components": [

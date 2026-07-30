@@ -45,12 +45,10 @@ public final class SyncedEntityDataEvent {
     }
 
     public static void onPlayerClone(ServerPlayer original, ServerPlayer player, boolean alive) {
-        original.tacz$reviveItemHandler();
         DataHolder oldHolder = SyncedEntityData.instance().getDataHolder(original);
         if (oldHolder == null) {
             return;
         }
-        original.tacz$invalidateItemHandler();
         DataHolder newHolder = SyncedEntityData.instance().getDataHolder(player);
         if (newHolder == null) {
             return;

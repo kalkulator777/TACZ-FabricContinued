@@ -26,6 +26,18 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   The previous single shared script engine was also mutated from both the client
   and the server thread.
 
+**Changed**
+
+- The Forge item-handler capability layer inherited by this fork is gone, replaced by
+  vanilla `Container`. It was about 1100 lines — a reimplementation of `IItemHandler`,
+  `LazyOptional`, nine inventory wrappers, three entity mixins and an injected
+  interface on `LivingEntity` — and every caller asked for the same side-agnostic view,
+  so none of the capability machinery was doing anything. Four copies of "does this
+  inventory hold ammunition for this gun" collapsed into `AbstractGunItem.hasAmmoFor`.
+
+  API note: `AbstractGunItem.findAndExtractInventoryAmmo` and its deprecated twin now
+  take a `net.minecraft.world.Container` instead of the removed `IItemHandler`.
+
 **Removed**
 
 - Dead code: the unused version checker and the deprecated gun pack JSON loader

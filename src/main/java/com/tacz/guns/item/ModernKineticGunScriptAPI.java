@@ -1,5 +1,6 @@
 package com.tacz.guns.item;
 
+import cn.sh1rocu.tacz.util.EntityInventory;
 import cn.sh1rocu.tacz.api.LogicalSide;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.GunProperties;
@@ -548,9 +549,7 @@ public class ModernKineticGunScriptAPI {
         if (abstractGunItem.useDummyAmmo(itemStack)) {
             return abstractGunItem.findAndExtractDummyAmmo(itemStack, neededAmount);
         } else {
-            return shooter.tacz$getItemHandler(null)
-                    .map(cap -> abstractGunItem.findAndExtractInventoryAmmo(cap, itemStack, neededAmount))
-                    .orElse(0);
+            return abstractGunItem.findAndExtractInventoryAmmo(EntityInventory.of(shooter), itemStack, neededAmount);
         }
     }
 
@@ -567,19 +566,7 @@ public class ModernKineticGunScriptAPI {
         if (abstractGunItem.useDummyAmmo(itemStack)) {
             return abstractGunItem.getDummyAmmoAmount(itemStack) > 0;
         }
-        return shooter.tacz$getItemHandler(null).map(cap -> {
-            // 背包检查
-            for (int i = 0; i < cap.getSlots(); i++) {
-                ItemStack checkAmmoStack = cap.getStackInSlot(i);
-                if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(itemStack, checkAmmoStack)) {
-                    return true;
-                }
-                if (checkAmmoStack.getItem() instanceof IAmmoBox iAmmoBox && iAmmoBox.isAmmoBoxOfGun(itemStack, checkAmmoStack)) {
-                    return true;
-                }
-            }
-            return false;
-        }).orElse(false);
+        return AbstractGunItem.hasAmmoFor(EntityInventory.of(shooter), itemStack);
     }
 
     /**

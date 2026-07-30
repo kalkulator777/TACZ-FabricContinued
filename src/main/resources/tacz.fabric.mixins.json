@@ -26,9 +26,6 @@
     "common.ServerEntityMixin",
     "common.ServerLevelMixin",
     "common.ServerPacksSourceMixin",
-    "common.itemhandler.AbstractHorseMixin",
-    "common.itemhandler.LivingEntityMixin",
-    "common.itemhandler.PlayerMixin",
     "compat.carryon.ConfigLoaderMixin",
     "compat.controllable.BindingContextMixin"
   ],

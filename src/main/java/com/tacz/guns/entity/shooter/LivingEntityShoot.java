@@ -1,5 +1,6 @@
 package com.tacz.guns.entity.shooter;
 
+import cn.sh1rocu.tacz.util.EntityInventory;
 import cn.sh1rocu.tacz.api.LogicalSide;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
@@ -277,8 +278,7 @@ public class LivingEntityShoot {
         if (abstractGunItem.useDummyAmmo(itemStack)) {
             abstractGunItem.findAndExtractDummyAmmo(itemStack, neededAmount);
         } else {
-            shooter.tacz$getItemHandler(null)
-                    .map(cap -> abstractGunItem.findAndExtractInventoryAmmo(cap, itemStack, neededAmount));
+            abstractGunItem.findAndExtractInventoryAmmo(EntityInventory.of(shooter), itemStack, neededAmount);
         }
     }
 }

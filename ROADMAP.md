@@ -155,10 +155,17 @@ are serialized `ItemStack` NBT nested inside the gun's custom data. This works, 
 it means no client-side predicates, no tooltips or recipes driven by components, no
 component-based commands, and no structural validation.
 
-Migrating to real component types is planned, but **not during a version port** —
-changing storage and the game version at the same time makes every bug ambiguous.
-It happens once 1.21.11 is stable, so the datafixer gets exercised on real worlds
-before 26.1 inherits it.
+Migration to real component types is planned. It is **written after the 1.21.11 port
+compiles and runs**, so that a bug is never ambiguous between the version change and
+the storage change, but **shipped in the same release**, so players get one
+disruptive update rather than two.
+
+A world migration is needed either way, independently of the component work.
+Installed attachments are stored as serialized `ItemStack` NBT nested inside the
+gun's `custom_data`, and vanilla datafixers do not descend into `custom_data` — it
+is opaque NBT by design. So nothing but this mod can upgrade those nested stacks
+when a world moves from 1.21.1. Since that pass has to be written regardless,
+the component migration rides along with it.
 
 One exception is being fixed early: attachment tags are looked up by
 `DataComponents.CUSTOM_DATA.toString()`, which relies on what `toString()` happens
@@ -205,9 +212,10 @@ to tell a porting bug from a bug that was always there.
 - [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
 - [ ] Make PlayerAnimator support an optional module.
 
-#### Phase 3 — item data storage on 1.21.11
+#### Phase 3 — item data storage, shipped with the 1.21.11 release
 
-- [ ] See §5. Component types, datafixer, deprecated accessor facade for addons.
+- [ ] See §5. Component types, world migration, deprecated accessor facade for addons.
+      Written after phase 2 runs, released together with it.
 
 #### Phase 4 — port to 26.1
 

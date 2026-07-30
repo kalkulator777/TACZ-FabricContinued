@@ -1,6 +1,5 @@
 package com.tacz.guns.entity.sync.core;
 
-import cn.sh1rocu.tacz.util.forge.LazyOptional;
 import com.tacz.guns.GunMod;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -17,14 +16,17 @@ import java.util.Optional;
 public class DataHolderCapabilityProvider implements Component {
     public static final ComponentKey<DataHolderCapabilityProvider> CAPABILITY = ComponentRegistry.getOrCreate(ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "synced_entity_data"), DataHolderCapabilityProvider.class);
     private final DataHolder holder = new DataHolder();
-    private final LazyOptional<DataHolder> optional = LazyOptional.of(() -> this.holder);
+    /**
+     * Cleared when the entity leaves the world, so its data is no longer handed out.
+     */
+    private boolean valid = true;
 
     public void invalidate() {
-        this.optional.invalidate();
+        this.valid = false;
     }
 
     public Optional<DataHolder> getDataHolder() {
-        return optional.resolve();
+        return this.valid ? Optional.of(this.holder) : Optional.empty();
     }
 
     private ListTag serializeNBT(HolderLookup.@NotNull Provider provider) {

@@ -1,5 +1,7 @@
 package com.tacz.guns.inventory;
 
+import net.minecraft.world.Container;
+import cn.sh1rocu.tacz.util.EntityInventory;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.config.sync.SyncConfig;
@@ -81,7 +83,8 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
         if (recipe == null) {
             return;
         }
-        player.tacz$getItemHandler(null).ifPresent(handler -> {
+        {
+            Container handler = EntityInventory.of(player);
             // 是创造模式，就不扣材料
             if (!player.isCreative()) {
                 Int2IntArrayMap recordCount = new Int2IntArrayMap();
@@ -89,8 +92,8 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
 
                 for (GunSmithTableIngredient ingredient : ingredients) {
                     int count = 0;
-                    for (int slotIndex = 0; slotIndex < handler.getSlots(); slotIndex++) {
-                        ItemStack stack = handler.getStackInSlot(slotIndex);
+                    for (int slotIndex = 0; slotIndex < handler.getContainerSize(); slotIndex++) {
+                        ItemStack stack = handler.getItem(slotIndex);
                         int stackCount = stack.getCount();
                         if (!stack.isEmpty() && ingredient.getIngredient().test(stack)) {
                             count = count + stackCount;
@@ -114,7 +117,7 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
 
                 // 开始扣材料
                 for (int slotIndex : recordCount.keySet()) {
-                    handler.extractItem(slotIndex, recordCount.get(slotIndex), false);
+                    handler.removeItem(slotIndex, recordCount.get(slotIndex));
                 }
             }
 
@@ -129,6 +132,6 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
             player.inventoryMenu.broadcastFullState();
             if (player instanceof ServerPlayer serverPlayer)
                 NetworkHandler.sendToClientPlayer(new ServerMessageCraft(this.containerId), serverPlayer);
-        });
+        }
     }
 }

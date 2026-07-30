@@ -1,8 +1,7 @@
 package com.tacz.guns.api.item.gun;
 
 import cn.sh1rocu.tacz.api.extension.IItem;
-import cn.sh1rocu.tacz.util.itemhandler.IItemHandler;
-import cn.sh1rocu.tacz.util.itemhandler.ItemHandlerHelper;
+import cn.sh1rocu.tacz.util.EntityInventory;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.ReloadState;
@@ -26,12 +25,16 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -149,19 +152,7 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
             return getDummyAmmoAmount(gunItem) > 0;
         }
         // 检查背包内的弹药数量
-        return shooter.tacz$getItemHandler(null).map(cap -> {
-            // 背包检查
-            for (int i = 0; i < cap.getSlots(); i++) {
-                ItemStack checkAmmoStack = cap.getStackInSlot(i);
-                if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(gunItem, checkAmmoStack)) {
-                    return true;
-                }
-                if (checkAmmoStack.getItem() instanceof IAmmoBox iAmmoBox && iAmmoBox.isAmmoBoxOfGun(gunItem, checkAmmoStack)) {
-                    return true;
-                }
-            }
-            return false;
-        }).orElse(false);
+        return hasAmmoFor(EntityInventory.of(shooter), gunItem);
     }
 
     /**
@@ -214,12 +205,46 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
                 for (int i = 0; i <= roundCount; i++) {
                     int count = Math.min(tmpAmmoCount, stackSize);
                     ItemStack ammoItem = AmmoItemBuilder.create().setId(ammoId).setCount(count).build();
-                    ItemHandlerHelper.giveItemToPlayer(player, ammoItem);
+                    giveAmmoToPlayer(player, ammoItem);
                     tmpAmmoCount -= stackSize;
                 }
                 setCurrentAmmoCount(gunItem, 0);
             });
         });
+    }
+
+    /**
+     * 检查背包内是否有该枪械可用的弹药（或弹药盒）
+     *
+     * @param inventory 目标实体的背包
+     * @param gunItem   枪械物品
+     * @return 背包内是否有可用弹药
+     */
+    public static boolean hasAmmoFor(Container inventory, ItemStack gunItem) {
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack checkAmmoStack = inventory.getItem(i);
+            if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(gunItem, checkAmmoStack)) {
+                return true;
+            }
+            if (checkAmmoStack.getItem() instanceof IAmmoBox iAmmoBox && iAmmoBox.isAmmoBoxOfGun(gunItem, checkAmmoStack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 将物品放回玩家背包，放不下则掉落在地上
+     */
+    private static void giveAmmoToPlayer(Player player, ItemStack ammoItem) {
+        if (ammoItem.isEmpty()) {
+            return;
+        }
+        Level level = player.level();
+        level.playSound(null, player.getX(), player.getY() + 0.5, player.getZ(),
+                SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F,
+                ((level.random.nextFloat() - level.random.nextFloat()) * 0.7F + 1.0F) * 2.0F);
+        player.getInventory().placeItemBackInInventory(ammoItem);
     }
 
     /**
@@ -231,7 +256,7 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
      * @return 寻找到的弹药 (物品) 数量
      */
     @Deprecated
-    public int findAndExtractInventoryAmmos(IItemHandler itemHandler, ItemStack gunItem, int needAmmoCount) {
+    public int findAndExtractInventoryAmmos(Container itemHandler, ItemStack gunItem, int needAmmoCount) {
         return findAndExtractInventoryAmmo(itemHandler, gunItem, needAmmoCount);
     }
 
@@ -243,13 +268,13 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
      * @param needAmmoCount 需要的弹药 (物品) 数量
      * @return 寻找到的弹药 (物品) 数量
      */
-    public int findAndExtractInventoryAmmo(IItemHandler itemHandler, ItemStack gunItem, int needAmmoCount) {
+    public int findAndExtractInventoryAmmo(Container itemHandler, ItemStack gunItem, int needAmmoCount) {
         int cnt = needAmmoCount;
         // 背包检查
-        for (int i = 0; i < itemHandler.getSlots(); i++) {
-            ItemStack checkAmmoStack = itemHandler.getStackInSlot(i);
+        for (int i = 0; i < itemHandler.getContainerSize(); i++) {
+            ItemStack checkAmmoStack = itemHandler.getItem(i);
             if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(gunItem, checkAmmoStack)) {
-                ItemStack extractItem = itemHandler.extractItem(i, cnt, false);
+                ItemStack extractItem = itemHandler.removeItem(i, cnt);
                 cnt = cnt - extractItem.getCount();
                 if (cnt <= 0) {
                     break;
@@ -431,19 +456,7 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
             return getDummyAmmoAmount(gun) > 0;
         }
         // 检查背包内的弹药数量
-        return shooter.tacz$getItemHandler(null).map(cap -> {
-            // 背包检查
-            for (int i = 0; i < cap.getSlots(); i++) {
-                ItemStack checkAmmoStack = cap.getStackInSlot(i);
-                if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(gun, checkAmmoStack)) {
-                    return true;
-                }
-                if (checkAmmoStack.getItem() instanceof IAmmoBox iAmmoBox && iAmmoBox.isAmmoBoxOfGun(gun, checkAmmoStack)) {
-                    return true;
-                }
-            }
-            return false;
-        }).orElse(false);
+        return hasAmmoFor(EntityInventory.of(shooter), gun);
     }
 
     /**

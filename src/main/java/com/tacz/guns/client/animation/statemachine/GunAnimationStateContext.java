@@ -1,5 +1,7 @@
 package com.tacz.guns.client.animation.statemachine;
 
+import com.tacz.guns.api.item.gun.AbstractGunItem;
+import cn.sh1rocu.tacz.util.EntityInventory;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator;
@@ -182,20 +184,8 @@ public class GunAnimationStateContext extends ItemAnimationStateContext {
         }
         return processCameraEntity(entity -> {
                     if (entity instanceof LivingEntity livingEntity) {
-                       return livingEntity.tacz$getItemHandler(null)
-                                .map(cap -> {
-                                    // 背包检查
-                                    for (int i = 0; i < cap.getSlots(); i++) {
-                                        ItemStack checkAmmoStack = cap.getStackInSlot(i);
-                                        if (checkAmmoStack.getItem() instanceof IAmmo iAmmo && iAmmo.isAmmoOfGun(currentGunItem, checkAmmoStack)) {
-                                            return true;
-                                        }
-                                        if (checkAmmoStack.getItem() instanceof IAmmoBox iAmmoBox && iAmmoBox.isAmmoBoxOfGun(currentGunItem, checkAmmoStack)) {
-                                            return true;
-                                        }
-                                    }
-                                    return false;
-                                }).orElse(false);
+                        // 背包检查
+                        return AbstractGunItem.hasAmmoFor(EntityInventory.of(livingEntity), currentGunItem);
                     }
                     return false;
                 }
