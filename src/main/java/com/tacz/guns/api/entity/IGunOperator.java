@@ -18,16 +18,25 @@ public interface IGunOperator {
 
     /**
      * 获取从服务端同步的射击的冷却
+     *
+     * @return 剩余冷却毫秒数，或者 -1 表示服务端查不到当前枪械的索引。
+     * -1 不是一个时长，用 {@code != 0} 判断会把它当成永远不会结束的冷却。
      */
     long getSynShootCoolDown();
 
     /**
      * 获取从服务端同步的近战的冷却（主要是刺刀）
+     *
+     * @return 剩余冷却毫秒数，或者 -1 表示服务端查不到当前枪械的索引
+     * @see #getSynShootCoolDown()
      */
     long getSynMeleeCoolDown();
 
     /**
      * 获取从服务端同步的切枪的冷却
+     *
+     * @return 剩余冷却毫秒数，或者 -1 表示服务端查不到当前枪械的索引
+     * @see #getSynShootCoolDown()
      */
     long getSynDrawCoolDown();
 

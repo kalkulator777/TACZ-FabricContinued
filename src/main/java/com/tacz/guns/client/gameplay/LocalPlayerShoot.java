@@ -192,8 +192,15 @@ public class LocalPlayerShoot {
         if (gunOperator.getSynReloadState().getStateType().isReloading()) {
             return ShootResult.IS_RELOADING;
         }
+        long drawCoolDown = gunOperator.getSynDrawCoolDown();
+        long meleeCoolDown = gunOperator.getSynMeleeCoolDown();
+        /* 服务端查不到这把枪的索引时，同步过来的冷却是 -1 而不是某个时长。用 != 0 判断会把这个哨兵
+         * 当成“还在冷却”，于是玩家被永久卡在“正在切枪”上，而且提示词还是错的。 */
+        if (drawCoolDown < 0 || meleeCoolDown < 0) {
+            return ShootResult.ID_NOT_EXIST;
+        }
         // 检查是否正在切枪
-        if (gunOperator.getSynDrawCoolDown() != 0) {
+        if (drawCoolDown > 0) {
             return ShootResult.IS_DRAWING;
         }
         // 检查是否正在拉栓
@@ -201,7 +208,7 @@ public class LocalPlayerShoot {
             return ShootResult.IS_BOLTING;
         }
         // 判断是否处于近战冷却时间
-        if (gunOperator.getSynMeleeCoolDown() != 0) {
+        if (meleeCoolDown > 0) {
             return ShootResult.IS_MELEE;
         }
         // 判断子弹数

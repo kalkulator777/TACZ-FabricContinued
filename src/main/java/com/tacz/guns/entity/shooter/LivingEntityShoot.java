@@ -244,6 +244,13 @@ public class LivingEntityShoot {
         if (!(currentGunItem.getItem() instanceof IGun iGun)) {
             return 0;
         }
+        /* shootTimestamp 是相对于 baseTimestamp 的偏移，-1 表示还没开过枪，
+         * 而不是"很久以前开过"。直接拿它做减法会算出刚刚才开过枪，于是重生和跨维度之后
+         * （两者都会走 initialData 把它清回 -1）第一发会被判成冷却中而被吞掉。
+         * 蓄力那边已经在单独判 < 0 了，这里跟上。 */
+        if (data.shootTimestamp < 0) {
+            return 0;
+        }
         ResourceLocation gunId = iGun.getGunId(currentGunItem);
         Optional<CommonGunIndex> gunIndex = TimelessAPI.getCommonGunIndex(gunId);
         FireMode fireMode = iGun.getFireMode(currentGunItem);

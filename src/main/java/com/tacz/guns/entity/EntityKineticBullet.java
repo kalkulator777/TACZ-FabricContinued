@@ -586,14 +586,22 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
         // 穿甲伤害和普通伤害的比例计算
         float armorDamagePercent = Mth.clamp(this.armorIgnore, 0.0F, 1.0F);
         float normalDamagePercent = 1 - armorDamagePercent;
-        // 取消无敌时间
-        parts.core().invulnerableTime = 0;
-        // 普通伤害
-        parts.hitPart().hurt(source1, damage * normalDamagePercent);
-        // 取消无敌时间
-        parts.core().invulnerableTime = 0;
-        // 穿甲伤害
-        parts.hitPart().hurt(source2, damage * armorDamagePercent);
+        float normalDamage = damage * normalDamagePercent;
+        float armorDamage = damage * armorDamagePercent;
+        /* 伤害为 0 的那一次也是一次完整的 hurt：会广播受伤事件、播放音效、触发荆棘、设置仇恨，
+         * 并让其他模组的伤害事件收到两遍。默认穿甲率是 0，所以这在过去是每颗子弹都会发生的。 */
+        if (normalDamage > 0) {
+            // 取消无敌时间
+            parts.core().invulnerableTime = 0;
+            // 普通伤害
+            parts.hitPart().hurt(source1, normalDamage);
+        }
+        if (armorDamage > 0) {
+            // 取消无敌时间
+            parts.core().invulnerableTime = 0;
+            // 穿甲伤害
+            parts.hitPart().hurt(source2, armorDamage);
+        }
     }
 
     @Override
