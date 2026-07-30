@@ -4,13 +4,13 @@ import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.init.ModBlocks;
 import com.tacz.guns.inventory.GunSmithTableMenu;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-import java.util.Set;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -26,12 +26,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<Identifier> {
-    public static final BlockEntityType<GunSmithTableBlockEntity> TYPE = new BlockEntityType<>(GunSmithTableBlockEntity::new, Set.of(
+    public static final BlockEntityType<GunSmithTableBlockEntity> TYPE = FabricBlockEntityTypeBuilder.create(
+            GunSmithTableBlockEntity::new,
             ModBlocks.GUN_SMITH_TABLE,
             ModBlocks.WORKBENCH_111,
             ModBlocks.WORKBENCH_121,
             ModBlocks.WORKBENCH_211
-    ));
+    ).build();
 
     private static final String ID_TAG = "BlockId";
 

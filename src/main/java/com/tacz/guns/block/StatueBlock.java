@@ -14,8 +14,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Explosion;
+import net.minecraft.util.RandomSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -108,13 +112,15 @@ public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
         if (!world.isClientSide()) {
             BlockPos above = pos.above();
             world.setBlock(above, state.setValue(HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
-            world.blockUpdated(pos, Blocks.AIR);
+            world.updateNeighborsAt(pos, Blocks.AIR, null);
             state.updateNeighbourShapes(world, pos, Block.UPDATE_ALL);
         }
     }
 
     @Override
-    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
+    public BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess tickAccess,
+                                  BlockPos currentPos, Direction facing, BlockPos facingPos,
+                                  BlockState facingState, RandomSource random) {
         DoubleBlockHalf half = state.getValue(HALF);
 
         if (facing.getAxis() == Direction.Axis.Y) {
@@ -129,20 +135,22 @@ public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
         return state;
     }
 
+    /**
+     * 1.21.5 把 onRemove 换成了这个：只在服务端调用，只在方块真的被换掉之后调用，
+     * 所以原来那句「新旧方块不同才处理」的判断由调用方负责了。
+     */
     @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pMovedByPiston) {
-        if (!pState.is(pNewState.getBlock())) {
-            BlockEntity blockentity = pLevel.getBlockEntity(pPos);
-            if (blockentity instanceof StatueBlockEntity statueBlockEntity) {
-                statueBlockEntity.dropItem();
-            }
-            super.onRemove(pState, pLevel, pPos, pNewState, pMovedByPiston);
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        BlockEntity blockentity = level.getBlockEntity(pos);
+        if (blockentity instanceof StatueBlockEntity statueBlockEntity) {
+            statueBlockEntity.dropItem();
         }
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
     }
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.ENTITYBLOCK_ANIMATED;
+        return RenderShape.INVISIBLE;
     }
 
     @Override

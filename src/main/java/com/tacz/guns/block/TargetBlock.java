@@ -22,6 +22,8 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -146,7 +148,9 @@ public class TargetBlock extends BaseEntityBlock {
     }
 
     @Override
-    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
+    public BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess tickAccess,
+                                  BlockPos currentPos, Direction facing, BlockPos facingPos,
+                                  BlockState facingState, RandomSource random) {
         DoubleBlockHalf half = state.getValue(HALF);
         boolean stand = state.getValue(STAND);
 
@@ -189,12 +193,12 @@ public class TargetBlock extends BaseEntityBlock {
         if (!world.isClientSide()) {
             BlockPos above = pos.above();
             world.setBlock(above, state.setValue(HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
-            world.blockUpdated(pos, Blocks.AIR);
+            world.updateNeighborsAt(pos, Blocks.AIR, null);
             state.updateNeighbourShapes(world, pos, Block.UPDATE_ALL);
             if (stack.has(DataComponents.CUSTOM_NAME)) {
                 BlockEntity blockentity = world.getBlockEntity(pos);
                 if (blockentity instanceof TargetBlockEntity e) {
-                    ResolvableProfile profile = new ResolvableProfile(Optional.of(stack.getHoverName().getString()), Optional.empty(), new PropertyMap());
+                    ResolvableProfile profile = ResolvableProfile.createUnresolved(stack.getHoverName().getString());
                     e.setOwner(profile);
                     e.setCustomName(stack.getHoverName());
                     e.refresh();
@@ -204,7 +208,7 @@ public class TargetBlock extends BaseEntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
         BlockPos blockPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
         BlockEntity blockentity = level.getBlockEntity(blockPos);
         if (blockentity instanceof TargetBlockEntity e) {
@@ -212,7 +216,7 @@ public class TargetBlock extends BaseEntityBlock {
             stack.set(DataComponents.CUSTOM_NAME, e.getCustomName());
             return stack;
         }
-        return super.getCloneItemStack(level, pos, state);
+        return super.getCloneItemStack(level, pos, state, includeData);
     }
 
     @Override
@@ -246,6 +250,6 @@ public class TargetBlock extends BaseEntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.ENTITYBLOCK_ANIMATED;
+        return RenderShape.INVISIBLE;
     }
 }

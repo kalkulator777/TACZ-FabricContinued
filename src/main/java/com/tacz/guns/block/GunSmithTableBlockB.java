@@ -7,8 +7,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LevelEvent;
@@ -64,7 +67,7 @@ public class GunSmithTableBlockB extends AbstractGunSmithTableBlock {
         if (!worldIn.isClientSide()) {
             BlockPos relative = pos.relative(state.getValue(FACING));
             worldIn.setBlock(relative, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
-            worldIn.blockUpdated(pos, Blocks.AIR);
+            worldIn.updateNeighborsAt(pos, Blocks.AIR, null);
             state.updateNeighbourShapes(worldIn, pos, Block.UPDATE_ALL);
         }
     }
@@ -87,11 +90,13 @@ public class GunSmithTableBlockB extends AbstractGunSmithTableBlock {
     }
 
     @Override
-    public BlockState updateShape(BlockState state, Direction direction, BlockState facingState, LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
+    public BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess tickAccess,
+                                  BlockPos currentPos, Direction direction, BlockPos facingPos,
+                                  BlockState facingState, RandomSource random) {
         if (direction == getNeighbourDirection(state.getValue(PART), state.getValue(FACING))) {
             return facingState.is(this) && facingState.getValue(PART) != state.getValue(PART) ? state : Blocks.AIR.defaultBlockState();
         } else {
-            return super.updateShape(state, direction, facingState, level, currentPos, facingPos);
+            return super.updateShape(state, level, tickAccess, currentPos, direction, facingPos, facingState, random);
         }
     }
 

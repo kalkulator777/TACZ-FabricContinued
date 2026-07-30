@@ -60,7 +60,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState pState) {
-        return RenderShape.ENTITYBLOCK_ANIMATED;
+        return RenderShape.INVISIBLE;
     }
 
     @Override
@@ -78,7 +78,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
         BlockPos blockPos = getRootPos(pos, state);
         BlockEntity blockentity = level.getBlockEntity(blockPos);
         if (blockentity instanceof GunSmithTableBlockEntity e) {
@@ -87,7 +87,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
             }
             return new ItemStack(this);
         }
-        return super.getCloneItemStack(level, pos, state);
+        return super.getCloneItemStack(level, pos, state, includeData);
     }
 
     public abstract boolean isRoot(BlockState blockState);

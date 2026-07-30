@@ -9,7 +9,6 @@
     "minVersion": "0.5.0"
   },
   "mixins": [
-    "accessor.ExplosionAccessor",
     "common.AbstractMinecartMixin",
     "common.ArmorStandMixin",
     "common.BlockBehaviourMixin",
