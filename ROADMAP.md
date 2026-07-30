@@ -7,6 +7,9 @@ The short version: the mod is on 1.21.1 today. The goal is Minecraft 26.1, with
 
 Everything here is a plan, not a promise. Dates are deliberately absent.
 
+Current work is phase 0 — see [§6](#6-phases) for what is done and what is next, and
+the [changelog](CHANGELOG.md) for what has already landed.
+
 ---
 
 ### Contents
@@ -182,12 +185,23 @@ to tell a porting bug from a bug that was always there.
 
 #### Phase 0 — cleanup and fixes on 1.21.1
 
+Branched from `58a1c51` on the `1.21.1` branch. Note that the parent repository's
+default branch is `1.20.1`, so a clone without `--branch 1.21.1` lands on the wrong
+tree.
+
 - [x] **Security.** Sandbox gun pack scripts, range-check network slot indices,
       guard jar extraction. See the [changelog](CHANGELOG.md).
-- [ ] **Deletion.** Roughly 1300 of the 2970 lines of the Forge compatibility shim
-      have native Fabric equivalents, plus dead code and a vendored copy of the
-      conventional tag data. Every line removed here is a line not ported later.
-- [ ] **Correctness.** Version-independent fixes — see §7.
+- [x] **Deletion.** Done in three passes: dead code and the vendored conventional tag
+      data, the Forge item-handler layer, and the events Fabric API already provides.
+      About 1500 lines of the compatibility shim and 185 000 lines of resources went;
+      every one of them is a line that does not have to be ported later.
+- [ ] **Correctness.** Version-independent fixes — see §7. Three crashes and the
+      dimension change are done. Remaining, in the order they are being taken:
+      the double `hurt()` per bullet, physical side used where logical side is meant,
+      the `-1` sentinel that permanently disables firing, the first shot swallowed
+      after a respawn, `PreLoadConfig.load()`, the loot injection path, the keybind
+      contexts and the config key, `ModPainting`, the `CUSTOM_DATA.toString()` key,
+      pack isolation during reload, and the blocking `/tacz reload`.
 - [ ] **Build hygiene.** Drop `mavenLocal()`, unhardcode the publish repository,
       remove Gradle 9 incompatibilities, remove the vestigial Yarn mapping property.
 - [ ] **Infrastructure.** There is no CI and no test suite. Several components are
