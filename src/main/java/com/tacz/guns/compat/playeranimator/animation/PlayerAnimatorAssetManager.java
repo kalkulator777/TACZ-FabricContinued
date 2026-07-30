@@ -10,7 +10,7 @@ import com.zigythebird.playeranimcore.animation.Animation;
 import com.zigythebird.playeranimcore.loading.UniversalAnimLoader;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
@@ -26,11 +26,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<Map<ResourceLocation, HashMap<String, Animation>>> implements IdentifiableResourceReloadListener {
+public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<Map<Identifier, HashMap<String, Animation>>> implements IdentifiableResourceReloadListener {
     private static PlayerAnimatorAssetManager INSTANCE;
 
     private final FileToIdConverter filetoidconverter = new FileToIdConverter("player_animator", ".json");
-    private final HashMap<ResourceLocation, HashMap<String, Animation>> animations = new HashMap<>();
+    private final HashMap<Identifier, HashMap<String, Animation>> animations = new HashMap<>();
 
     public static PlayerAnimatorAssetManager get() {
         if (INSTANCE == null) {
@@ -39,7 +39,7 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
         return INSTANCE;
     }
 
-    void putAnimation(ResourceLocation id, InputStream stream) throws IOException {
+    void putAnimation(Identifier id, InputStream stream) throws IOException {
         animations.computeIfAbsent(id, k -> Maps.newHashMap()).putAll(read(stream));
     }
 
@@ -66,7 +66,7 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
         return byLowercaseName;
     }
 
-    Optional<Animation> getAnimations(ResourceLocation id, String name) {
+    Optional<Animation> getAnimations(Identifier id, String name) {
         var animationHashMap = this.animations.get(id);
         if (animationHashMap == null) {
             return Optional.empty();
@@ -74,7 +74,7 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
         return Optional.ofNullable(animationHashMap.get(name));
     }
 
-    public boolean containsKey(ResourceLocation id) {
+    public boolean containsKey(Identifier id) {
         return animations.containsKey(id);
     }
 
@@ -83,11 +83,11 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
     }
 
     @Override
-    protected Map<ResourceLocation, HashMap<String, Animation>> prepare(ResourceManager manager, ProfilerFiller profiler) {
-        Map<ResourceLocation, HashMap<String, Animation>> output = Maps.newHashMap();
-        for (Map.Entry<ResourceLocation, Resource> entry : filetoidconverter.listMatchingResources(manager).entrySet()) {
-            ResourceLocation file = entry.getKey();
-            ResourceLocation id = filetoidconverter.fileToId(file);
+    protected Map<Identifier, HashMap<String, Animation>> prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<Identifier, HashMap<String, Animation>> output = Maps.newHashMap();
+        for (Map.Entry<Identifier, Resource> entry : filetoidconverter.listMatchingResources(manager).entrySet()) {
+            Identifier file = entry.getKey();
+            Identifier id = filetoidconverter.fileToId(file);
 
             try (InputStream stream = entry.getValue().open()) {
                 output.computeIfAbsent(id, k -> Maps.newHashMap()).putAll(read(stream));
@@ -99,15 +99,15 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, HashMap<String, Animation>> map, ResourceManager manager, ProfilerFiller profiler) {
+    protected void apply(Map<Identifier, HashMap<String, Animation>> map, ResourceManager manager, ProfilerFiller profiler) {
         animations.clear();
         animations.putAll(map);
     }
 
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "pa_asset_manager");
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "pa_asset_manager");
 
     @Override
-    public ResourceLocation getFabricId() {
+    public Identifier getFabricId() {
         return ID;
     }
 }

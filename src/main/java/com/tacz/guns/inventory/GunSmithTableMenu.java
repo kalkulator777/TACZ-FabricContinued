@@ -13,7 +13,7 @@ import com.tacz.guns.resource.filter.RecipeFilter;
 import com.tacz.guns.resource.index.CommonBlockIndex;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
@@ -29,19 +29,19 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class GunSmithTableMenu extends AbstractContainerMenu {
-    public static final MenuType<GunSmithTableMenu> TYPE = new ExtendedScreenHandlerType<>(GunSmithTableMenu::new, ResourceLocation.STREAM_CODEC);
+    public static final MenuType<GunSmithTableMenu> TYPE = new ExtendedScreenHandlerType<>(GunSmithTableMenu::new, Identifier.STREAM_CODEC);
 
-    private final ResourceLocation blockId;
+    private final Identifier blockId;
     private final RecipeFilter filter;
 
-    public GunSmithTableMenu(int id, Inventory inventory, @Nullable ResourceLocation resourceLocation) {
+    public GunSmithTableMenu(int id, Inventory inventory, @Nullable Identifier resourceLocation) {
         super(TYPE, id);
         this.blockId = resourceLocation;
         this.filter = TimelessAPI.getCommonBlockIndex(getBlockId()).map(CommonBlockIndex::getFilter).orElse(null);
     }
 
     @Nullable
-    public ResourceLocation getBlockId() {
+    public Identifier getBlockId() {
         return blockId;
     }
 
@@ -56,7 +56,7 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
     }
 
     @Nullable
-    private GunSmithTableRecipe getRecipe(ResourceLocation recipeId, RecipeManager recipeManager) {
+    private GunSmithTableRecipe getRecipe(Identifier recipeId, RecipeManager recipeManager) {
         if (!DefaultAssets.DEFAULT_BLOCK_ID.equals(getBlockId()) || SyncConfig.ENABLE_TABLE_FILTER.get()) {
             if (filter != null && !filter.contains(recipeId)) {
                 return null;
@@ -78,7 +78,7 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
         return null;
     }
 
-    public void doCraft(ResourceLocation recipeId, Player player) {
+    public void doCraft(Identifier recipeId, Player player) {
         GunSmithTableRecipe recipe = getRecipe(recipeId, player.level().getRecipeManager());
         if (recipe == null) {
             return;

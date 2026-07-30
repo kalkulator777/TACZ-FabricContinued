@@ -8,7 +8,7 @@ import com.tacz.guns.init.ModBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,9 +23,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
     public static final MapCodec<StatueBlock> CODEC = simpleCodec((properties) -> new StatueBlock());
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     public StatueBlock() {
         super(Properties.of().sound(SoundType.STONE).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY));
@@ -66,9 +65,9 @@ public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState pState, Level level, BlockPos pos, Player player, InteractionHand pHand, BlockHitResult pHit) {
+    protected InteractionResult useItemOn(ItemStack stack, BlockState pState, Level level, BlockPos pos, Player player, InteractionHand pHand, BlockHitResult pHit) {
         if (level.isClientSide()) {
-            return ItemInteractionResult.SUCCESS;
+            return InteractionResult.SUCCESS;
         } else {
             if (pState.getValue(HALF) == DoubleBlockHalf.UPPER) {
                 pos = pos.below();
@@ -79,15 +78,15 @@ public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
                 if (stack.getItem() instanceof IGun) {
                     statueBlockEntity.setGun(stack);
                     stack.shrink(1);
-                    return ItemInteractionResult.SUCCESS;
+                    return InteractionResult.SUCCESS;
                 }
 
                 if (stack.isEmpty()) {
                     statueBlockEntity.dropItem();
-                    return ItemInteractionResult.SUCCESS;
+                    return InteractionResult.SUCCESS;
                 }
             }
-            return ItemInteractionResult.CONSUME;
+            return InteractionResult.CONSUME;
         }
     }
 

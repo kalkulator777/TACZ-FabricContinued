@@ -5,7 +5,7 @@ import com.tacz.guns.api.item.nbt.BlockItemDataAccessor;
 import com.tacz.guns.block.entity.GunSmithTableBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,13 +21,13 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     public AbstractGunSmithTableBlock() {
         super(Properties.of().sound(SoundType.WOOD).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY));
@@ -68,7 +68,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
         super.setPlacedBy(world, pos, state, placer, stack);
         if (!world.isClientSide) {
             if (stack.getItem() instanceof BlockItemDataAccessor accessor) {
-                ResourceLocation id = accessor.getBlockId(stack);
+                Identifier id = accessor.getBlockId(stack);
                 BlockEntity blockentity = world.getBlockEntity(pos);
                 if (blockentity instanceof GunSmithTableBlockEntity e) {
                     e.setId(id);

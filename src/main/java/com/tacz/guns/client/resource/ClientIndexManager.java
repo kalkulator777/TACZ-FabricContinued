@@ -21,7 +21,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.Map;
@@ -31,11 +31,11 @@ import java.util.Set;
 public class ClientIndexManager {
     private static final int HOTBAR_SLOT_COUNT = 9;
 
-    public static final Map<ResourceLocation, GunDisplayInstance> GUN_DISPLAY = Maps.newHashMap();
-    public static final Map<ResourceLocation, ClientGunIndex> GUN_INDEX = Maps.newHashMap();
-    public static final Map<ResourceLocation, ClientAmmoIndex> AMMO_INDEX = Maps.newHashMap();
-    public static final Map<ResourceLocation, ClientAttachmentIndex> ATTACHMENT_INDEX = Maps.newHashMap();
-    public static final Map<ResourceLocation, ClientBlockIndex> BLOCK_INDEX = Maps.newHashMap();
+    public static final Map<Identifier, GunDisplayInstance> GUN_DISPLAY = Maps.newHashMap();
+    public static final Map<Identifier, ClientGunIndex> GUN_INDEX = Maps.newHashMap();
+    public static final Map<Identifier, ClientAmmoIndex> AMMO_INDEX = Maps.newHashMap();
+    public static final Map<Identifier, ClientAttachmentIndex> ATTACHMENT_INDEX = Maps.newHashMap();
+    public static final Map<Identifier, ClientBlockIndex> BLOCK_INDEX = Maps.newHashMap();
 
     public static void clear() {
         GUN_DISPLAY.clear();
@@ -66,7 +66,7 @@ public class ClientIndexManager {
 
     public static void loadGunIndex() {
         TimelessAPI.getAllCommonGunIndex().forEach(index -> {
-            ResourceLocation id = index.getKey();
+            Identifier id = index.getKey();
             GunIndexPOJO pojo = index.getValue().getPojo();
             try {
                 GUN_INDEX.put(id, ClientGunIndex.getInstance(pojo));
@@ -78,7 +78,7 @@ public class ClientIndexManager {
 
     public static void loadGunDisplay() {
         ClientAssetsManager.INSTANCE.getGunDisplays().forEach(entry -> {
-            ResourceLocation displayId = entry.getKey();
+            Identifier displayId = entry.getKey();
             try {
                 GUN_DISPLAY.put(displayId, GunDisplayInstance.create(displayId, entry.getValue()));
             } catch (IllegalArgumentException exception) {
@@ -87,7 +87,7 @@ public class ClientIndexManager {
         });
     }
 
-    public static GunDisplayInstance getOrCreateGunDisplay(ResourceLocation displayId) {
+    public static GunDisplayInstance getOrCreateGunDisplay(Identifier displayId) {
         GunDisplayInstance instance = GUN_DISPLAY.get(displayId);
         if (instance != null) {
             return instance;
@@ -98,7 +98,7 @@ public class ClientIndexManager {
 
     public static void loadAmmoIndex() {
         TimelessAPI.getAllCommonAmmoIndex().forEach(index -> {
-            ResourceLocation id = index.getKey();
+            Identifier id = index.getKey();
             AmmoIndexPOJO pojo = index.getValue().getPojo();
             try {
                 AMMO_INDEX.put(id, ClientAmmoIndex.getInstance(pojo));
@@ -110,7 +110,7 @@ public class ClientIndexManager {
 
     public static void loadAttachmentIndex() {
         TimelessAPI.getAllCommonAttachmentIndex().forEach(index -> {
-            ResourceLocation id = index.getKey();
+            Identifier id = index.getKey();
             AttachmentIndexPOJO pojo = index.getValue().getPojo();
             try {
                 ATTACHMENT_INDEX.put(id, ClientAttachmentIndex.getInstance(id, pojo));
@@ -122,7 +122,7 @@ public class ClientIndexManager {
 
     public static void loadBlockIndex() {
         TimelessAPI.getAllCommonBlockIndex().forEach(index -> {
-            ResourceLocation id = index.getKey();
+            Identifier id = index.getKey();
             BlockIndexPOJO pojo = index.getValue().getPojo();
             try {
                 BLOCK_INDEX.put(id, ClientBlockIndex.getInstance(pojo));
@@ -132,19 +132,19 @@ public class ClientIndexManager {
         });
     }
 
-    public static Set<Map.Entry<ResourceLocation, ClientGunIndex>> getAllGuns() {
+    public static Set<Map.Entry<Identifier, ClientGunIndex>> getAllGuns() {
         return GUN_INDEX.entrySet();
     }
 
-    public static Set<Map.Entry<ResourceLocation, ClientAmmoIndex>> getAllAmmo() {
+    public static Set<Map.Entry<Identifier, ClientAmmoIndex>> getAllAmmo() {
         return AMMO_INDEX.entrySet();
     }
 
-    public static Set<Map.Entry<ResourceLocation, ClientAttachmentIndex>> getAllAttachments() {
+    public static Set<Map.Entry<Identifier, ClientAttachmentIndex>> getAllAttachments() {
         return ATTACHMENT_INDEX.entrySet();
     }
 
-    public static Set<Map.Entry<ResourceLocation, ClientBlockIndex>> getAllBlocks() {
+    public static Set<Map.Entry<Identifier, ClientBlockIndex>> getAllBlocks() {
         return BLOCK_INDEX.entrySet();
     }
 

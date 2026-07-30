@@ -4,7 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.*;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.UUID;
@@ -308,25 +308,25 @@ public class Serializers {
         }
     };
 
-    public static final IDataSerializer<ResourceLocation> RESOURCE_LOCATION = new IDataSerializer<>() {
+    public static final IDataSerializer<Identifier> RESOURCE_LOCATION = new IDataSerializer<>() {
         @Override
-        public void write(FriendlyByteBuf buf, ResourceLocation value) {
-            buf.writeResourceLocation(value);
+        public void write(FriendlyByteBuf buf, Identifier value) {
+            buf.writeIdentifier(value);
         }
 
         @Override
-        public ResourceLocation read(FriendlyByteBuf buf) {
-            return buf.readResourceLocation();
+        public Identifier read(FriendlyByteBuf buf) {
+            return buf.readIdentifier();
         }
 
         @Override
-        public Tag write(HolderLookup.Provider provider, ResourceLocation value) {
+        public Tag write(HolderLookup.Provider provider, Identifier value) {
             return StringTag.valueOf(value.toString());
         }
 
         @Override
-        public ResourceLocation read(HolderLookup.Provider provider, Tag tag) {
-            return ResourceLocation.tryParse(tag.getAsString());
+        public Identifier read(HolderLookup.Provider provider, Tag tag) {
+            return Identifier.tryParse(tag.getAsString());
         }
     };
 }

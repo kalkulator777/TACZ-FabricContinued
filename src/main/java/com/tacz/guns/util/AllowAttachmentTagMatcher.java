@@ -1,7 +1,7 @@
 package com.tacz.guns.util;
 
 import com.tacz.guns.resource.CommonAssetsManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashSet;
@@ -14,22 +14,22 @@ public final class AllowAttachmentTagMatcher {
     private static final Cache CACHE = new Cache();
 
     public record Cache(
-            Map<Pair<ResourceLocation, ResourceLocation>, Boolean> allowAttachmentCache,
-            Map<Pair<ResourceLocation, ResourceLocation>, Boolean> tagMatchCache
+            Map<Pair<Identifier, Identifier>, Boolean> allowAttachmentCache,
+            Map<Pair<Identifier, Identifier>, Boolean> tagMatchCache
     ) {
         public Cache() {
             this(new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
         }
     }
 
-    public static boolean match(ResourceLocation gunId, ResourceLocation attachmentId) {
+    public static boolean match(Identifier gunId, Identifier attachmentId) {
         var key = Pair.of(gunId, attachmentId);
         return CACHE.allowAttachmentCache().computeIfAbsent(key, AllowAttachmentTagMatcher::match0);
     }
 
-    public static boolean match0(Pair<ResourceLocation, ResourceLocation> record) {
-        ResourceLocation gunId = record.getLeft();
-        ResourceLocation attachmentId = record.getRight();
+    public static boolean match0(Pair<Identifier, Identifier> record) {
+        Identifier gunId = record.getLeft();
+        Identifier attachmentId = record.getRight();
         Set<String> allowAttachmentTags = CommonAssetsManager.get().getAllowAttachmentTags(gunId);
         // 如果枪械对应的 allowAttachmentTags 为空，说明目前没有任何可以装的配件
         if (allowAttachmentTags == null || allowAttachmentTags.isEmpty()) {
@@ -50,14 +50,14 @@ public final class AllowAttachmentTagMatcher {
      * @return 配件 id 是否有这个配件标签
      * @since 1.1.7
      */
-    public static boolean matchTag(ResourceLocation tag, ResourceLocation attachmentId) {
+    public static boolean matchTag(Identifier tag, Identifier attachmentId) {
         var key = Pair.of(tag, attachmentId);
         return CACHE.tagMatchCache().computeIfAbsent(key, AllowAttachmentTagMatcher::matchTag0);
     }
 
-    public static boolean matchTag0(Pair<ResourceLocation, ResourceLocation> record) {
-        ResourceLocation tag = record.getLeft();
-        ResourceLocation attachmentId = record.getRight();
+    public static boolean matchTag0(Pair<Identifier, Identifier> record) {
+        Identifier tag = record.getLeft();
+        Identifier attachmentId = record.getRight();
         Set<String> tagContent = CommonAssetsManager.get().getAttachmentTags(tag);
         // 如果 tag 对应的内容集为空，说明目前没有任何内容
         if (tagContent == null || tagContent.isEmpty()) {
@@ -71,13 +71,13 @@ public final class AllowAttachmentTagMatcher {
      * @param visited tag ids already walked — the contents come from a gun pack and can
      *                reference each other in a cycle, which used to overflow the stack
      */
-    private static boolean treeSearch(Set<String> tags, ResourceLocation attachmentId, Set<ResourceLocation> visited) {
+    private static boolean treeSearch(Set<String> tags, Identifier attachmentId, Set<Identifier> visited) {
         // 开始遍历 tags，寻找配件 id
         for (String tag : tags) {
             // 如果是 tag，则去 attachment tag 寻找我们的东西
             if (tag.startsWith(TAG_PREFIX)) {
                 // 枪包里的字符串可能格式错误，tryParse 不会抛异常
-                ResourceLocation tagId = ResourceLocation.tryParse(tag.substring(TAG_PREFIX.length()));
+                Identifier tagId = Identifier.tryParse(tag.substring(TAG_PREFIX.length()));
                 if (tagId == null || !visited.add(tagId)) {
                     continue;
                 }
@@ -89,7 +89,7 @@ public final class AllowAttachmentTagMatcher {
                 }
             }
             // 如果是配件 id，直接对比
-            else if (attachmentId.equals(ResourceLocation.tryParse(tag))) {
+            else if (attachmentId.equals(Identifier.tryParse(tag))) {
                 return true;
             }
         }

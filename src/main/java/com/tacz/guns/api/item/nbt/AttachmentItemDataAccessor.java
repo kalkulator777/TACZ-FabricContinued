@@ -5,7 +5,7 @@ import com.tacz.guns.api.item.IAttachment;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
@@ -25,12 +25,12 @@ public interface AttachmentItemDataAccessor extends IAttachment {
     }
 
     @Nonnull
-    static ResourceLocation getAttachmentIdFromTag(@Nullable CompoundTag nbt) {
+    static Identifier getAttachmentIdFromTag(@Nullable CompoundTag nbt) {
         if (nbt == null) {
             return DefaultAssets.EMPTY_ATTACHMENT_ID;
         }
         if (isAttachmentLike(nbt)) {
-            ResourceLocation attachmentId = ResourceLocation.tryParse(nbt.getString(ATTACHMENT_ID_TAG));
+            Identifier attachmentId = Identifier.tryParse(nbt.getString(ATTACHMENT_ID_TAG));
             return Objects.requireNonNullElse(attachmentId, DefaultAssets.EMPTY_ATTACHMENT_ID);
         }
         return DefaultAssets.EMPTY_ATTACHMENT_ID;
@@ -56,13 +56,13 @@ public interface AttachmentItemDataAccessor extends IAttachment {
 
     @Override
     @Nonnull
-    default ResourceLocation getAttachmentId(ItemStack attachmentStack) {
+    default Identifier getAttachmentId(ItemStack attachmentStack) {
         CompoundTag nbt = attachmentStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         return getAttachmentIdFromTag(nbt);
     }
 
     @Override
-    default void setAttachmentId(ItemStack attachmentStack, @Nullable ResourceLocation attachmentId) {
+    default void setAttachmentId(ItemStack attachmentStack, @Nullable Identifier attachmentId) {
         attachmentStack.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             if (attachmentId != null) {
                 tag.putString(ATTACHMENT_ID_TAG, attachmentId.toString());
@@ -72,16 +72,16 @@ public interface AttachmentItemDataAccessor extends IAttachment {
 
     @Override
     @Nullable
-    default ResourceLocation getSkinId(ItemStack attachmentStack) {
+    default Identifier getSkinId(ItemStack attachmentStack) {
         CompoundTag nbt = attachmentStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (nbt.contains(SKIN_ID_TAG, Tag.TAG_STRING)) {
-            return ResourceLocation.tryParse(nbt.getString(SKIN_ID_TAG));
+            return Identifier.tryParse(nbt.getString(SKIN_ID_TAG));
         }
         return null;
     }
 
     @Override
-    default void setSkinId(ItemStack attachmentStack, @Nullable ResourceLocation skinId) {
+    default void setSkinId(ItemStack attachmentStack, @Nullable Identifier skinId) {
         attachmentStack.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             if (skinId != null) {
                 tag.putString(SKIN_ID_TAG, skinId.toString());

@@ -4,7 +4,7 @@ import com.tacz.guns.crafting.GunSmithTableRecipe;
 import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.display.basic.BasicDisplay;
 import me.shedaniel.rei.api.common.util.EntryIngredients;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Collections;
 import java.util.Map;
@@ -12,9 +12,9 @@ import java.util.Optional;
 
 public class GunSmithTableDisplay extends BasicDisplay {
     private final GunSmithTableRecipe recipe;
-    private final Map.Entry<ResourceLocation, CategoryIdentifier<GunSmithTableDisplay>> entry;
+    private final Map.Entry<Identifier, CategoryIdentifier<GunSmithTableDisplay>> entry;
 
-    public GunSmithTableDisplay(GunSmithTableRecipe recipe, Map.Entry<ResourceLocation, CategoryIdentifier<GunSmithTableDisplay>> entry) {
+    public GunSmithTableDisplay(GunSmithTableRecipe recipe, Map.Entry<Identifier, CategoryIdentifier<GunSmithTableDisplay>> entry) {
         super(EntryIngredients.ofIngredients(recipe.getIngredients()), Collections.singletonList(EntryIngredients.of(recipe.getOutput())), Optional.ofNullable(entry.getKey()));
         this.recipe = recipe;
         this.entry = entry;

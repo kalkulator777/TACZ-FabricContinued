@@ -18,7 +18,7 @@ import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.Level;
@@ -54,14 +54,14 @@ public class BulletHoleParticle extends TextureSheetParticle {
         if (state.is(ModBlocks.TARGET) || shouldRemove()) {
             this.remove();
         }
-        TimelessAPI.getGunDisplay(ResourceLocation.parse(gunDisplayId), ResourceLocation.parse(gunId)).ifPresent(gunIndex -> {
+        TimelessAPI.getGunDisplay(Identifier.parse(gunDisplayId), Identifier.parse(gunId)).ifPresent(gunIndex -> {
             float[] gunTracerColor = gunIndex.getTracerColor();
             if (gunTracerColor != null) {
                 this.rCol = gunTracerColor[0];
                 this.gCol = gunTracerColor[1];
                 this.bCol = gunTracerColor[2];
             } else {
-                TimelessAPI.getClientAmmoIndex(ResourceLocation.parse(ammoId)).ifPresent(ammoIndex -> {
+                TimelessAPI.getClientAmmoIndex(Identifier.parse(ammoId)).ifPresent(ammoIndex -> {
                     float[] ammoTracerColor = ammoIndex.getTracerColor();
                     this.rCol = ammoTracerColor[0];
                     this.gCol = ammoTracerColor[1];

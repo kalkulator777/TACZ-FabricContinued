@@ -26,17 +26,17 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 @Environment(EnvType.CLIENT)
 public class GunRefitScreen extends Screen {
-    public static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_slot.png");
-    public static final ResourceLocation TURN_PAGE_TEXTURE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_turn_page.png");
-    public static final ResourceLocation UNLOAD_TEXTURE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_unload.png");
-    public static final ResourceLocation ICONS_TEXTURE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_slot_icons.png");
+    public static final Identifier SLOT_TEXTURE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_slot.png");
+    public static final Identifier TURN_PAGE_TEXTURE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_turn_page.png");
+    public static final Identifier UNLOAD_TEXTURE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_unload.png");
+    public static final Identifier ICONS_TEXTURE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/refit_slot_icons.png");
 
     public static final int ICON_UV_SIZE = 32;
     public static final int SLOT_SIZE = 18;

@@ -4,16 +4,16 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.CommonComponents;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 public class ImageButton extends Button {
     private final int xTexStart;
     private final int yTexStart;
     private final int yDiffTex;
-    private final ResourceLocation resourceLocation;
+    private final Identifier resourceLocation;
 
-    public ImageButton(int pX, int pY, int pWidth, int pHeight, int pXTexStart, int pYTexStart, int pYDiffTex, ResourceLocation pResourceLocation, Button.OnPress pOnPress) {
+    public ImageButton(int pX, int pY, int pWidth, int pHeight, int pXTexStart, int pYTexStart, int pYDiffTex, Identifier pResourceLocation, Button.OnPress pOnPress) {
         super(pX, pY, pWidth, pHeight, CommonComponents.EMPTY, pOnPress, DEFAULT_NARRATION);
         xTexStart = pXTexStart;
         yTexStart = pYTexStart;
@@ -26,7 +26,7 @@ public class ImageButton extends Button {
         this.renderTexture(gui, this.resourceLocation, this.getX(), this.getY(), this.xTexStart, this.yTexStart, this.yDiffTex, this.width, this.height, 256, 256);
     }
 
-    private void renderTexture(GuiGraphics pGuiGraphics, ResourceLocation pTexture, int pX, int pY, int pUOffset, int pVOffset, int pTextureDifference, int pWidth, int pHeight, int pTextureWidth, int pTextureHeight) {
+    private void renderTexture(GuiGraphics pGuiGraphics, Identifier pTexture, int pX, int pY, int pUOffset, int pVOffset, int pTextureDifference, int pWidth, int pHeight, int pTextureWidth, int pTextureHeight) {
         int i = pVOffset;
         if (!this.isActive()) {
             i = pVOffset + pTextureDifference * 2;

@@ -39,7 +39,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.registries.VanillaRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.neoforged.fml.config.ModConfig;
 import org.jetbrains.annotations.Nullable;
@@ -47,10 +47,10 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 
 public class TaCZFabric implements ModInitializer {
-    public static final ResourceLocation HIGHEST = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "event_highest_priority");
-    public static final ResourceLocation HIGH = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "event_high_priority");
-    public static final ResourceLocation LOW = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "event_low_priority");
-    public static final ResourceLocation LOWEST = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "event_lowest_priority");
+    public static final Identifier HIGHEST = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "event_highest_priority");
+    public static final Identifier HIGH = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "event_high_priority");
+    public static final Identifier LOW = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "event_low_priority");
+    public static final Identifier LOWEST = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "event_lowest_priority");
 
     public static final HolderLookup.Provider VANILLA_ACCESS = VanillaRegistries.createLookup();
 
@@ -87,7 +87,7 @@ public class TaCZFabric implements ModInitializer {
         GunMod.setup();
         CommandRegistry.onServerStaring();
         CompatRegistry.onEnqueue();
-        ArgumentTypeRegistry.registerArgumentType(ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "enum_argument"), EnumArgument.class,
+        ArgumentTypeRegistry.registerArgumentType(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "enum_argument"), EnumArgument.class,
                 new EnumArgument.Info());
         CustomIngredientSerializer.register(NBTIngredient.Serializer.INSTANCE);
 

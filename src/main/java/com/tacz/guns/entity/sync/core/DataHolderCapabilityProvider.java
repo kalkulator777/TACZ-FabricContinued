@@ -5,7 +5,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
@@ -14,7 +14,7 @@ import org.ladysnake.cca.api.v3.component.ComponentRegistry;
 import java.util.Optional;
 
 public class DataHolderCapabilityProvider implements Component {
-    public static final ComponentKey<DataHolderCapabilityProvider> CAPABILITY = ComponentRegistry.getOrCreate(ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "synced_entity_data"), DataHolderCapabilityProvider.class);
+    public static final ComponentKey<DataHolderCapabilityProvider> CAPABILITY = ComponentRegistry.getOrCreate(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "synced_entity_data"), DataHolderCapabilityProvider.class);
     private final DataHolder holder = new DataHolder();
     /**
      * Cleared when the entity leaves the world, so its data is no longer handed out.
@@ -47,8 +47,8 @@ public class DataHolderCapabilityProvider implements Component {
         this.holder.dataMap.clear();
         listTag.forEach(entryTag -> {
             CompoundTag keyTag = (CompoundTag) entryTag;
-            ResourceLocation classKey = ResourceLocation.tryParse(keyTag.getString("ClassKey"));
-            ResourceLocation dataKey = ResourceLocation.tryParse(keyTag.getString("DataKey"));
+            Identifier classKey = Identifier.tryParse(keyTag.getString("ClassKey"));
+            Identifier dataKey = Identifier.tryParse(keyTag.getString("DataKey"));
             Tag value = keyTag.get("Value");
             SyncedClassKey<?> syncedClassKey = SyncedEntityData.instance().getClassKey(classKey);
             if (syncedClassKey == null) {

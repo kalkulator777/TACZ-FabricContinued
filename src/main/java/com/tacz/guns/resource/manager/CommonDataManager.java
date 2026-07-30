@@ -6,7 +6,7 @@ import com.google.gson.JsonElement;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.resource.network.DataType;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 
@@ -21,27 +21,27 @@ import java.util.Map;
  */
 public class CommonDataManager<T> extends JsonDataManager<T> implements INetworkCacheReloadListener {
     private final DataType type;
-    protected Map<ResourceLocation, String> networkCache = Map.of();
+    protected Map<Identifier, String> networkCache = Map.of();
 
-    public final ResourceLocation ID;
+    public final Identifier ID;
 
     public CommonDataManager(DataType type, Class<T> dataClass, Gson pGson, String directory, String marker) {
         super(dataClass, pGson, directory, marker);
         this.type = type;
-        this.ID = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, marker.toLowerCase(Locale.ROOT));
+        this.ID = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, marker.toLowerCase(Locale.ROOT));
     }
 
     public CommonDataManager(DataType type, Class<T> dataClass, Gson pGson, FileToIdConverter fileToIdConverter, String marker) {
         super(dataClass, pGson, fileToIdConverter, marker);
         this.type = type;
-        this.ID = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, marker.toLowerCase(Locale.ROOT));
+        this.ID = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, marker.toLowerCase(Locale.ROOT));
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+    protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         super.apply(pObject, pResourceManager, pProfiler);
 
-        ImmutableMap.Builder<ResourceLocation, String> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<Identifier, String> builder = ImmutableMap.builder();
         // 只同步解析成功的文件。坏掉的那份在客户端一样解析不了，白占同步包的体积
         pObject.forEach((id, element) -> {
             if (this.dataMap.containsKey(id)) {
@@ -55,7 +55,7 @@ public class CommonDataManager<T> extends JsonDataManager<T> implements INetwork
         this.dataMap.clear();
     }
 
-    public Map<ResourceLocation, String> getNetworkCache() {
+    public Map<Identifier, String> getNetworkCache() {
         return this.networkCache;
     }
 
@@ -64,7 +64,7 @@ public class CommonDataManager<T> extends JsonDataManager<T> implements INetwork
     }
 
     @Override
-    public ResourceLocation getFabricId() {
+    public Identifier getFabricId() {
         return ID;
     }
 }

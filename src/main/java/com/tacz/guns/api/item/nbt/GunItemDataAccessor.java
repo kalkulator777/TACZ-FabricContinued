@@ -16,7 +16,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -119,17 +119,17 @@ public interface GunItemDataAccessor extends IGun {
 
     @Override
     @Nonnull
-    default ResourceLocation getGunId(ItemStack gun) {
+    default Identifier getGunId(ItemStack gun) {
         CompoundTag nbt = gun.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (nbt.contains(GUN_ID_TAG, Tag.TAG_STRING)) {
-            ResourceLocation gunId = ResourceLocation.tryParse(nbt.getString(GUN_ID_TAG));
+            Identifier gunId = Identifier.tryParse(nbt.getString(GUN_ID_TAG));
             return Objects.requireNonNullElse(gunId, DefaultAssets.EMPTY_GUN_ID);
         }
         return DefaultAssets.EMPTY_GUN_ID;
     }
 
     @Override
-    default void setGunId(ItemStack gun, @Nullable ResourceLocation gunId) {
+    default void setGunId(ItemStack gun, @Nullable Identifier gunId) {
         gun.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             if (gunId != null) {
                 tag.putString(GUN_ID_TAG, gunId.toString());
@@ -139,17 +139,17 @@ public interface GunItemDataAccessor extends IGun {
 
     @Override
     @NotNull
-    default ResourceLocation getGunDisplayId(ItemStack gun) {
+    default Identifier getGunDisplayId(ItemStack gun) {
         CompoundTag nbt = gun.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         if (nbt.contains(GUN_DISPLAY_ID_TAG, Tag.TAG_STRING)) {
-            ResourceLocation gunDisplayId = ResourceLocation.tryParse(nbt.getString(GUN_DISPLAY_ID_TAG));
+            Identifier gunDisplayId = Identifier.tryParse(nbt.getString(GUN_DISPLAY_ID_TAG));
             return Objects.requireNonNullElse(gunDisplayId, DefaultAssets.DEFAULT_GUN_DISPLAY_ID);
         }
         return DefaultAssets.DEFAULT_GUN_DISPLAY_ID;
     }
 
     @Override
-    default void setGunDisplayId(ItemStack gun, ResourceLocation displayId) {
+    default void setGunDisplayId(ItemStack gun, Identifier displayId) {
         gun.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             if (displayId != null) {
                 tag.putString(GUN_DISPLAY_ID_TAG, displayId.toString());
@@ -306,7 +306,7 @@ public interface GunItemDataAccessor extends IGun {
 
     @Override
     @NotNull
-    default ResourceLocation getBuiltInAttachmentId(ItemStack gun, AttachmentType type) {
+    default Identifier getBuiltInAttachmentId(ItemStack gun, AttachmentType type) {
         IGun iGun = IGun.getIGunOrNull(gun);
         if (iGun == null) {
             return DefaultAssets.EMPTY_ATTACHMENT_ID;
@@ -323,7 +323,7 @@ public interface GunItemDataAccessor extends IGun {
 
     @Override
     @Nonnull
-    default ResourceLocation getAttachmentId(ItemStack gun, AttachmentType type) {
+    default Identifier getAttachmentId(ItemStack gun, AttachmentType type) {
         CompoundTag attachmentTag = this.getAttachmentTag(gun, type);
         if (attachmentTag != null) {
             return AttachmentItemDataAccessor.getAttachmentIdFromTag(attachmentTag);
@@ -361,7 +361,7 @@ public interface GunItemDataAccessor extends IGun {
     @Override
     default float getAimingZoom(ItemStack gunItem) {
         float zoom = 1;
-        ResourceLocation scopeId = this.getAttachmentId(gunItem, AttachmentType.SCOPE);
+        Identifier scopeId = this.getAttachmentId(gunItem, AttachmentType.SCOPE);
         boolean builtin = false;
         if (scopeId.equals(DefaultAssets.EMPTY_ATTACHMENT_ID)) {
             scopeId = getBuiltInAttachmentId(gunItem, AttachmentType.SCOPE);

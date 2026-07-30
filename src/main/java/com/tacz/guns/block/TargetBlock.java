@@ -42,7 +42,7 @@ import java.util.Optional;
 public class TargetBlock extends BaseEntityBlock {
     public static final MapCodec<TargetBlock> CODEC = simpleCodec((properties) -> new TargetBlock());
     public static final IntegerProperty OUTPUT_POWER = BlockStateProperties.POWER;
-    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
     public static final BooleanProperty STAND = BooleanProperty.create("stand");
     public static final VoxelShape BOX_BOTTOM_STAND_X = Shapes.or(Block.box(6, 0, 6, 10, 16, 10), Block.box(6, 13, 2, 10, 16, 14));

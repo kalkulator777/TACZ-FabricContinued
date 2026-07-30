@@ -17,7 +17,7 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 
 import java.util.*;
@@ -35,11 +35,11 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
     }*/
 
     public GunPackList(Minecraft pMinecraft, int pWidth, int pHeight, int pY0, int pY1, int pItemHeight,
-                       Map<ResourceLocation, List<ResourceLocation>> recipes, GunSmithTableScreen parent) {
+                       Map<Identifier, List<Identifier>> recipes, GunSmithTableScreen parent) {
         super(pMinecraft, pWidth, pHeight, pY0, pItemHeight);
         this.parent = parent;
         Set<String> namespaces = new HashSet<>();
-        for (List<ResourceLocation> entry : recipes.values()) {
+        for (List<Identifier> entry : recipes.values()) {
             entry.forEach((resourceLocation) -> namespaces.add(resourceLocation.getNamespace()));
         }
 
@@ -182,10 +182,10 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
     }
 
     public static class Checkbox extends AbstractButton {
-        private static final ResourceLocation CHECKBOX = ResourceLocation.withDefaultNamespace("textures/gui/sprites/widget/checkbox.png");
-        private static final ResourceLocation CHECKBOX_HIGHLIGHTED = ResourceLocation.withDefaultNamespace("textures/gui/sprites/widget/checkbox_highlighted.png");
-        private static final ResourceLocation CHECKBOX_SELECTED = ResourceLocation.withDefaultNamespace("textures/gui/sprites/widget/checkbox_selected.png");
-        private static final ResourceLocation CHECKBOX_SELECTED_HIGHLIGHTED = ResourceLocation.withDefaultNamespace("textures/gui/sprites/widget/checkbox_selected_highlighted.png");
+        private static final Identifier CHECKBOX = Identifier.withDefaultNamespace("textures/gui/sprites/widget/checkbox.png");
+        private static final Identifier CHECKBOX_HIGHLIGHTED = Identifier.withDefaultNamespace("textures/gui/sprites/widget/checkbox_highlighted.png");
+        private static final Identifier CHECKBOX_SELECTED = Identifier.withDefaultNamespace("textures/gui/sprites/widget/checkbox_selected.png");
+        private static final Identifier CHECKBOX_SELECTED_HIGHLIGHTED = Identifier.withDefaultNamespace("textures/gui/sprites/widget/checkbox_selected_highlighted.png");
         protected boolean selected;
         protected final boolean showLabel;
         private String id;
@@ -235,7 +235,7 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
             Font font = minecraft.font;
             pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, this.alpha);
             RenderSystem.enableBlend();
-            ResourceLocation texture;
+            Identifier texture;
             if (this.isFocused()) {
                 if (this.selected) {
                     texture = CHECKBOX_SELECTED_HIGHLIGHTED;

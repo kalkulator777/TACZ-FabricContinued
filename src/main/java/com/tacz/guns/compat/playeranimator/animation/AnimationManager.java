@@ -19,14 +19,14 @@ import com.zigythebird.playeranimcore.animation.layered.modifier.AbstractFadeMod
 import com.zigythebird.playeranimcore.easing.EasingType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.ItemStack;
 
 public class AnimationManager {
     public static boolean hasPlayerAnimator3rd(GunDisplayInstance display) {
-        ResourceLocation location = display.getPlayerAnimator3rd();
+        Identifier location = display.getPlayerAnimator3rd();
         if (location == null) {
             return false;
         }
@@ -51,7 +51,7 @@ public class AnimationManager {
      * The controller behind one of the four per-player layers. The rotation layer is wrapped in a
      * {@link ModifierLayer} so it can carry the adjustment modifier; the rest are bare.
      */
-    private static PlayerAnimationController controller(AbstractClientPlayer player, ResourceLocation dataId) {
+    private static PlayerAnimationController controller(AbstractClientPlayer player, Identifier dataId) {
         IAnimation layer = PlayerAnimationAccess.getPlayerAnimationLayer(player, dataId);
         if (layer instanceof ModifierLayer<?> modifierLayer) {
             layer = modifierLayer.getAnimation();
@@ -154,14 +154,14 @@ public class AnimationManager {
     /**
      * Starts a looping animation, unless it is already the one playing.
      */
-    public static void playLoopAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId, String animationName) {
+    public static void playLoopAnimation(AbstractClientPlayer player, GunDisplayInstance display, Identifier dataId, String animationName) {
         playAnimation(player, display, dataId, animationName, true);
     }
 
     /**
      * Starts a one-shot animation, unless something on that layer is still playing.
      */
-    public static void playOnceAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId, String animationName) {
+    public static void playOnceAnimation(AbstractClientPlayer player, GunDisplayInstance display, Identifier dataId, String animationName) {
         playAnimation(player, display, dataId, animationName, false);
     }
 
@@ -169,9 +169,9 @@ public class AnimationManager {
      * @param interruptOther whether a different animation already playing on this layer should be
      *                       faded out and replaced, or left to finish
      */
-    private static void playAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId,
+    private static void playAnimation(AbstractClientPlayer player, GunDisplayInstance display, Identifier dataId,
                                       String animationName, boolean interruptOther) {
-        ResourceLocation animator3rd = display.getPlayerAnimator3rd();
+        Identifier animator3rd = display.getPlayerAnimator3rd();
         if (animator3rd == null) {
             return;
         }
@@ -209,7 +209,7 @@ public class AnimationManager {
     }
 
 
-    private static void stopAnimation(AbstractClientPlayer player, ResourceLocation dataId, int fadeTime) {
+    private static void stopAnimation(AbstractClientPlayer player, Identifier dataId, int fadeTime) {
         PlayerAnimationController animationController = controller(player, dataId);
         if (animationController != null && animationController.isActive()) {
             animationController.replaceAnimationWithFade(fade(fadeTime), (Animation) null);

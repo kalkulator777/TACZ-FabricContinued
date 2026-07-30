@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +22,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<ResourceLocation> {
+public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<Identifier> {
     public static final BlockEntityType<GunSmithTableBlockEntity> TYPE = BlockEntityType.Builder.of(GunSmithTableBlockEntity::new,
             ModBlocks.GUN_SMITH_TABLE,
             ModBlocks.WORKBENCH_111,
@@ -33,18 +33,18 @@ public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScr
     private static final String ID_TAG = "BlockId";
 
     @Nullable
-    private ResourceLocation id = null;
+    private Identifier id = null;
 
     public GunSmithTableBlockEntity(BlockPos pos, BlockState blockState) {
         super(TYPE, pos, blockState);
     }
 
-    public void setId(ResourceLocation id) {
+    public void setId(Identifier id) {
         this.id = id;
     }
 
     @Nullable
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
 
@@ -67,7 +67,7 @@ public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScr
     }
 
     @Override
-    public ResourceLocation getScreenOpeningData(ServerPlayer serverPlayer) {
+    public Identifier getScreenOpeningData(ServerPlayer serverPlayer) {
         return this.getId() == null ? DefaultAssets.DEFAULT_BLOCK_ID : this.getId();
     }
 
@@ -81,7 +81,7 @@ public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScr
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
         if (tag.contains(ID_TAG, Tag.TAG_STRING)) {
-            this.id = ResourceLocation.tryParse(tag.getString(ID_TAG));
+            this.id = Identifier.tryParse(tag.getString(ID_TAG));
         } else {
             this.id = DefaultAssets.DEFAULT_BLOCK_ID;
         }

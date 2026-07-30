@@ -6,7 +6,7 @@ import com.tacz.guns.GunMod;
 import com.tacz.guns.client.resource.pojo.PackInfo;
 import com.tacz.guns.resource.CommonAssetsManager;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.GsonHelper;
@@ -28,7 +28,7 @@ public class PackInfoManager extends SimplePreparableReloadListener<Map<String, 
         Map<String, PackInfo> output = Maps.newHashMap();
 
         for (String namespaces : manager.getNamespaces()) {
-            manager.getResource(ResourceLocation.fromNamespaceAndPath(namespaces, PACK_INFO_NAME)).ifPresent(rl -> {
+            manager.getResource(Identifier.fromNamespaceAndPath(namespaces, PACK_INFO_NAME)).ifPresent(rl -> {
                 try (Reader reader = rl.openAsReader()) {
                     PackInfo packInfo = GsonHelper.fromJson(CommonAssetsManager.GSON, reader, PackInfo.class, true);
                     PackInfo packInfo1 = output.put(namespaces, packInfo);
@@ -53,10 +53,10 @@ public class PackInfoManager extends SimplePreparableReloadListener<Map<String, 
         return dataMap.get(namespace);
     }
 
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "packinfo_manager");
+    public static final Identifier ID = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "packinfo_manager");
 
     @Override
-    public ResourceLocation getFabricId() {
+    public Identifier getFabricId() {
         return ID;
     }
 }

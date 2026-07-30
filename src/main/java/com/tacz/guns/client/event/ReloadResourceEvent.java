@@ -5,11 +5,11 @@ import com.tacz.guns.client.resource.InternalAssetLoader;
 import com.tacz.guns.client.sound.SoundPlayManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 @Environment(EnvType.CLIENT)
 public class ReloadResourceEvent {
-    public static final ResourceLocation BLOCK_ATLAS_TEXTURE = ResourceLocation.parse("textures/atlas/blocks.png");
+    public static final Identifier BLOCK_ATLAS_TEXTURE = Identifier.parse("textures/atlas/blocks.png");
 
     public static void onTextureStitchEventPost(TextureStitchEvent.Post event) {
         if (BLOCK_ATLAS_TEXTURE.equals(event.getAtlas().location())) {

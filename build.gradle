@@ -1,5 +1,7 @@
 plugins {
-    id 'fabric-loom' version '1.11-SNAPSHOT'
+    /* 1.17 起 Loom 拆成了两个插件：`fabric-loom` 产出 Mojmap 命名的 jar，
+     * `fabric-loom-remap` 保留原来重映射到 intermediary 的行为。1.21.11 要的是后者。 */
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
     id 'maven-publish'
 }
 
@@ -111,10 +113,6 @@ repositories {
         url = "https://maven.terraformersmc.com/"
     }
     maven {
-        name = 'ParchmentMC'
-        url = 'https://maven.parchmentmc.org'
-    }
-    maven {
         name = "devOSSnapshots"
         url = uri("https://mvn.devos.one/snapshots")
     }
@@ -127,11 +125,9 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    // 映射用的是 Mojmap + Parchment，不是 Yarn
-    mappings loom.layered() {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${project.parchment_minecraft_version}:${project.parchment_mappings_version}@zip")
-    }
+    /* Mojmap，不是 Yarn。Parchment 这一层去掉了：它对 1.21.11 没有发布，
+     * 少的只是参数名和 javadoc。26.1 完全不混淆之后这里会再简化一次。*/
+    mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
@@ -155,17 +151,14 @@ dependencies {
     }
 
     // compile against the JEI API but do not include it at runtime
-    modCompileOnly("mezz.jei:jei-1.21.1-common-api:${jei_version}")
-    modCompileOnly("mezz.jei:jei-1.21.1-fabric-api:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    modCompileOnly("mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}")
     // at runtime, use the full JEI jar for Fabric
-    modRuntimeOnly("mezz.jei:jei-1.21.1-fabric:${jei_version}")
+    modRuntimeOnly("mezz.jei:jei-${minecraft_version}-fabric:${jei_version}")
 
-    // 假人，测试近战伤害。这两个只有 CurseForge 发布，所以只能钉在文件 id 上
-    modRuntimeOnly "curse.maven:selene-499980:6914081"
-    modRuntimeOnly "curse.maven:mmmmmmmmmmmm-225738:6826532"
-    // 手柄按键支持。MrCrayfish 的这两个也只有 CurseForge
-    modCompileOnly "curse.maven:framework-549225:6531437"
-    modCompileOnly("curse.maven:controllable-317269:6850103")
+    // 手柄按键支持。MrCrayfish 的这两个只有 CurseForge 发布，所以只能钉在文件 id 上
+    modCompileOnly "curse.maven:framework-549225:${framework_file_id}"
+    modCompileOnly("curse.maven:controllable-317269:${controllable_file_id}")
 
     // 越肩视角，用来兼容第三人称准星
     modImplementation "maven.modrinth:shoulder-surfing-reloaded:${shoulder_surfing_version}"
@@ -194,42 +187,36 @@ dependencies {
     modCompileOnly "dev.architectury:architectury-fabric:${architectury_version}"
 
     // CCA
-    modImplementation(include("org.ladysnake.cardinal-components-api:cardinal-components-base:6.1.2"))
-    modImplementation(include("org.ladysnake.cardinal-components-api:cardinal-components-entity:6.1.2"))
+    modImplementation(include("org.ladysnake.cardinal-components-api:cardinal-components-base:7.3.2"))
+    modImplementation(include("org.ladysnake.cardinal-components-api:cardinal-components-entity:7.3.2"))
 
     // MKB
     // 1.21存在不能单独设置alt, ctrl, shift的bug，暂时弃用
     // modImplementation(include("curse.maven:modern-keybinding-fabric-695433:6016136"))
-    // dev环境使用全键无冲。只有 CurseForge 发布，代码里没有引用，所以只进运行时
-    modRuntimeOnly "curse.maven:nonconflictkeys-fabric-865546:4572953"
-
 
     // Forge Config API Port
-    modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.1.4"
+    modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.11.1"
 
     // ModMenu
-    modImplementation("com.terraformersmc:modmenu:11.0.3")
+    modImplementation("com.terraformersmc:modmenu:17.0.0")
 
     // Zoomify
-    modCompileOnly "maven.modrinth:zoomify:2.14.4+1.21.1"
+    modCompileOnly "maven.modrinth:zoomify:2.15.2+1.21.11"
 
-    modCompileOnly "maven.modrinth:immediatelyfast:1.6.6+1.21.1-fabric"
+    modCompileOnly "maven.modrinth:immediatelyfast:1.14.3+1.21.11-fabric"
 
-    modRuntimeOnly "maven.modrinth:tweakeroo:0.21.59"
-    modRuntimeOnly "maven.modrinth:malilib:0.21.9"
+    modRuntimeOnly "maven.modrinth:tweakeroo:0.27.11"
+    modRuntimeOnly "maven.modrinth:malilib:0.27.16"
 
     // REI
     modRuntimeOnly "me.shedaniel:RoughlyEnoughItems-fabric:$rei_version"
     modCompileOnly "me.shedaniel:RoughlyEnoughItems-api-fabric:$rei_version"
     modCompileOnly "me.shedaniel:RoughlyEnoughItems-default-plugin-fabric:$rei_version"
 
-    modRuntimeOnly "maven.modrinth:flashback:pOGQFvgK"
-    runtimeOnly("com.moulberry:mixinconstraints:1.0.8")
-    modRuntimeOnly("com.moulberry:lattice:1.2.18") {
-        attributes {
-            attribute(Attribute.of("earth.terrarium.cloche.modLoader", String), "fabric")
-        }
-    }
+    /* 只在开发环境里跑的几个便利 mod 暂时摘掉，代码一处也没引用它们：
+     * Flashback 连着 lattice 和 mixinconstraints 三个坐标，假人 Selene / mmmmmmmmmmmm
+     * 和全键无冲只发布在 CurseForge、只能钉文件 id。移植期间它们除了让「哪里坏了」
+     * 更难回答之外没有别的作用，等游戏能跑起来再按目标版本装回去。*/
 
     testImplementation platform("org.junit:junit-bom:${junit_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -266,6 +253,8 @@ processResources {
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = "UTF-8"
+    // 移植期间要一次看到全部错误，javac 默认只报 100 个就停
+    it.options.compilerArgs << "-Xmaxerrs" << "100000"
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         it.options.release.set(targetJavaVersion)
     }

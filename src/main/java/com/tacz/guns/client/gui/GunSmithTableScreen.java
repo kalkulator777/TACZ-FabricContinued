@@ -36,7 +36,7 @@ import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -48,7 +48,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
@@ -66,15 +66,15 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMenu> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/gun_smith_table.png");
-    private static final ResourceLocation SIDE = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/gun_smith_table_side.png");
+    private static final Identifier TEXTURE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/gun_smith_table.png");
+    private static final Identifier SIDE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/gui/gun_smith_table_side.png");
 
-    private final LinkedHashMap<ResourceLocation, TabConfig> recipeKeys = Maps.newLinkedHashMap();
-    private final Map<ResourceLocation, List<ResourceLocation>> recipes = Maps.newLinkedHashMap();
+    private final LinkedHashMap<Identifier, TabConfig> recipeKeys = Maps.newLinkedHashMap();
+    private final Map<Identifier, List<Identifier>> recipes = Maps.newLinkedHashMap();
 
     private int typePage;
-    private ResourceLocation selectedType = null;
-    private List<ResourceLocation> selectedRecipeList = new ArrayList<>();
+    private Identifier selectedType = null;
+    private List<Identifier> selectedRecipeList = new ArrayList<>();
 
     private int indexPage;
     private @Nullable RecipeHolder<GunSmithTableRecipe> selectedRecipe;
@@ -104,12 +104,12 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
     private void classifyRecipes() {
         this.recipes.clear();
         this.recipeKeys.clear();
-        ResourceLocation blockId = menu.getBlockId();
+        Identifier blockId = menu.getBlockId();
         if (blockId == null) {
             return;
         }
-        Map<ResourceLocation, List<ResourceLocation>> recipes = Maps.newLinkedHashMap();
-        Map<ResourceLocation, TabConfig> recipeKeys = Maps.newLinkedHashMap();
+        Map<Identifier, List<Identifier>> recipes = Maps.newLinkedHashMap();
+        Map<Identifier, TabConfig> recipeKeys = Maps.newLinkedHashMap();
 
         TimelessAPI.getCommonBlockIndex(blockId).ifPresent(blockIndex -> {
             var tabs = blockIndex.getData().getTabs();
@@ -122,7 +122,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
             }
         });
 
-        List<Pair<ResourceLocation, ResourceLocation>> recipeIds = Lists.newArrayList();
+        List<Pair<Identifier, Identifier>> recipeIds = Lists.newArrayList();
 
         if (Minecraft.getInstance().level != null) {
             RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
@@ -130,7 +130,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
             Set<String> namespaces = filterList != null ? filterList.namespaceList() : null;
             for (RecipeHolder<GunSmithTableRecipe> holder : recipeList) {
                 GunSmithTableRecipe recipe = holder.value();
-                ResourceLocation id = holder.id();
+                Identifier id = holder.id();
                 if (namespaces != null && !namespaces.contains(id.getNamespace())) {
                     continue;
                 }
@@ -141,7 +141,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                     continue;
                 }
 
-                ResourceLocation groupName = recipe.getResult().getGroup();
+                Identifier groupName = recipe.getResult().getGroup();
                 if (recipeKeys.containsKey(groupName)) {
                     recipeIds.add(Pair.of(groupName, id));
                 }
@@ -158,7 +158,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
             }
             return null;
         }).orElse(recipeIds).forEach(entry -> {
-            ResourceLocation groupName = entry.key();
+            Identifier groupName = entry.key();
             if (recipeKeys.containsKey(groupName)) {
                 recipes.computeIfAbsent(groupName, g -> Lists.newArrayList()).add(entry.value());
             }
@@ -254,7 +254,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private RecipeHolder<GunSmithTableRecipe> getSelectedRecipe(ResourceLocation recipeId) {
+    private RecipeHolder<GunSmithTableRecipe> getSelectedRecipe(Identifier recipeId) {
         if (Minecraft.getInstance().level != null) {
             RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
             RecipeHolder<?> holder = recipeManager.byKey(recipeId).orElse(null);
@@ -355,7 +355,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
             if (this.selectedRecipe != null) {
                 ItemStack output = selectedRecipe.value().getOutput();
                 Item item = output.getItem();
-                ResourceLocation id;
+                Identifier id;
                 if (item instanceof IGun iGun) {
                     id = iGun.getGunId(output);
                 } else if (item instanceof IAttachment iAttachment) {
@@ -393,7 +393,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                 break;
             }
             int yOffset = topPos + 66 + 17 * i;
-            ResourceLocation recipeId = selectedRecipeList.get(finalIndex);
+            Identifier recipeId = selectedRecipeList.get(finalIndex);
             RecipeHolder<GunSmithTableRecipe> holder = getSelectedRecipe(recipeId);
             if (holder == null) {
                 continue;
@@ -417,7 +417,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                 return;
             }
             TabConfig tabConfig = list.get(typeIndex);
-            ResourceLocation type = tabConfig.id();
+            Identifier type = tabConfig.id();
             int xOffset = leftPos + 157 + 24 * i;
 
             ItemStack icon = tabConfig.icon();
@@ -527,7 +527,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
     private void renderPackInfo(GuiGraphics gui, RecipeHolder<GunSmithTableRecipe> holder) {
         ItemStack output = holder.value().getOutput();
         Item item = output.getItem();
-        ResourceLocation id;
+        Identifier id;
         if (item instanceof IGun iGun) {
             id = iGun.getGunId(output);
         } else if (item instanceof IAttachment iAttachment) {
@@ -587,7 +587,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
 
             poseStack.popPose();
         } else {
-            ResourceLocation recipeId = holder.id();
+            Identifier recipeId = holder.id();
             gui.drawString(font, Component.translatable("gui.tacz.gun_smith_table.error").withStyle(ChatFormatting.DARK_RED), leftPos + 6, topPos + 122, 0xAF0000, false);
             gui.drawString(font, Component.translatable("gui.tacz.gun_smith_table.error.id", recipeId.toString()).withStyle(ChatFormatting.DARK_RED), leftPos + 6, topPos + 134, 0xFFFFFF, false);
             PackInfo errorPackInfo = ClientAssetsManager.INSTANCE.getPackInfo(id);

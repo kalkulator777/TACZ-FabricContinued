@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Camera angles and field of view, both of which the gun animation state machine drives.
@@ -31,7 +31,7 @@ public abstract class ViewportEvent extends BaseEvent {
         for (CameraCallback callback : callbacks) {
             callback.post(event);
         }
-    }, new ResourceLocation[]{TaCZFabric.HIGHEST, TaCZFabric.HIGH, Event.DEFAULT_PHASE, TaCZFabric.LOW, TaCZFabric.LOWEST});
+    }, new Identifier[]{TaCZFabric.HIGHEST, TaCZFabric.HIGH, Event.DEFAULT_PHASE, TaCZFabric.LOW, TaCZFabric.LOWEST});
 
     public ViewportEvent(GameRenderer renderer, Camera camera, double partialTick) {
         this.renderer = renderer;

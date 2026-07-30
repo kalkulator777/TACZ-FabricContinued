@@ -12,11 +12,11 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MinecartRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -37,7 +37,7 @@ public class TargetMinecartRenderer extends MinecartRenderer<TargetMinecart> {
     }
 
     @Override
-    public ResourceLocation getTextureLocation(TargetMinecart minecart) {
+    public Identifier getTextureLocation(TargetMinecart minecart) {
         return InternalAssetLoader.ENTITY_EMPTY_TEXTURE;
     }
 
@@ -60,7 +60,7 @@ public class TargetMinecartRenderer extends MinecartRenderer<TargetMinecart> {
                 stack.translate(0, 1, -4.5 / 16d);
                 Minecraft minecraft = Minecraft.getInstance();
                 GameProfile gameProfile = targetMinecart.getGameProfile().gameProfile();
-                ResourceLocation skin = minecraft.getSkinManager().getInsecureSkin(gameProfile).texture();
+                Identifier skin = minecraft.getSkinManager().getInsecureSkin(gameProfile).texture();
                 headModel.visible = true;
                 RenderType skullRenderType = RenderType.entityTranslucentCull(skin);
                 headModel.render(stack, ItemDisplayContext.NONE, buffer.getBuffer(skullRenderType), pPackedLight, OverlayTexture.NO_OVERLAY);

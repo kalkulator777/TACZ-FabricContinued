@@ -16,7 +16,7 @@ import me.shedaniel.rei.api.common.category.CategoryIdentifier;
 import me.shedaniel.rei.api.common.util.EntryStacks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class REIClientPlugin implements me.shedaniel.rei.api.client.plugins.REIClientPlugin {
     public static final CategoryIdentifier<AttachmentQueryDisplay> ATTACHMENT_QUERY = CategoryIdentifier.of(GunMod.MOD_ID, "plugins/attachment_query");
 
-    public static final Map<ResourceLocation, CategoryIdentifier<GunSmithTableDisplay>> displays = new HashMap<>();
+    public static final Map<Identifier, CategoryIdentifier<GunSmithTableDisplay>> displays = new HashMap<>();
 
     @Override
     public void registerCategories(CategoryRegistry registry) {

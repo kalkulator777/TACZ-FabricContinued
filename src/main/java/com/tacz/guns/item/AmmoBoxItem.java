@@ -15,7 +15,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
-    public static final ResourceLocation PROPERTY_NAME = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "ammo_statue");
+    public static final Identifier PROPERTY_NAME = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "ammo_statue");
 
     public static final int IRON_LEVEL = 0;
     public static final int GOLD_LEVEL = 1;
@@ -101,7 +101,7 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
         if (action == ClickAction.SECONDARY) {
             // 点击的格子
             ItemStack slotItem = slot.getItem();
-            ResourceLocation boxAmmoId = this.getAmmoId(ammoBox);
+            Identifier boxAmmoId = this.getAmmoId(ammoBox);
 
             // 格子为空，那就是取出物品
             if (slotItem.isEmpty()) {
@@ -143,7 +143,7 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
                 if (isAllTypeCreative(ammoBox)) {
                     return false;
                 }
-                ResourceLocation slotAmmoId = iAmmo.getAmmoId(slotItem);
+                Identifier slotAmmoId = iAmmo.getAmmoId(slotItem);
                 // 格子里的子弹 ID 不对，不能放
                 if (slotAmmoId.equals(DefaultAssets.EMPTY_AMMO_ID)) {
                     return false;
@@ -193,7 +193,7 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
 
     @Override
     public int getBarWidth(ItemStack stack) {
-        ResourceLocation ammoId = this.getAmmoId(stack);
+        Identifier ammoId = this.getAmmoId(stack);
         int ammoCount = this.getAmmoCount(stack);
         int boxLevelMultiplier = this.getAmmoLevel(stack) + 1;
         double widthPercent = TimelessAPI.getCommonAmmoIndex(ammoId).map(index -> {
@@ -257,7 +257,7 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
         if (!(stack.getItem() instanceof IAmmoBox iAmmoBox)) {
             return Optional.empty();
         }
-        ResourceLocation ammoId = iAmmoBox.getAmmoId(stack);
+        Identifier ammoId = iAmmoBox.getAmmoId(stack);
         if (ammoId.equals(DefaultAssets.EMPTY_AMMO_ID)) {
             return Optional.empty();
         }

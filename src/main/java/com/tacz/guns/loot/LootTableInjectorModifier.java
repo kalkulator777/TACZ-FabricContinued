@@ -3,7 +3,7 @@ package com.tacz.guns.loot;
 import com.tacz.guns.resource.CommonAssetsManager;
 import com.tacz.guns.resource.pojo.data.loot.LootTableInjection;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -27,7 +27,7 @@ public class LootTableInjectorModifier {
             return;
         }
         // 注入用的战利品表本身没有注册，这里查不到 id，于是注入表内部再次走到这里时会直接返回
-        ResourceLocation lootTableId = server.reloadableRegistries().get().registryOrThrow(Registries.LOOT_TABLE).getKey(table);
+        Identifier lootTableId = server.reloadableRegistries().get().registryOrThrow(Registries.LOOT_TABLE).getKey(table);
         if (lootTableId == null) {
             return;
         }
