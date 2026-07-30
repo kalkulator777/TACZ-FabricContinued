@@ -277,7 +277,8 @@ Nothing on the dependency list now blocks the version bump.
 
 **In progress.** The tree does not compile, which is expected and is why phases 0
 and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 600 now**.
+in distinct compile errors: **4756 at the bump, 451 now**, and what is left is
+almost entirely client rendering.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
       the one that keeps remapping to intermediary — Gradle 9.5.1, loader 0.19.3,
@@ -296,27 +297,55 @@ in distinct compile errors: **4756 at the bump, 600 now**.
       event shim carries them.
 - [x] **Forge Config API Port** — `neoforge.v4` became `v5`, same methods.
 - [x] **Block entities** on `ValueInput`/`ValueOutput`.
-- [ ] Common code, still open: the rewritten recipe system, the explosion split
-      (`Explosion` is an interface now, so `ProjectileExplosion` wants rebuilding on
-      `ServerExplosion`), minecarts, entity spawn data, reload listeners, the block
-      API (`blockUpdated`, `updateShape`, `getCloneItemStack`, `RenderShape`),
-      `Ingredient` as a `HolderSet`, and the tooltip-hiding component.
-- [ ] Client: item rendering without `BuiltinItemRendererRegistry`, HUD on
-      `HudElementRegistry`, 2D `GuiGraphics`, entity render states, the scope stencil
-      mask, camera and FOV handling, `RenderPipeline` for the laser beam. This is the
-      bulk of what is left and the part §8 calls risky.
+- [x] **Blocks and block entities.** `updateShape` reordered and takes a
+      `ScheduledTickAccess`, `onRemove` became `affectNeighborsAfterRemoval`,
+      `RenderShape.ENTITYBLOCK_ANIMATED` is `INVISIBLE`, and `BlockEntityType`'s
+      constructor is closed, so the types go through Fabric's builder.
+- [x] **The explosion split.** `Explosion` is an interface and `ServerExplosion`
+      does the work behind one `explode()`, so `ProjectileExplosion` overrides that
+      whole method. What it exists for is intact: damage still falls off by
+      ray-tracing fifteen points on the lag-compensated hitbox.
+- [x] **Minecarts** — and the `IMinecart` shim and its two mixins are gone with
+      them, because `isRideable()` is an overridable method now.
+- [x] **Recipes, ingredients, items, reload listeners, Cardinal Components.**
+- [ ] Client: this is all that is left, and it is not a sweep. Three of the four
+      pieces are redesigns rather than renames:
+      - **Rendering is submit-based now.** `BlockEntityRenderer` and the entity
+        renderers no longer draw; they fill a render state and hand geometry to a
+        `SubmitNodeCollector`. Every renderer in the mod — gun models, attachments,
+        block entities, the bullet, the target minecart — is written against the old
+        draw-directly shape.
+      - **GPU state moved into `RenderPipeline`.** `GlStateManager` is gone and
+        `RenderSystem` no longer has `enableBlend`, `depthMask`, `stencilFunc` or
+        any of it. This is 114 of the remaining errors and it is where the scope
+        stencil mask lives — §8's first risk, now confirmed rather than suspected.
+      - **Item rendering** without `BuiltinItemRendererRegistry` or
+        `BlockEntityWithoutLevelRenderer`.
+      - 2D `GuiGraphics`, HUD on `HudElementRegistry`, and the widgets — the only
+        genuinely mechanical part of the four.
 - [ ] Mixins last — they only validate in a running game. `KeyboardHandler.keyPress`
       and `MouseHandler.onPress` have already changed shape underneath them.
 - [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
 - [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
 - [ ] Re-check the Iris buffer flush against the Iris release for the target.
 
-One behaviour change is already committed rather than deferred, because vanilla
-made it: the target block no longer resolves its owner's profile itself. Skulls
-stopped doing that too — the block entity holds an unresolved `ResolvableProfile`
-and the client's skin cache resolves it at render time. `TargetRenderer` still
-asks the skin manager directly and needs the same treatment when the client
-renderers are ported, or the target will show a default skin.
+Three behaviour changes went in rather than being deferred, because vanilla made
+them and there was no way to keep the old shape:
+
+- The target block and the target minecart no longer resolve their owner's
+  profile themselves. Skulls stopped doing that too — the block entity holds an
+  unresolved `ResolvableProfile` and the client's skin cache resolves it at render
+  time. `TargetRenderer` still asks the skin manager directly and needs the same
+  treatment when the client renderers are ported, or the target will show a
+  default skin.
+- `Item.verifyComponentsAfterLoad` is gone with no replacement, and two things
+  hung on it: per-ammo-type stack sizes, which come from the gun pack and so can
+  only be set per stack, and the 1.20.1 attachment-id rewrite. Both sit on
+  `inventoryTick` behind a guard for now. They belong in phase 3's datafixer.
+- Cardinal Components followed vanilla onto `ValueInput`/`ValueOutput`, which only
+  speak codecs, while the synced entity data is written by per-type serializers
+  that hand back raw tags. The list is still built the same way but goes in
+  wrapped, so the shape in the save file gains one level.
 
 #### Phase 3 — item data storage, shipped with the 1.21.11 release
 
@@ -425,7 +454,8 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | medium | high; changes how every optical scope looks | prototype it before committing to the render port |
+| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **confirmed as a redesign**, outcome still open | high; changes how every optical scope looks | prototype it before committing to the render port |
+| Every renderer has to move to extract-and-submit | certain | high; it is most of the client port | do the block entities first — they are the smallest of the four renderers |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
 | No Parchment | high | low | accept |
