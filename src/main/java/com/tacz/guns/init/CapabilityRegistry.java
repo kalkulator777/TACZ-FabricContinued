@@ -14,7 +14,7 @@ public class CapabilityRegistry implements EntityComponentInitializer {
     public void registerEntityComponentFactories(@NotNull EntityComponentFactoryRegistry registry) {
         registry.beginRegistration(Entity.class, DataHolderCapabilityProvider.CAPABILITY)
                 .filter(SyncedEntityData.instance()::hasSyncedDataKey)
-                .end(entity -> new DataHolderCapabilityProvider());
+                .end(DataHolderCapabilityProvider::new);
     }
 
     public static void init() {

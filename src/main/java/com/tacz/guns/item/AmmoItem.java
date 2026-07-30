@@ -25,12 +25,14 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.TooltipFlag;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.Map;
 import java.util.Optional;
 
@@ -89,19 +91,21 @@ public class AmmoItem extends Item implements AmmoItemDataAccessor, IItem {
 
     @Override
     @Environment(EnvType.CLIENT)
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> components, TooltipFlag isAdvanced) {
+    // 1.21.5 起提示行是往一个 Consumer 里塞，不再是往 List 里加；多出来的 TooltipDisplay 参数
+    // 带着「哪些组件要隐藏」的信息
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> components, TooltipFlag isAdvanced) {
         Identifier ammoId = this.getAmmoId(stack);
         TimelessAPI.getClientAmmoIndex(ammoId).ifPresent(index -> {
             String tooltipKey = index.getTooltipKey();
             if (tooltipKey != null) {
-                components.add(Component.translatable(tooltipKey).withStyle(ChatFormatting.GRAY));
+                components.accept(Component.translatable(tooltipKey).withStyle(ChatFormatting.GRAY));
             }
         });
 
         PackInfo packInfoObject = ClientAssetsManager.INSTANCE.getPackInfo(ammoId);
         if (packInfoObject != null) {
             MutableComponent component = Component.translatable(packInfoObject.getName()).withStyle(ChatFormatting.BLUE).withStyle(ChatFormatting.ITALIC);
-            components.add(component);
+            components.accept(component);
         }
     }
 }

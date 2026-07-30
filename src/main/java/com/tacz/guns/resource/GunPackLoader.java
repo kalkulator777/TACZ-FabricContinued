@@ -97,7 +97,7 @@ public enum GunPackLoader implements RepositorySource {
         PackLocationInfo packLocationInfo = new PackLocationInfo("tacz_resources", Component.literal("TACZ Resources"), PackSource.BUILT_IN, Optional.empty());
         return Pack.readMetaAndCreate(packLocationInfo, new DelegatingPackResources(packLocationInfo,
                 new PackMetadataSection(Component.translatable("tacz.resources.modresources"),
-                        SharedConstants.getCurrentVersion().getPackVersion(packType), Optional.empty()), extensionPacks) {
+                        SharedConstants.getCurrentVersion().packVersion(packType).minorRange()), extensionPacks) {
             public IoSupplier<InputStream> getRootResource(String... paths) {
                 if (paths.length == 1 && paths[0].equals("pack.png")) {
                     Path logoPath = getModIcon("tacz");

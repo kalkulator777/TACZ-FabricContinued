@@ -34,6 +34,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.ItemTransform;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.resources.FileToIdConverter;
+import com.tacz.guns.resource.serialize.IdentifierTypeAdapter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -57,7 +58,7 @@ import java.util.function.Consumer;
 @Environment(EnvType.CLIENT)
 public enum ClientAssetsManager {
     INSTANCE;
-    public static final Gson GSON = new GsonBuilder().registerTypeAdapter(Identifier.class, new Identifier.Serializer())
+    public static final Gson GSON = new GsonBuilder().registerTypeAdapter(Identifier.class, new IdentifierTypeAdapter())
             .registerTypeAdapter(CubesItem.class, new CubesItem.Deserializer())
             .registerTypeAdapter(Vector3f.class, new Vector3fSerializer())
             .registerTypeAdapter(CommonTransformObject.class, new CommonTransformObject.Serializer())

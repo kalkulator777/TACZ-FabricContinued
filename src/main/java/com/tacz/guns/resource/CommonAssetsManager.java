@@ -28,6 +28,7 @@ import com.tacz.guns.resource.pojo.data.gun.ExtraDamage;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz.guns.resource.pojo.data.gun.Ignite;
 import com.tacz.guns.resource.pojo.data.loot.LootTableInjection;
+import com.tacz.guns.resource.serialize.IdentifierTypeAdapter;
 import com.tacz.guns.resource.serialize.*;
 import com.tacz.guns.util.AllowAttachmentTagMatcher;
 import net.minecraft.core.RegistryAccess;
@@ -50,7 +51,7 @@ import java.util.function.Consumer;
 public class CommonAssetsManager implements ICommonResourceProvider {
     private static CommonAssetsManager INSTANCE;
     public static final Gson GSON = new GsonBuilder()
-            .registerTypeAdapter(Identifier.class, new Identifier.Serializer())
+            .registerTypeAdapter(Identifier.class, new IdentifierTypeAdapter())
             .registerTypeAdapter(Pair.class, new PairSerializer())
             .registerTypeAdapter(GunSmithTableIngredient.class, new GunSmithTableIngredientSerializer())
             .registerTypeAdapter(GunSmithTableResult.class, new GunSmithTableResultSerializer())
@@ -97,11 +98,9 @@ public class CommonAssetsManager implements ICommonResourceProvider {
         blockIndex = register(new CommonDataManager<>(DataType.BLOCK_INDEX, CommonBlockIndex.class, GSON, "index/blocks", "BlockIndexLoader"));
 
         listeners.forEach(register);
-        register.accept((barrier, resourceManager, preparationProfiler, reloadProfiler, backgroundExecutor, gameExecutor) -> {
-            return barrier
-                    .wait(Void.TYPE)
-                    .thenRunAsync(AllowAttachmentTagMatcher::resetCache, gameExecutor);
-        });
+        register.accept((state, backgroundExecutor, barrier, gameExecutor) -> barrier
+                .wait(Void.TYPE)
+                .thenRunAsync(AllowAttachmentTagMatcher::resetCache, gameExecutor));
     }
 
     private <T extends INetworkCacheReloadListener> T register(T listener) {
@@ -250,9 +249,12 @@ public class CommonAssetsManager implements ICommonResourceProvider {
     public static void onReload(RegistryAccess registries, boolean client) {
         if (!client) {
             if (getInstance() != null && getInstance().recipeManager != null) {
-                List<RecipeHolder<GunSmithTableRecipe>> recipes = getInstance().recipeManager.getAllRecipesFor(ModRecipe.GUN_SMITH_TABLE_CRAFTING);
-                for (RecipeHolder<GunSmithTableRecipe> recipe : recipes) {
-                    recipe.value().init(registries);
+                /* getAllRecipesFor 没有了，配方按类型的索引不再对外开放，
+                 * 所以这里自己过一遍全部配方。重载时走一次，不在热路径上。*/
+                for (RecipeHolder<?> recipe : getInstance().recipeManager.getRecipes()) {
+                    if (recipe.value() instanceof GunSmithTableRecipe tableRecipe) {
+                        tableRecipe.init(registries);
+                    }
                 }
             }
         }

@@ -68,10 +68,13 @@ public class AddReloadListenerEvent extends BaseEvent {
             this.wrapped = wrapped;
         }
 
+        /**
+         * 1.21.11 把重载的六个参数收成了四个：资源管理器和两个 profiler 都进了 SharedState。
+         */
         @Override
-        public CompletableFuture<Void> reload(final PreparationBarrier stage, final ResourceManager resourceManager, final ProfilerFiller preparationsProfiler, final ProfilerFiller reloadProfiler, final Executor backgroundExecutor, final Executor gameExecutor) {
+        public CompletableFuture<Void> reload(final SharedState state, final Executor backgroundExecutor, final PreparationBarrier barrier, final Executor gameExecutor) {
             if (FabricLoader.getInstance().isModLoaded(GunMod.MOD_ID))
-                return wrapped.reload(stage, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor);
+                return wrapped.reload(state, backgroundExecutor, barrier, gameExecutor);
             else
                 return CompletableFuture.completedFuture(null);
         }

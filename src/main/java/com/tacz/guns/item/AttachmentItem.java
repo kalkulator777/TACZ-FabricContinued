@@ -29,6 +29,7 @@ import net.minecraft.world.item.component.CustomData;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;

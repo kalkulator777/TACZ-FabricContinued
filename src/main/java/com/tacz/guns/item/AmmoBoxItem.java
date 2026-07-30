@@ -28,11 +28,13 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.DyedItemColor;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.Optional;
 
 public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
@@ -270,17 +272,19 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> components, TooltipFlag isAdvanced) {
+    // 1.21.5 起提示行是往一个 Consumer 里塞，不再是往 List 里加；多出来的 TooltipDisplay 参数
+    // 带着「哪些组件要隐藏」的信息
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> components, TooltipFlag isAdvanced) {
         if (isAllTypeCreative(stack)) {
-            components.add(Component.translatable("tooltip.tacz.ammo_box.usage.all_type_creative").withStyle(ChatFormatting.GOLD));
+            components.accept(Component.translatable("tooltip.tacz.ammo_box.usage.all_type_creative").withStyle(ChatFormatting.GOLD));
             return;
         }
         if (isCreative(stack)) {
-            components.add(Component.translatable("tooltip.tacz.ammo_box.usage.creative.1").withStyle(ChatFormatting.YELLOW));
-            components.add(Component.translatable("tooltip.tacz.ammo_box.usage.creative.2").withStyle(ChatFormatting.YELLOW));
+            components.accept(Component.translatable("tooltip.tacz.ammo_box.usage.creative.1").withStyle(ChatFormatting.YELLOW));
+            components.accept(Component.translatable("tooltip.tacz.ammo_box.usage.creative.2").withStyle(ChatFormatting.YELLOW));
             return;
         }
-        components.add(Component.translatable("tooltip.tacz.ammo_box.usage.deposit").withStyle(ChatFormatting.GRAY));
-        components.add(Component.translatable("tooltip.tacz.ammo_box.usage.remove").withStyle(ChatFormatting.GRAY));
+        components.accept(Component.translatable("tooltip.tacz.ammo_box.usage.deposit").withStyle(ChatFormatting.GRAY));
+        components.accept(Component.translatable("tooltip.tacz.ammo_box.usage.remove").withStyle(ChatFormatting.GRAY));
     }
 }

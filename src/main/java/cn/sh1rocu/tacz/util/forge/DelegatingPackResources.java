@@ -45,7 +45,7 @@ public class DelegatingPackResources extends AbstractPackResources implements Pa
     @Nullable
     @Override
     public <T> T getMetadataSection(MetadataSectionType<T> deserializer) throws IOException {
-        return deserializer.getMetadataSectionName().equals("pack") ? (T) this.packMeta : null;
+        return deserializer.name().equals("pack") ? (T) this.packMeta : null;
     }
 
     @Override
