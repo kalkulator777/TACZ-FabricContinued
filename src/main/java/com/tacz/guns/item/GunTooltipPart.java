@@ -23,10 +23,7 @@ public enum GunTooltipPart {
 
     public static int getHideFlags(ItemStack stack) {
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (tag.contains("HideFlags", Tag.TAG_ANY_NUMERIC)) {
-            return tag.getInt("HideFlags");
-        }
-        return /*stack.getItem().getDefaultTooltipHideFlags(stack)*/ 0;
+        return tag.getIntOr("HideFlags", /*stack.getItem().getDefaultTooltipHideFlags(stack)*/ 0);
     }
 
     public static void setHideFlags(ItemStack stack, int mask) {

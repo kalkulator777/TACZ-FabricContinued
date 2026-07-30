@@ -282,7 +282,7 @@ public class Serializers {
         @Override
         public UUID read(HolderLookup.Provider provider, Tag tag) {
             CompoundTag compound = (CompoundTag) tag;
-            return new UUID(compound.getLong("Most"), compound.getLong("Least"));
+            return new UUID(compound.getLongOr("Most", 0L), compound.getLongOr("Least", 0L));
         }
     };
 

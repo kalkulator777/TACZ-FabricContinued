@@ -700,10 +700,11 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
 
     public Optional<float[]> getTracerColorOverride() {
         var pd = ((IEntityPersistentData) this).tacz$getPersistentData();
-        if (!pd.contains(TRACER_COLOR_OVERRIDER_KEY, Tag.TAG_INT_ARRAY)) {
+        var maybeInts = pd.getIntArray(TRACER_COLOR_OVERRIDER_KEY);
+        if (maybeInts.isEmpty()) {
             return Optional.empty();
         } else {
-            var ints = pd.getIntArray(TRACER_COLOR_OVERRIDER_KEY);
+            var ints = maybeInts.get();
             // 请避免使用 1 或者 2 个值的数组。
             // 此处 1~2 个值的分支仅为优雅地处理异常情况来代替崩溃所作的措施 :(
             switch (ints.length) {
@@ -737,7 +738,7 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
 
     public float getTracerSizeOverride() {
         var pd = ((IEntityPersistentData) this).tacz$getPersistentData();
-        return pd.contains(TRACER_SIZE_OVERRIDER_KEY, Tag.TAG_ANY_NUMERIC) ? pd.getFloat(TRACER_SIZE_OVERRIDER_KEY) : 1;
+        return pd.getFloatOr(TRACER_SIZE_OVERRIDER_KEY, 1);
     }
 
     @Override

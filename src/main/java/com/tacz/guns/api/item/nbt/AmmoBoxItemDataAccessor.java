@@ -21,10 +21,7 @@ public interface AmmoBoxItemDataAccessor extends IAmmoBox {
     @Override
     default Identifier getAmmoId(ItemStack ammoBox) {
         CompoundTag tag = ammoBox.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (tag.contains(AMMO_ID_TAG, Tag.TAG_STRING)) {
-            return Identifier.parse(tag.getString(AMMO_ID_TAG));
-        }
-        return DefaultAssets.EMPTY_AMMO_ID;
+        return tag.getString(AMMO_ID_TAG).map(Identifier::parse).orElse(DefaultAssets.EMPTY_AMMO_ID);
     }
 
     @Override
@@ -40,10 +37,7 @@ public interface AmmoBoxItemDataAccessor extends IAmmoBox {
         if (isAllTypeCreative(ammoBox) || isCreative(ammoBox)) {
             return Integer.MAX_VALUE;
         }
-        if (tag.contains(AMMO_COUNT_TAG, Tag.TAG_INT)) {
-            return tag.getInt(AMMO_COUNT_TAG);
-        }
-        return 0;
+        return tag.getIntOr(AMMO_COUNT_TAG, 0);
     }
 
     @Override
@@ -84,28 +78,19 @@ public interface AmmoBoxItemDataAccessor extends IAmmoBox {
     @Override
     default int getAmmoLevel(ItemStack ammoBox) {
         CompoundTag tag = ammoBox.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (tag.contains(LEVEL_TAG, Tag.TAG_INT)) {
-            return tag.getInt(LEVEL_TAG);
-        }
-        return 0;
+        return tag.getIntOr(LEVEL_TAG, 0);
     }
 
     @Override
     default boolean isCreative(ItemStack ammoBox) {
         CompoundTag tag = ammoBox.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (tag.contains(CREATIVE_TAG, Tag.TAG_BYTE)) {
-            return tag.getBoolean(CREATIVE_TAG);
-        }
-        return false;
+        return tag.getBooleanOr(CREATIVE_TAG, false);
     }
 
     @Override
     default boolean isAllTypeCreative(ItemStack ammoBox) {
         CompoundTag tag = ammoBox.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (tag.contains(ALL_TYPE_CREATIVE_TAG, Tag.TAG_BYTE)) {
-            return tag.getBoolean(ALL_TYPE_CREATIVE_TAG);
-        }
-        return false;
+        return tag.getBooleanOr(ALL_TYPE_CREATIVE_TAG, false);
     }
 
     @Override
@@ -113,16 +98,12 @@ public interface AmmoBoxItemDataAccessor extends IAmmoBox {
         ammoBox.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             if (isAllType) {
                 // 移除可能存在的创造模式标签
-                if (tag.contains(CREATIVE_TAG, Tag.TAG_BYTE)) {
-                    tag.remove(CREATIVE_TAG);
-                }
+                tag.remove(CREATIVE_TAG);
                 tag.putBoolean(ALL_TYPE_CREATIVE_TAG, true);
                 return;
             }
             // 移除可能存在的全类型标签
-            if (tag.contains(ALL_TYPE_CREATIVE_TAG, Tag.TAG_BYTE)) {
-                tag.remove(ALL_TYPE_CREATIVE_TAG);
-            }
+            tag.remove(ALL_TYPE_CREATIVE_TAG);
             tag.putBoolean(CREATIVE_TAG, true);
         }));
         return ammoBox;

@@ -47,8 +47,8 @@ public class DataHolderCapabilityProvider implements Component {
         this.holder.dataMap.clear();
         listTag.forEach(entryTag -> {
             CompoundTag keyTag = (CompoundTag) entryTag;
-            Identifier classKey = Identifier.tryParse(keyTag.getString("ClassKey"));
-            Identifier dataKey = Identifier.tryParse(keyTag.getString("DataKey"));
+            Identifier classKey = Identifier.tryParse(keyTag.getStringOr("ClassKey", ""));
+            Identifier dataKey = Identifier.tryParse(keyTag.getStringOr("DataKey", ""));
             Tag value = keyTag.get("Value");
             SyncedClassKey<?> syncedClassKey = SyncedEntityData.instance().getClassKey(classKey);
             if (syncedClassKey == null) {
@@ -66,7 +66,7 @@ public class DataHolderCapabilityProvider implements Component {
 
     @Override
     public void readFromNbt(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider provider) {
-        deserializeNBT(provider, tag.getList("DataHolder", Tag.TAG_COMPOUND));
+        deserializeNBT(provider, tag.getListOrEmpty("DataHolder"));
     }
 
     @Override

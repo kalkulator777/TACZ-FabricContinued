@@ -4,7 +4,6 @@ import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.api.item.IBlock;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -20,11 +19,7 @@ public interface BlockItemDataAccessor extends IBlock {
     @Nonnull
     default Identifier getBlockId(ItemStack block) {
         CompoundTag nbt = block.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (nbt.contains(BLOCK_ID, Tag.TAG_STRING)) {
-            Identifier gunId = Identifier.tryParse(nbt.getString(BLOCK_ID));
-            return Objects.requireNonNullElse(gunId, DefaultAssets.EMPTY_BLOCK_ID);
-        }
-        return DefaultAssets.EMPTY_BLOCK_ID;
+        return nbt.getString(BLOCK_ID).map(Identifier::tryParse).orElse(DefaultAssets.EMPTY_BLOCK_ID);
     }
 
     @Override

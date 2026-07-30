@@ -73,9 +73,7 @@ public class StatueBlockEntity extends BlockEntity {
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        if (tag.contains(ITEM_TAG, Tag.TAG_COMPOUND)) {
-            this.gunItem = ItemStack.parseOptional(provider, tag.getCompound(ITEM_TAG));
-        }
+        tag.getCompound(ITEM_TAG).ifPresent(item -> this.gunItem = ItemStack.parseOptional(provider, item));
     }
 
     @Override

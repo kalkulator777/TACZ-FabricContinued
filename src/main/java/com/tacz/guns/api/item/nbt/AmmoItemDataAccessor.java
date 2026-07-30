@@ -7,7 +7,6 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.resource.index.CommonAmmoIndex;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -23,11 +22,7 @@ public interface AmmoItemDataAccessor extends IAmmo {
     @Nonnull
     default Identifier getAmmoId(ItemStack ammo) {
         CompoundTag nbt = ammo.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (nbt.contains(AMMO_ID_TAG, Tag.TAG_STRING)) {
-            Identifier gunId = Identifier.tryParse(nbt.getString(AMMO_ID_TAG));
-            return Objects.requireNonNullElse(gunId, DefaultAssets.EMPTY_AMMO_ID);
-        }
-        return DefaultAssets.EMPTY_AMMO_ID;
+        return nbt.getString(AMMO_ID_TAG).map(Identifier::tryParse).orElse(DefaultAssets.EMPTY_AMMO_ID);
     }
 
     @Override

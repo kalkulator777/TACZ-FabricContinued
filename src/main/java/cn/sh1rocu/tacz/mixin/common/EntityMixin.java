@@ -38,8 +38,6 @@ public class EntityMixin implements IEntityPersistentData {
 
     @Inject(method = "load", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;readAdditionalSaveData(Lnet/minecraft/nbt/CompoundTag;)V"))
     private void tacz$loadPersistentData(CompoundTag nbt, CallbackInfo ci) {
-        if (nbt.contains("NeoForgeData", 10)) {
-            tacz$persistentData = nbt.getCompound("NeoForgeData");
-        }
+        nbt.getCompound("NeoForgeData").ifPresent(data -> tacz$persistentData = data);
     }
 }

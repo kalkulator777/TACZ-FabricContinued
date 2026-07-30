@@ -21,7 +21,7 @@ public interface AttachmentItemDataAccessor extends IAttachment {
 
     // 仅检查给定的 CompoundTag 是否具有配件 ID ，不校验其是否存在
     static boolean isAttachmentLike(CompoundTag tag) {
-        return tag.contains(ATTACHMENT_ID_TAG, Tag.TAG_STRING);
+        return tag.getString(ATTACHMENT_ID_TAG).isPresent();
     }
 
     @Nonnull
@@ -29,21 +29,16 @@ public interface AttachmentItemDataAccessor extends IAttachment {
         if (nbt == null) {
             return DefaultAssets.EMPTY_ATTACHMENT_ID;
         }
-        if (isAttachmentLike(nbt)) {
-            Identifier attachmentId = Identifier.tryParse(nbt.getString(ATTACHMENT_ID_TAG));
-            return Objects.requireNonNullElse(attachmentId, DefaultAssets.EMPTY_ATTACHMENT_ID);
-        }
-        return DefaultAssets.EMPTY_ATTACHMENT_ID;
+        return nbt.getString(ATTACHMENT_ID_TAG)
+                .map(Identifier::tryParse)
+                .orElse(DefaultAssets.EMPTY_ATTACHMENT_ID);
     }
 
     static int getZoomNumberFromTag(@Nullable CompoundTag nbt) {
         if (nbt == null) {
             return 0;
         }
-        if (nbt.contains(ZOOM_NUMBER_TAG, Tag.TAG_INT)) {
-            return nbt.getInt(ZOOM_NUMBER_TAG);
-        }
-        return 0;
+        return nbt.getIntOr(ZOOM_NUMBER_TAG, 0);
     }
 
     static void setZoomNumberToTag(CompoundTag nbt, int zoomNumber) {
@@ -74,10 +69,7 @@ public interface AttachmentItemDataAccessor extends IAttachment {
     @Nullable
     default Identifier getSkinId(ItemStack attachmentStack) {
         CompoundTag nbt = attachmentStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (nbt.contains(SKIN_ID_TAG, Tag.TAG_STRING)) {
-            return Identifier.tryParse(nbt.getString(SKIN_ID_TAG));
-        }
-        return null;
+        return nbt.getString(SKIN_ID_TAG).map(Identifier::tryParse).orElse(null);
     }
 
     @Override
@@ -107,16 +99,13 @@ public interface AttachmentItemDataAccessor extends IAttachment {
     @Override
     default boolean hasCustomLaserColor(ItemStack attachmentStack) {
         CompoundTag nbt = attachmentStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        return nbt.contains(LASER_COLOR_TAG, Tag.TAG_INT);
+        return nbt.getInt(LASER_COLOR_TAG).isPresent();
     }
 
     @Override
     default int getLaserColor(ItemStack attachmentStack) {
         CompoundTag nbt = attachmentStack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        if (!hasCustomLaserColor(attachmentStack)) {
-            return 0xFF0000;
-        }
-        return nbt.getInt(LASER_COLOR_TAG);
+        return nbt.getIntOr(LASER_COLOR_TAG, 0xFF0000);
     }
 
     @Override

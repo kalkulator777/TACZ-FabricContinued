@@ -80,11 +80,7 @@ public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScr
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        if (tag.contains(ID_TAG, Tag.TAG_STRING)) {
-            this.id = Identifier.tryParse(tag.getString(ID_TAG));
-        } else {
-            this.id = DefaultAssets.DEFAULT_BLOCK_ID;
-        }
+        this.id = tag.getString(ID_TAG).map(Identifier::tryParse).orElse(DefaultAssets.DEFAULT_BLOCK_ID);
     }
 
     @Override

@@ -74,12 +74,9 @@ public class TargetBlockEntity extends BlockEntity implements Nameable {
     @Override
     public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.loadAdditional(tag, provider);
-        if (tag.contains(OWNER_TAG, Tag.TAG_COMPOUND)) {
-            this.owner = DataComponents.PROFILE.codec().parse(provider.createSerializationContext(NbtOps.INSTANCE), tag.getCompound(OWNER_TAG)).getOrThrow();
-        }
-        if (tag.contains(CUSTOM_NAME_TAG, Tag.TAG_STRING)) {
-            this.name = Component.Serializer.fromJson(tag.getString(CUSTOM_NAME_TAG), provider);
-        }
+        tag.getCompound(OWNER_TAG).ifPresent(owner -> this.owner = DataComponents.PROFILE.codec()
+                .parse(provider.createSerializationContext(NbtOps.INSTANCE), owner).getOrThrow());
+        tag.getString(CUSTOM_NAME_TAG).ifPresent(name -> this.name = Component.Serializer.fromJson(name, provider));
     }
 
     @Override

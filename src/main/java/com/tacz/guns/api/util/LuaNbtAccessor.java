@@ -2,6 +2,7 @@ package com.tacz.guns.api.util;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -26,8 +27,19 @@ public record LuaNbtAccessor(CompoundTag nbt) {
         return nbt.contains(key);
     }
 
+    /**
+     * 1.21.5 起 CompoundTag.contains 不再接受类型参数，但这个方法是暴露给 Lua 脚本的，
+     * 所以按原来的语义自己实现：类型 99（TAG_ANY_NUMERIC）匹配任意数字标签。
+     */
     public boolean contains(String key, int type) {
-        return nbt.contains(key, type);
+        Tag tag = nbt.get(key);
+        if (tag == null) {
+            return false;
+        }
+        if (type == 99) {
+            return tag instanceof NumericTag;
+        }
+        return tag.getId() == type;
     }
 
     public LuaNbtAccessor newCompoundTag() {
@@ -35,34 +47,31 @@ public record LuaNbtAccessor(CompoundTag nbt) {
     }
 
     public int getInt(String key) {
-        return nbt.getInt(key);
+        return nbt.getIntOr(key, 0);
     }
 
     public double getDouble(String key) {
-        return nbt.getDouble(key);
+        return nbt.getDoubleOr(key, 0.0);
     }
 
     public float getFloat(String key) {
-        return nbt.getFloat(key);
+        return nbt.getFloatOr(key, 0.0F);
     }
 
     public long getLong(String key) {
-        return nbt.getLong(key);
+        return nbt.getLongOr(key, 0L);
     }
 
     public String getString(String key) {
-        return nbt.getString(key);
+        return nbt.getStringOr(key, "");
     }
 
     public boolean getBoolean(CompoundTag nbt, String key) {
-        return nbt.getBoolean(key);
+        return nbt.getBooleanOr(key, false);
     }
 
     public LuaNbtAccessor getCompound(String key) {
-        if (!nbt.contains(key, Tag.TAG_COMPOUND)) {
-            return null;
-        }
-        return from(nbt.getCompound(key));
+        return nbt.getCompound(key).map(LuaNbtAccessor::from).orElse(null);
     }
 
     public void putInt(String key, int value) {
