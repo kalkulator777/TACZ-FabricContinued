@@ -48,7 +48,7 @@ repositories {
         url = "https://modmaven.k-4u.nl"
     }
     maven {
-        url "https://cursemaven.com"
+        url = "https://cursemaven.com"
         content {
             includeGroup "curse.maven"
         }
@@ -57,9 +57,9 @@ repositories {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
     }
-    maven { url "https://maven.shedaniel.me/" } // cloth config api
-    maven { url "https://dvs1.progwml6.com/files/maven/" }
-    maven { url "https://modmaven.dev" }
+    maven { url = "https://maven.shedaniel.me/" } // cloth config api
+    maven { url = "https://dvs1.progwml6.com/files/maven/" }
+    maven { url = "https://modmaven.dev" }
     maven {
         name = 'tterrag maven'
         url = 'https://maven.tterrag.com/'
@@ -73,22 +73,22 @@ repositories {
     }
     maven {
         // latvian.dev Maven (KubeJS and Rhino)
-        url "https://maven.latvian.dev/releases"
+        url = "https://maven.latvian.dev/releases"
         content {
             includeGroup "dev.latvian.mods"
             includeGroup "dev.latvian.apps"
         }
     }
     maven {
-        url 'https://jitpack.io'
+        url = 'https://jitpack.io'
         content {
             includeGroup "com.github.rtyley"
             includeGroup "com.github.FiguraMC.luaj"
         }
     }
     maven {
-        name "KosmX's maven"
-        url 'https://maven.kosmx.dev/'
+        name = "KosmX's maven"
+        url = 'https://maven.kosmx.dev/'
     }
     maven {// CCA
         name = "Ladysnake Mods"
@@ -111,7 +111,8 @@ repositories {
         url = uri("https://mvn.devos.one/snapshots")
     }
     mavenCentral()
-    mavenLocal()
+    // 这里原本还有 mavenLocal()。它会让构建结果取决于开发者本机 ~/.m2 里恰好躺着什么，
+    // 同一个提交在两台机器上可以编译出不同的东西。所有依赖都能从上面的仓库解析到。
     flatDir {
         dir 'libs'
     }
@@ -120,7 +121,7 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    // mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    // 映射用的是 Mojmap + Parchment，不是 Yarn
     mappings loom.layered() {
         officialMojangMappings()
         parchment("org.parchmentmc.data:parchment-${project.parchment_minecraft_version}:${project.parchment_mappings_version}@zip")
@@ -234,15 +235,21 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
-    inputs.property "minecraft_version", project.minecraft_version
-    inputs.property "loader_version", project.loader_version
-    filteringCharset "UTF-8"
+    /* 这几个值要在配置阶段就取出来。filesMatching 的闭包是在执行阶段跑的，
+     * 在那里访问 project 会挡住配置缓存，Gradle 10 起直接报错。*/
+    def modVersion = project.version.toString()
+    def minecraftVersion = project.minecraft_version.toString()
+    def loaderVersion = project.loader_version.toString()
+
+    inputs.property "version", modVersion
+    inputs.property "minecraft_version", minecraftVersion
+    inputs.property "loader_version", loaderVersion
+    filteringCharset = "UTF-8"
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version,
-                "minecraft_version": project.minecraft_version,
-                "loader_version": project.loader_version
+        expand "version": modVersion,
+                "minecraft_version": minecraftVersion,
+                "loader_version": loaderVersion
     }
 }
 
@@ -264,21 +271,26 @@ java {
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+        rename { "${it}_${base.archivesName.get()}" }
     }
 }
 
 publishing {
     publications {
         create("mavenJava", MavenPublication) {
-            artifactId = "${project.archives_base_name}-${project.minecraft_version}"
+            artifactId = base.archivesName.get()
             from components.java
         }
     }
 
     repositories {
+        /* 发布目标来自 -Ppublish_repo=<url 或路径>，或者环境变量 TACZ_PUBLISH_REPO，
+         * 都没有就发到 build/repo。这里原来硬编码着上游作者机器上的一个 Windows 路径，
+         * 别人执行 publish 就是往一个不存在的盘写东西。*/
+        def publishRepo = project.findProperty("publish_repo") ?: System.getenv("TACZ_PUBLISH_REPO")
         maven {
-            url "file:///D:/github_maven/Sh1roCu_MCRepo/repository"
+            name = "publishTarget"
+            url = publishRepo != null ? uri(publishRepo) : layout.buildDirectory.dir("repo").get().asFile.toURI()
         }
     }
 }
