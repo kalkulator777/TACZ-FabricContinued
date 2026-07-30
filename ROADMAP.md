@@ -252,15 +252,35 @@ compiles and a mistake is still distinguishable from a porting mistake.
 
 - [x] Absorb SimpleBedrockModel — see §4.
 - [ ] Move third-person animation from PlayerAnimator to Player Animation Library.
-      PlayerAnimator's own README points there and the successor covers 1.21.1
-      through 26.2, so one move covers both targets. The integration is 705 lines in
-      one package and only four files name a `dev.kosmx` type. The migration renames
-      `KeyframeAnimationPlayer`/`AnimationLayer`/`ModifierLayer` to one
-      `PlayerAnimationController` and `KeyframeAnimation` to `Animation`; the care is
-      in the modifier, which now receives bones instead of loose vectors under changed
-      axis conventions. Gun packs are unaffected — the mod reads
-      `<namespace>/player_animator/**.json` with its own loader rather than using the
-      library's asset convention — but confirm the JSON format is unchanged first.
+      PlayerAnimator's own README points there. Verified against the published
+      artifacts and sources rather than the docs:
+
+      - **Versions.** `com.zigythebird.playeranim:PlayerAnimationLibFabric` from
+        `https://repo.redlance.org/public`, at `1.1.5+mc.1.21.1`, `1.1.9+mc.1.21.11`
+        and `1.2.5+mc.26.1`. The whole chain is covered and sources are published.
+      - **The API is closer than the porting guide suggests.** `ModifierLayer`,
+        `IAnimation`, `AdjustmentModifier`, `AbstractFadeModifier`,
+        `PlayerAnimationAccess` and `PlayerAnimationFactory.registerFactory` all still
+        exist under the same names; `PlayerAnimationController` is an addition, not a
+        replacement. Mostly a package rename, plus `KeyframeAnimation` → `Animation`,
+        `Ease` → `EasingType` and snake_case bone names in the modifier.
+      - **The animation format loads.** The packs ship Bedrock-format JSON
+        (`format_version` plus an `animations` map), not the Emotecraft `emote` form,
+        and PAL's `UniversalAnimLoader` reads exactly that, returning a map keyed by
+        animation name — the shape this mod wants, with less work than today.
+      - **Easing names do not, and would fail silently.** The packs write
+        `"lerp_mode": "INOUTSINE"` — kosmx's naming, on all 2619 keyframes of the
+        three built-in animations. PAL calls its easings `easeinoutsine` and falls
+        back to `LINEAR` for anything it does not recognise, so a straight migration
+        would quietly turn every keyframe in every gun pack linear. There is no public
+        API to register aliases. The fix belongs on our side of the loader: normalise
+        the name before handing the JSON over, deriving the alias table from
+        `EasingType.values()` rather than hardcoding it, so it stays right if PAL adds
+        easings. Worth reporting upstream in parallel.
+      - Gun packs need no changes: the mod reads
+        `<namespace>/player_animator/**.json` with its own loader rather than using
+        the library's asset convention, so the folder rename in the porting guide does
+        not apply.
 
 #### Phase 2 — port to 1.21.11 and release
 
@@ -387,7 +407,7 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
 | PlayerAnimator never appears for the target | certain | low; the fallback poses still work | migrate to Player Animation Library in phase 1 |
-| Player Animation Library will not read the existing `.player_animation` JSON | low | medium; every pack's third-person animations would need re-exporting | confirm the format before starting the migration, not after |
+| Player Animation Library silently degrades pack animations | ~~low~~ confirmed | medium; every keyframe in every pack would go linear | found before starting: easing names differ, normalise them in our loader — see phase 1 |
 | No Parchment | high | low | accept |
 | Addons break at the storage migration | high | medium | deprecated delegating facade for a release |
 | Two live branches to maintain | certain | medium | keep the chain linear; fixes land before the fork point |
