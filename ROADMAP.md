@@ -230,22 +230,47 @@ to tell a porting bug from a bug that was always there.
 Issues found in a full review of the codebase that are worth fixing regardless of
 the target version. Most predate this fork.
 
+Some of these are parity regressions — behaviour the Fabric port lost relative to the
+Forge original — found by comparing the two line by line rather than by reading this
+tree in isolation.
+
 **Crashes and hangs**
 
-- Heat multiplier is applied after the RPM clamp, so a division by zero can reach
-  the server tick loop.
-- `FireMode.valueOf` runs on raw NBT and throws from the tooltip, the firing path
-  and the tick loop.
-- Tag tree search has no visited set or depth limit, so a cyclic tag overflows the
-  stack.
 - A duplicate resource ID, or a single malformed gun pack, aborts the entire reload
   instead of being isolated.
 - `/tacz reload` blocks the server thread in singleplayer.
+- `PreLoadConfig.load()` is commented out while the next line still reads a value from
+  the spec it was meant to load, so gun pack discovery either throws or silently
+  defaults — and a hand-edited default pack gets overwritten on startup.
+
+**Lost relative to the Forge original**
+
+- Loot injection misses mob drops. The mixin covers `getRandomItems(LootContext)`,
+  which is chests, block drops, fishing and bartering, but `dropFromLootTable` goes
+  through the consumer overload. Gun packs that add ammunition to mob drops do
+  nothing. `LootTableEvents.MODIFY` would cover every path at once.
+- All eleven keybinds lost `KeyConflictContext.IN_GAME`, so the controls screen counts
+  them as conflicting with any vanilla key on the same code.
+- The config screen keybind defaults to `T` with its modifier check commented out, so
+  it takes over vanilla chat. It used to require Alt.
+- The handshake no longer checks a channel version. A client running a different
+  version of the mod connects and desynchronises mid-game instead of being refused.
+- `ModPainting` registration is commented out in full while `init()` is still called;
+  the `blood_strike_1` painting variant is gone.
+- The client asset cache is cleared on disconnect rather than on join, and the handler
+  returns early on a memory connection — so moving from singleplayer to a dedicated
+  server clears nothing.
 
 **Incorrect behaviour**
 
 - Attachment tags are keyed on `DataComponents.CUSTOM_DATA.toString()` rather than
   a real key.
+- Worlds coming from 1.20.1 lose every installed attachment. They were written as
+  `{id, Count, tag}` and are now read with `ItemStack.CODEC`, which does not fail on
+  the old shape — it just yields an empty stack. Guns and ammunition survive; scopes,
+  silencers and grips vanish. The existing `AttachmentIdFix` only renames ids.
+- The headshot marker sets a shader colour that three early returns skip resetting, so
+  the HUD stays tinted red for up to 300 ms.
 - Each bullet calls `hurt()` twice, the second usually for zero damage — this
   doubles Thorns, hit sounds, aggro and damage events seen by other mods.
 - Physical side (`EnvType`) is used where logical side is meant, so movement
@@ -269,11 +294,25 @@ the target version. Most predate this fork.
 - Client firing logic reads item components off the main thread.
 - No spectator check on the server firing path.
 - A static handoff field leaks the reloadable server resources permanently.
-- The gun pack sync packet is sent as a single payload and needs measuring against
-  the 1 MiB limit.
+- The loot table id cache is a static strong-reference map that is never cleared, and
+  it re-scans the registry on every roll for a table it failed to resolve.
+- Two Iris integration points call internal symbols rather than the stable `api.v0`.
+
+**The gun pack sync packet**
+
+Every pack's JSON goes to the client as one payload, with no chunking and no
+compression. On 1.20.1 that hit the 1 MiB custom payload limit outright. On 1.21.1 a
+registered typed payload goes through its own `StreamCodec` and skips that check, so
+the ceiling moves to the frame decoder — roughly 2 MiB in, 8 MiB out — and the failure
+now surfaces as a connection frame error rather than a clear size exception. Either
+way a server with a few large community packs breaks on every player join. The fix is
+a begin/part/end protocol over batches plus gzip, which pack JSON compresses very well.
 
 **Performance and polish**
 
+- Every accessor read deep-copies the gun's entire NBT, including its serialized
+  attachments. This runs several times per frame from the HUD, the gun model and the
+  animation state machine.
 - O(N²) JSON parsing when a player joins.
 - Mod container lookup and string formatting every frame in the HUD overlay, and an
   NBT write from the render thread.

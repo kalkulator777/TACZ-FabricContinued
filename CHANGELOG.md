@@ -63,6 +63,8 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 - An unused Turkish translation file. Minecraft only loads lowercase locale names,
   so `tr-TR.json` was never read; the real one is `tr_tr.json`.
 - 19 MB of source `.bbmodel` files that were neither built nor shipped.
+- `GameRendererAccessor`, whose three invokers lost their only consumer when upstream
+  removed the hand renderer.
 
 **Fixed**
 
@@ -78,6 +80,10 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   and a malformed id in tag contents no longer throws — the search keeps track of
   where it has been and parses leniently. It also stops at the first match now
   instead of walking the rest of the tree.
+- Carrying a gun through a portal refreshes its state again. Fabric splits the world
+  change event in two and dispatches the entity one only for non-players, so the
+  handler that exists precisely to fix stale gun data across dimensions never ran for
+  a player. Firing, reloading and aiming state stayed stale after every portal.
 - A modifier script that fails halfway no longer returns the previous call's
   result.
 - `gradlew` is marked executable in the repository.
