@@ -67,12 +67,9 @@ public enum GunPackLoader implements RepositorySource {
             }
         }
 
-//        // 确保配置文件加载，这个阶段将比标准的forge配置文件加载早
-//        PreLoadConfig.load(resourcePacksPath);
-
         // 仅在第一次加载时复制默认资源包
         if (firstLoad) {
-            if (!PreLoadConfig.override.get()) {
+            if (!PreLoadConfig.isOverride()) {
                 for (ResourceManager.ExtraEntry entry : ResourceManager.EXTRA_ENTRIES) {
                     GetJarResources.copyModDirectory(entry.modMainClass(), entry.srcPath(), resourcePacksPath, entry.extraDirName());
                 }

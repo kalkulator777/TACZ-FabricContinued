@@ -1,13 +1,21 @@
 package com.tacz.guns.config;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.tacz.guns.GunMod;
 import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
+import net.fabricmc.loader.api.FabricLoader;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 public class PreLoadConfig {
+    public static final String FILE_NAME = "tacz-pre.toml";
+    private static final String OVERRIDE_PATH = "gunpack.DefaultPackDebug";
+
     public static void init() {
-        NeoForgeConfigRegistry.INSTANCE.register(GunMod.MOD_ID, ModConfig.Type.COMMON, spec, "tacz-pre.toml");
+        NeoForgeConfigRegistry.INSTANCE.register(GunMod.MOD_ID, ModConfig.Type.COMMON, spec, FILE_NAME);
     }
 
     private static ModConfigSpec spec;
@@ -23,20 +31,25 @@ public class PreLoadConfig {
         spec = builder.build();
     }
 
-//    public static PreLoadModConfig getModConfig() {
-//        var c = new PreLoadModConfig(ModConfig.Type.COMMON, spec, GunMod.MOD_ID, "tacz-pre.toml");
-//        // 从 ConfigTracker 中移除，防止从默认文件夹重复加载
-//        ConfigTracker.INSTANCE.configSets().get(ModConfig.Type.COMMON).remove(c);
-//        ConfigTracker.INSTANCE.fileMap().remove(c.getFileName(), c);
-//        return c;
-//    }
-//
-//    public static void load(Path configBasePath) {
-//        if (spec.isLoaded()) return;
-//        PreLoadModConfig config = getModConfig();
-//        final CommentedFileConfig configData = config.getHandler().reader(configBasePath).apply(config);
-//        config.setConfigData(configData);
-//        config.fireEvent(config);
-//        config.save();
-//    }
+    /**
+     * 这个开关要在资源包发现的时候读，而资源包发现不保证晚于配置加载完成。
+     * 此时 {@code override.get()} 会直接抛异常，所以先自己读一次文件，读不到再用默认值。
+     * Forge 版是靠提前手动加载这份配置解决同一个问题的。
+     */
+    public static boolean isOverride() {
+        if (spec.isLoaded()) {
+            return override.get();
+        }
+        Path path = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
+        try (CommentedFileConfig config = CommentedFileConfig.builder(path).sync().build()) {
+            config.load();
+            return config.getOrElse(OVERRIDE_PATH, false);
+        } catch (Exception e) {
+            GunMod.LOGGER.warn("Failed to read {} before the config system was ready, assuming the default", FILE_NAME, e);
+            return false;
+        }
+    }
 }
