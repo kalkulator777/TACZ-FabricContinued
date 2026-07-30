@@ -10,7 +10,7 @@ public class CompatRegistry {
     public static final String CARRY_ON_ID = "carryon";
 
     public static void onEnqueue() {
-        checkModLoad(IRIS, IrisCompat::initCompat);
+        IrisCompat.init();
         checkModLoad(CARRY_ON_ID, BlackList::addBlackList);
     }
 

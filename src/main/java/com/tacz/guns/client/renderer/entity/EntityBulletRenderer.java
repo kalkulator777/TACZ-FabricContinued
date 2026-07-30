@@ -106,14 +106,14 @@ public class EntityBulletRenderer extends EntityRenderer<EntityKineticBullet> {
                     double offsetReducer = Math.max(0, (50 - disToEye)) / 50;
                     // 摄像机旋转
                     // 1.21.1 修改了渲染, 现在不需要坐标空间转换, 但是 Iris 还是老样子所以..在 Iris 光影包开启的时候还是需要做类似的措施.
-                    if (IrisCompat.isPackInUseQuick()) {
+                    if (IrisCompat.isShaderPackInUse()) {
                         poseStack.mulPose(Axis.YN.rotationDegrees(bullet.getCameraYRot() + 180f));
                         poseStack.mulPose(Axis.XN.rotationDegrees(bullet.getCameraXRot()));
                     }
                     // 应用偏移
                     poseStack.translate(offset.x * offsetReducer, offset.y * offsetReducer, offset.z * offsetReducer);
                     // 逆转摄像机旋转
-                    if (IrisCompat.isPackInUseQuick()) {
+                    if (IrisCompat.isShaderPackInUse()) {
                         poseStack.mulPose(Axis.XP.rotationDegrees(bullet.getCameraXRot()));
                         poseStack.mulPose(Axis.YP.rotationDegrees(bullet.getCameraYRot() + 180f));
                     }

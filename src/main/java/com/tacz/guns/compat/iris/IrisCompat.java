@@ -2,63 +2,42 @@ package com.tacz.guns.compat.iris;
 
 import com.tacz.guns.init.CompatRegistry;
 import net.fabricmc.loader.api.FabricLoader;
-import net.irisshaders.batchedentityrendering.impl.FullyBufferedMultiBufferSource;
-import net.irisshaders.iris.Iris;
-import net.irisshaders.iris.api.v0.IrisApi;
-import net.irisshaders.iris.shadows.ShadowRenderingState;
 import net.minecraft.client.renderer.MultiBufferSource;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
+/**
+ * Nothing here touches an Iris class directly — that happens in {@link IrisCompatInner}, which is
+ * only reached once {@link #installed} is true, so the JVM never has to resolve an Iris type on an
+ * installation without Iris. This is the same shape the Shoulder Surfing and Controllable
+ * integrations use.
+ */
 public final class IrisCompat {
-    private static Function<MultiBufferSource.BufferSource, Boolean> END_BATCH_FUNCTION;
-    private static Supplier<Boolean> IS_RENDER_SHADOW_SUPPER;
+    private static boolean installed = false;
 
-    public static void initCompat() {
-        FabricLoader.getInstance().getModContainer(CompatRegistry.IRIS).ifPresent(mod -> {
-            END_BATCH_FUNCTION = IrisCompat::endBatchInner;
-            IS_RENDER_SHADOW_SUPPER = IrisCompat::isRenderShadowInner;
-        });
+    private IrisCompat() {
     }
 
-    public static boolean isPackInUseQuick() {
-        if (FabricLoader.getInstance().isModLoaded(CompatRegistry.IRIS)) {
-            return Iris.isPackInUseQuick();
-        }
-        return false;
+    public static void init() {
+        installed = FabricLoader.getInstance().isModLoaded(CompatRegistry.IRIS);
     }
 
+    /**
+     * Whether a shader pack is currently driving the pipeline.
+     */
+    public static boolean isShaderPackInUse() {
+        return installed && IrisCompatInner.isShaderPackInUse();
+    }
+
+    /**
+     * Whether the current draw is part of the shadow pass. Several effects are skipped there.
+     */
     public static boolean isRenderShadow() {
-        if (FabricLoader.getInstance().isModLoaded(CompatRegistry.IRIS)) {
-            return IS_RENDER_SHADOW_SUPPER.get();
-        }
-        return false;
+        return installed && IrisCompatInner.isRenderingShadowPass();
     }
 
-    public static boolean isUsingRenderPack() {
-        if (FabricLoader.getInstance().isModLoaded(CompatRegistry.IRIS)) {
-            return IrisApi.getInstance().isShaderPackInUse();
-        }
-        return false;
-    }
-
+    /**
+     * @return true if the buffer really was flushed, false if it is not one of Iris's batched sources
+     */
     public static boolean endBatch(MultiBufferSource.BufferSource bufferSource) {
-        if (FabricLoader.getInstance().isModLoaded(CompatRegistry.IRIS)) {
-            return END_BATCH_FUNCTION.apply(bufferSource);
-        }
-        return false;
-    }
-
-    private static boolean isRenderShadowInner() {
-        return ShadowRenderingState.areShadowsCurrentlyBeingRendered();
-    }
-
-    private static boolean endBatchInner(MultiBufferSource.BufferSource bufferSource) {
-        if (bufferSource instanceof FullyBufferedMultiBufferSource fullyBufferedMultiBufferSource) {
-            fullyBufferedMultiBufferSource.endBatch();
-            return true;
-        }
-        return false;
+        return installed && IrisCompatInner.endBatch(bufferSource);
     }
 }
