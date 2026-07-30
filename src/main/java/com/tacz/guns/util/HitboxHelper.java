@@ -19,8 +19,6 @@ public final class HitboxHelper {
     private static final WeakHashMap<Player, LinkedList<AABB>> PLAYER_HITBOXES = new WeakHashMap<>();
     // 玩家速度缓存表
     private static final WeakHashMap<Player, LinkedList<Vec3>> PLAYER_VELOCITY = new WeakHashMap<>();
-    // 命中箱缓存 Tick 上限
-    private static final int SAVE_TICK = Mth.floor(OtherConfig.SERVER_HITBOX_LATENCY_MAX_SAVE_MS.get() / 1000 * 20 + 0.5);
 
     public static void onPlayerTick(Player player) {
         if (player.isSpectator()) {
@@ -29,19 +27,31 @@ public final class HitboxHelper {
             PLAYER_VELOCITY.remove(player);
             return;
         }
+        // 位置缓存是移动散射判定的输入，和延迟补偿无关，所以无论延迟补偿是否开启都要记录
         LinkedList<Vec3> positions = PLAYER_POSITION.computeIfAbsent(player, p -> new LinkedList<>());
+        positions.addFirst(player.position());
+        if (!OtherConfig.SERVER_HITBOX_LATENCY_FIX.get()) {
+            // Position 用于速度计算，所以只需要缓存 2 个位置
+            if (positions.size() > 2) {
+                positions.removeLast();
+            }
+            PLAYER_HITBOXES.remove(player);
+            PLAYER_VELOCITY.remove(player);
+            return;
+        }
         LinkedList<AABB> boxes = PLAYER_HITBOXES.computeIfAbsent(player, p -> new LinkedList<>());
         LinkedList<Vec3> velocities = PLAYER_VELOCITY.computeIfAbsent(player, p -> new LinkedList<>());
-        positions.addFirst(player.position());
         boxes.addFirst(player.getBoundingBox());
         velocities.addFirst(getPlayerVelocity(player));
-        // Position 用于速度计算，所以只需要缓存 2 个位置
         if (positions.size() > 2) {
             positions.removeLast();
         }
-        // 命中箱和速度缓存数量限制
-        if (boxes.size() > SAVE_TICK) {
+        // 命中箱和速度缓存数量限制，配置可以在运行时改，所以每 tick 读一次
+        int saveTick = Mth.floor(OtherConfig.SERVER_HITBOX_LATENCY_MAX_SAVE_MS.get() / 1000 * 20 + 0.5);
+        while (boxes.size() > saveTick) {
             boxes.removeLast();
+        }
+        while (velocities.size() > saveTick) {
             velocities.removeLast();
         }
     }
@@ -53,8 +63,9 @@ public final class HitboxHelper {
     }
 
     public static Vec3 getPlayerVelocity(Player entity) {
-        LinkedList<Vec3> positions = PLAYER_POSITION.computeIfAbsent(entity, player -> new LinkedList<>());
-        if (positions.size() > 1) {
+        // 这是读取路径，不要往表里写，否则每次查询都会为一个没有记录的玩家留下空表
+        LinkedList<Vec3> positions = PLAYER_POSITION.get(entity);
+        if (positions != null && positions.size() > 1) {
             Vec3 currPos = positions.getFirst();
             Vec3 prevPos = positions.getLast();
             return new Vec3(currPos.x - prevPos.x, currPos.y - prevPos.y, currPos.z - prevPos.z);

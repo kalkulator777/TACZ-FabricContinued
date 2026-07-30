@@ -24,7 +24,6 @@ import com.tacz.guns.network.message.handshake.SyncedEntityDataMappingS2CPacket;
 import com.tacz.guns.resource.CommonAssetsManager;
 import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
 import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeModConfigEvents;
-import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
@@ -38,7 +37,6 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.registries.VanillaRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -91,10 +89,6 @@ public class TaCZFabric implements ModInitializer {
         CompatRegistry.onEnqueue();
         ArgumentTypeRegistry.registerArgumentType(ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "enum_argument"), EnumArgument.class,
                 new EnumArgument.Info());
-        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
-            CommonLoadPack.loadGunPack();
-        }
-
         CustomIngredientSerializer.register(NBTIngredient.Serializer.INSTANCE);
 
         ServerLifecycleEvents.SERVER_STARTING.register((server) -> TaCZFabric.server = new WeakReference<>(server));

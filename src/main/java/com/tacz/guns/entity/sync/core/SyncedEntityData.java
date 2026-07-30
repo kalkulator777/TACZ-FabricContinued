@@ -6,8 +6,6 @@ import com.tacz.guns.init.CommonRegistry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,8 +29,7 @@ public class SyncedEntityData {
     private final Set<SyncedClassKey<?>> registeredClassKeys = new HashSet<>();
     private final Object2ObjectMap<ResourceLocation, SyncedClassKey<?>> idToClassKey = new Object2ObjectOpenHashMap<>();
     private final Object2ObjectMap<String, SyncedClassKey<?>> classNameToClassKey = new Object2ObjectOpenHashMap<>();
-    private final Map<String, Boolean> clientClassNameCapabilityCache = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> serverClassNameCapabilityCache = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> classNameCapabilityCache = new ConcurrentHashMap<>();
 
     private final Set<SyncedDataKey<?, ?>> registeredDataKeys = new HashSet<>();
     private final Reference2ObjectMap<SyncedClassKey<?>, HashMap<ResourceLocation, SyncedDataKey<?, ?>>> classToKeys = new Reference2ObjectOpenHashMap<>();
@@ -156,47 +153,26 @@ public class SyncedEntityData {
         return DataHolderCapabilityProvider.CAPABILITY.maybeGet(entity).flatMap(DataHolderCapabilityProvider::getDataHolder).orElse(null);
     }
 
-//    public boolean hasSyncedDataKey(Class<? extends Entity> entityClass) {
-//        // Gets the class name capability cache for the effective side.
-//        // This is needed to avoid concurrency issue due to client and server threads;
-//        // fast util does not support concurrent maps.
-//        Object2BooleanMap<String> cache = EffectiveSide.get().isClient() ? this.clientClassNameCapabilityCache : this.serverClassNameCapabilityCache;
-//        // It's possible that the entity doesn't have a key, but it's superclass or subsequent does have a synced data key.
-//        // In order to prevent checking this every time we attach the capability, a simple one time check can be performed then cache the result.
-//        return cache.computeIfAbsent(entityClass.getName(), c -> {
-//            Class<?> targetClass = entityClass;
-//            // Should be good enough
-//            while (!targetClass.isAssignableFrom(Entity.class)) {
-//                if (this.classNameToClassKey.containsKey(targetClass.getName())) {
-//                    return true;
-//                }
-//                targetClass = targetClass.getSuperclass();
-//            }
-//            return false;
-//        });
-//    }
-
     public boolean hasSyncedDataKey(Class<? extends Entity> entityClass) {
         /* It's possible that the entity doesn't have a key, but it's superclass or subsequent does
          * have a synced data key. In order to prevent checking this every time we attach the
-         * capability, a simple one time check can be performed then cache the result. */
-        return this.getClassNameCapabilityCache(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)
-                .computeIfAbsent(entityClass.getName(), c ->
-                {
-                    Class<?> targetClass = entityClass;
-                    while (!targetClass.isAssignableFrom(Entity.class)) // Should be good enough
-                    {
-                        if (this.classNameToClassKey.containsKey(targetClass.getName())) {
-                            return true;
-                        }
-                        targetClass = targetClass.getSuperclass();
-                    }
-                    return false;
-                });
-    }
-
-    private Map<String, Boolean> getClassNameCapabilityCache(boolean client) {
-        return client ? this.clientClassNameCapabilityCache : this.serverClassNameCapabilityCache;
+         * capability, a simple one time check can be performed then cache the result.
+         *
+         * Upstream keeps one cache per logical side because fastutil's maps are not safe to touch
+         * from the client and the server thread at once. This is a ConcurrentHashMap and the answer
+         * is a pure function of the class, so one cache is enough. */
+        return this.classNameCapabilityCache.computeIfAbsent(entityClass.getName(), c ->
+        {
+            Class<?> targetClass = entityClass;
+            while (!targetClass.isAssignableFrom(Entity.class)) // Should be good enough
+            {
+                if (this.classNameToClassKey.containsKey(targetClass.getName())) {
+                    return true;
+                }
+                targetClass = targetClass.getSuperclass();
+            }
+            return false;
+        });
     }
 
     public boolean updateMappings(Map<ResourceLocation, List<Pair<ResourceLocation, Integer>>> keyMap) {
