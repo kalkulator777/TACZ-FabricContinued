@@ -195,13 +195,15 @@ tree.
       data, the Forge item-handler layer, and the events Fabric API already provides.
       About 1500 lines of the compatibility shim and 185 000 lines of resources went;
       every one of them is a line that does not have to be ported later.
-- [ ] **Correctness.** Version-independent fixes — see §7. Three crashes and the
-      dimension change are done. Remaining, in the order they are being taken:
-      the double `hurt()` per bullet, physical side used where logical side is meant,
-      the `-1` sentinel that permanently disables firing, the first shot swallowed
-      after a respawn, `PreLoadConfig.load()`, the loot injection path, the keybind
-      contexts and the config key, `ModPainting`, the `CUSTOM_DATA.toString()` key,
-      pack isolation during reload, and the blocking `/tacz reload`.
+- [x] **Correctness.** Version-independent fixes — see the
+      [changelog](CHANGELOG.md) for the list. Three crashes, the dimension change,
+      the double `hurt()` per bullet, the physical-versus-logical side confusion, the
+      `-1` sentinel, the swallowed first shot after a respawn, the pre-load config,
+      loot injection into mob drops, the config key sitting on vanilla chat, the
+      component key, per-file isolation during a reload and `/tacz reload` driving
+      the client from the server thread. What is left in §7 is either robustness
+      work that needs a running game to judge, or performance work that belongs
+      with the version bump.
 - [ ] **Build hygiene.** Drop `mavenLocal()`, unhardcode the publish repository,
       remove Gradle 9 incompatibilities, remove the vestigial Yarn mapping property.
 - [ ] **Infrastructure.** There is no CI and no test suite. Several components are
@@ -248,56 +250,42 @@ Some of these are parity regressions — behaviour the Fabric port lost relative
 Forge original — found by comparing the two line by line rather than by reading this
 tree in isolation.
 
-**Crashes and hangs**
-
-- A duplicate resource ID, or a single malformed gun pack, aborts the entire reload
-  instead of being isolated.
-- `/tacz reload` blocks the server thread in singleplayer.
-- `PreLoadConfig.load()` is commented out while the next line still reads a value from
-  the spec it was meant to load, so gun pack discovery either throws or silently
-  defaults — and a hand-edited default pack gets overwritten on startup.
+What follows is what is still open. Everything already fixed is in the
+[changelog](CHANGELOG.md).
 
 **Lost relative to the Forge original**
 
-- Loot injection misses mob drops. The mixin covers `getRandomItems(LootContext)`,
-  which is chests, block drops, fishing and bartering, but `dropFromLootTable` goes
-  through the consumer overload. Gun packs that add ammunition to mob drops do
-  nothing. `LootTableEvents.MODIFY` would cover every path at once.
-- All eleven keybinds lost `KeyConflictContext.IN_GAME`, so the controls screen counts
-  them as conflicting with any vanilla key on the same code.
-- The config screen keybind defaults to `T` with its modifier check commented out, so
-  it takes over vanilla chat. It used to require Alt.
 - The handshake no longer checks a channel version. A client running a different
   version of the mod connects and desynchronises mid-game instead of being refused.
-- `ModPainting` registration is commented out in full while `init()` is still called;
-  the `blood_strike_1` painting variant is gone.
 - The client asset cache is cleared on disconnect rather than on join, and the handler
   returns early on a memory connection — so moving from singleplayer to a dedicated
   server clears nothing.
+- All eleven keybinds lost `KeyConflictContext.IN_GAME`. In practice every handler
+  checks `isInGame()` itself, so the behaviour is right; what is lost is that the
+  controls screen still counts them as conflicting with any vanilla key on the same
+  code.
 
 **Incorrect behaviour**
 
-- Attachment tags are keyed on `DataComponents.CUSTOM_DATA.toString()` rather than
-  a real key.
 - Worlds coming from 1.20.1 lose every installed attachment. They were written as
   `{id, Count, tag}` and are now read with `ItemStack.CODEC`, which does not fail on
   the old shape — it just yields an empty stack. Guns and ammunition survive; scopes,
   silencers and grips vanish. The existing `AttachmentIdFix` only renames ids.
 - The headshot marker sets a shader colour that three early returns skip resetting, so
   the HUD stays tinted red for up to 300 ms.
-- Each bullet calls `hurt()` twice, the second usually for zero damage — this
-  doubles Thorns, hit sounds, aggro and damage events seen by other mods.
-- Physical side (`EnvType`) is used where logical side is meant, so movement
-  inaccuracy and lag compensation do not work in singleplayer or on a LAN world.
-- A `-1` sentinel from a missing gun index is tested against `0`, which can leave a
-  player permanently unable to fire with no diagnostic.
-- The first shot after each respawn or dimension change is silently swallowed.
 - The legacy gun pack hint never appears in multiplayer. It is a client-side message
   hooked to a server-side join, so it only fires on an integrated server.
 - Lua script writes to item NBT are silently dropped despite the API documenting
   them as persistent.
 - Glass breaking, ignition and bell ringing bypass region protection and the
   `mobGriefing` rule.
+- The velocity stored in the hitbox history is the movement of two ticks, not one.
+  `HitboxHelper.onPlayerTick` records the velocity before trimming the position
+  history, so the sample it takes spans three positions. The hitbox offsets around it
+  are described upstream as experimentally derived, and they were derived against
+  this — correcting it changes hit registration, so it wants a playtest rather than a
+  patch. The value read directly by the movement inaccuracy check is over one tick
+  and is correct.
 
 **Robustness**
 

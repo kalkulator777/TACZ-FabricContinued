@@ -25,8 +25,26 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   being recompiled on every evaluation — this runs on hot paths such as recoil.
   The previous single shared script engine was also mutated from both the client
   and the server thread.
+- Reading an attachment off a gun no longer walks the component registry
+  backwards on every call. The serialized stack's component map was indexed with
+  `DataComponents.CUSTOM_DATA.toString()`, which happens to produce the registry
+  name — the key is a constant now. These methods run several times per frame
+  from the HUD and the gun model.
 
 **Changed**
+
+- The config screen keybind ships unbound. It defaulted to `T`, which is vanilla's
+  chat key — on Forge the binding is Shift+T and Forge's key modifiers keep the
+  two apart, but plain `KeyMapping` has no modifiers, so pressing `T` opened the
+  mod's config screen and chat never got a look in. No vanilla key is free and
+  any specific choice eventually collides with another mod, so the key is listed
+  under Options → Controls for you to bind. The config is also reachable from
+  Mod Menu.
+- `/tacz reload` no longer starts the client resource reload on the server thread
+  and wait for it. That pinned the integrated server for the whole reload and
+  could deadlock, since the client blocks on the server during a datapack reload.
+  It also reloaded data twice in singleplayer. The reported time covers the data
+  reload.
 
 - The Forge item-handler capability layer inherited by this fork is gone, replaced by
   vanilla `Container`. It was about 1100 lines — a reimplementation of `IItemHandler`,
@@ -60,6 +78,11 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   this version, so the branch was never taken.
 - The vendored copy of the conventional tag data — 356 files, of which Fabric API
   already provides all but `c:gunpowders` and `c:nuggets/iron`. Those two are kept.
+- `ModPainting`, an empty `init()` whose real body was commented out. Painting
+  variants are a datapack registry on this version and the mod already ships
+  `data/tacz/painting_variant` plus the `placeable` tag, so the painting works
+  without it. `CommonLoadPack` went the same way — its body was commented out and
+  the class it called does not exist in this port.
 - An unused Turkish translation file. Minecraft only loads lowercase locale names,
   so `tr-TR.json` was never read; the real one is `tr_tr.json`.
 - 19 MB of source `.bbmodel` files that were neither built nor shipped.
@@ -86,4 +109,41 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   a player. Firing, reloading and aiming state stayed stale after every portal.
 - A modifier script that fails halfway no longer returns the previous call's
   result.
+- Every bullet used to call `hurt()` twice. The split lets armour-piercing damage
+  use its own damage source, but the default armour-ignore value is zero, so on
+  essentially every shot the second call carried no damage — and a zero-damage
+  hurt is still a full hurt: it broadcasts the damage event, plays the hurt sound,
+  runs Thorns, sets the aggro target and reaches every other mod's damage hooks a
+  second time. Each half now fires only if it carries damage.
+- The first shot after a respawn or a dimension change is no longer swallowed.
+  Both reset the shoot timestamp to the "has not fired yet" sentinel, and unlike
+  the other timestamps that one is an offset rather than an absolute time, so
+  subtracting it read as "fired a moment ago" and the cooldown check rejected the
+  shot for up to a full firing interval. The client had already played the sound
+  and the animation, so the shot simply vanished.
+- A gun whose id the server cannot resolve no longer locks the player out of
+  firing. The draw and melee cooldowns report `-1` for a missing gun index and the
+  client compared them with `!= 0`, so the sentinel read as a cooldown that never
+  expires and every trigger pull came back as "you are switching weapons".
+- Lag compensation and movement inaccuracy work in singleplayer and on a LAN
+  world again. The hitbox history was recorded only when the loader reported a
+  dedicated-server distribution, which is not the same thing as the logical side —
+  an integrated server runs inside the client distribution, so nothing was ever
+  recorded there. Recording positions also no longer depends on the latency fix
+  being enabled; that setting has nothing to do with movement inaccuracy, and
+  turning it off used to hand every moving player standing accuracy for free.
+  Editing the history depth takes effect without a restart.
+- Gun pack loot injections apply to mob drops. The hook sat on an overload that
+  covers container filling, block drops and fishing but not
+  `LivingEntity.dropFromLootTable`, so a pack that injected into
+  `minecraft:entities/zombie` dropped nothing. Injected stacks now also pass
+  through vanilla's stack splitter like the rest of the table's output.
+- One malformed file in a gun pack no longer fails the whole reload. Per-file
+  parsing caught only the two JSON exceptions, and these deserializers throw
+  `NullPointerException` on a missing field. Files that fail to parse are also no
+  longer shipped to clients to fail there as well.
+- Reading the pre-load config during resource pack discovery no longer risks
+  throwing. It is read before the config system is ready — Forge loads that file
+  by hand for exactly this reason — so there is now an accessor that reads the
+  toml itself in that window and falls back to the default.
 - `gradlew` is marked executable in the repository.
