@@ -85,9 +85,12 @@ public class TargetMinecart extends AbstractMinecart implements ITargetEntity {
         }
     }
 
+    /**
+     * 靶车不吃爆炸伤害。Entity.isInvulnerableTo 不在了，免疫判断收进了 hurtServer。
+     */
     @Override
-    public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
-        return source.is(DamageTypeTags.IS_EXPLOSION) || super.isInvulnerableTo(level, source);
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+        return !source.is(DamageTypeTags.IS_EXPLOSION) && super.hurtServer(level, source, amount);
     }
 
     /**

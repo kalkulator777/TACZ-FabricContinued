@@ -27,7 +27,7 @@ public class LootTableInjectorModifier {
             return;
         }
         // 注入用的战利品表本身没有注册，这里查不到 id，于是注入表内部再次走到这里时会直接返回
-        Identifier lootTableId = server.reloadableRegistries().get().lookupOrThrow(Registries.LOOT_TABLE).getKey(table);
+        Identifier lootTableId = server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE).getKey(table);
         if (lootTableId == null) {
             return;
         }

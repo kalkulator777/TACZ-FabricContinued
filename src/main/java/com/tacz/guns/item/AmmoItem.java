@@ -16,6 +16,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ServerLevel;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
@@ -35,11 +39,21 @@ public class AmmoItem extends Item implements AmmoItemDataAccessor, IItem {
         super(new Properties().stacksTo(1));
     }
 
+    /**
+     * 每种子弹的堆叠上限写在枪包里，所以只能按物品栈设置。
+     * <p>
+     * 以前这挂在 {@code Item.verifyComponentsAfterLoad} 上，那个钩子在 1.21.11 没有了，
+     * 也没有等价物。这里退而用 inventoryTick，只在当前值和枪包对不上时才写一次；
+     * 真正的位置是三阶段那个 datafixer。
+     */
     @Override
-    public void verifyComponentsAfterLoad(@NotNull ItemStack stack) {
-        TimelessAPI.getCommonAmmoIndex(this.getAmmoId(stack)).map(CommonAmmoIndex::getStackSize).ifPresent(maxStackSize ->
-                stack.set(DataComponents.MAX_STACK_SIZE, maxStackSize)
-        );
+    public void inventoryTick(@NotNull ItemStack stack, @NotNull ServerLevel level, @NotNull Entity entity, @Nullable EquipmentSlot slot) {
+        super.inventoryTick(stack, level, entity, slot);
+        TimelessAPI.getCommonAmmoIndex(this.getAmmoId(stack)).map(CommonAmmoIndex::getStackSize).ifPresent(maxStackSize -> {
+            if (!maxStackSize.equals(stack.get(DataComponents.MAX_STACK_SIZE))) {
+                stack.set(DataComponents.MAX_STACK_SIZE, maxStackSize);
+            }
+        });
     }
 
     @Override

@@ -16,6 +16,9 @@ import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -29,6 +32,8 @@ import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+
+import com.tacz.guns.util.datafixer.AttachmentIdFix;
 
 import static com.tacz.guns.util.datafixer.AttachmentIdFix.updateAttachmentIdInTag;
 
@@ -90,10 +95,17 @@ public class AttachmentItem extends Item implements AttachmentItemDataAccessor, 
         return Optional.of(new AttachmentItemTooltip(this.getAttachmentId(stack), this.getType(stack), stack));
     }
 
+    /**
+     * 把 1.20.1 时代的旧配件 id 改写成现在的。同 {@code AmmoItem}：
+     * {@code Item.verifyComponentsAfterLoad} 没有了，暂时挂在 inventoryTick 上，
+     * 只有 id 确实需要改写时才动 NBT。归宿是三阶段那个 datafixer。
+     */
     @Override
-    public void verifyComponentsAfterLoad(ItemStack stack) {
-        super.verifyComponentsAfterLoad(stack);
-        stack.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(this::verifyTagAfterLoad));
+    public void inventoryTick(@Nonnull ItemStack stack, @Nonnull ServerLevel level, @Nonnull Entity entity, @Nullable EquipmentSlot slot) {
+        super.inventoryTick(stack, level, entity, slot);
+        if (AttachmentIdFix.needsUpdate(this.getAttachmentId(stack))) {
+            stack.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(this::verifyTagAfterLoad));
+        }
     }
 
     public void verifyTagAfterLoad(@NotNull CompoundTag tag) {

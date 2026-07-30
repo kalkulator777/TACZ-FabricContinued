@@ -7,6 +7,7 @@ import com.tacz.guns.GunMod;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredientSerializer;
 import net.minecraft.advancements.criterion.NbtPredicate;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
@@ -20,6 +21,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.HolderSetCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
@@ -27,6 +29,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class NBTIngredient implements CustomIngredient {
     public static final Codec<HolderSet<Item>> ITEM_HOLDER_SET_CODEC = HolderSetCodec.create(Registries.ITEM, BuiltInRegistries.ITEM.holderByNameCodec(), false);
@@ -79,8 +82,19 @@ public class NBTIngredient implements CustomIngredient {
     }
 
     @Override
-    public List<ItemStack> getMatchingStacks() {
-        return Arrays.stream(this.stacks).toList();
+    public Stream<Holder<Item>> getMatchingItems() {
+        return this.items.stream();
+    }
+
+    /**
+     * 默认实现只会把 {@link #getMatchingItems()} 里的物品原样列出来，那样配方界面上看到的
+     * 是没有 NBT 的空枪。这里给出带 NBT 的物品栈 —— 那才是这个配方真正要的东西。
+     */
+    @Override
+    public SlotDisplay toDisplay() {
+        return new SlotDisplay.Composite(Arrays.stream(this.stacks)
+                .map(stack -> (SlotDisplay) new SlotDisplay.ItemStackSlotDisplay(stack))
+                .toList());
     }
 
     @Override
@@ -116,7 +130,7 @@ public class NBTIngredient implements CustomIngredient {
         }
 
         @Override
-        public MapCodec<NBTIngredient> getCodec(boolean b) {
+        public MapCodec<NBTIngredient> getCodec() {
             return NBTIngredient.CODEC;
         }
 

@@ -43,4 +43,11 @@ public final class AttachmentIdFix {
     public static Identifier updateAttachmentId(Identifier old) {
         return OLD_TO_NEW.getOrDefault(old, old);
     }
+
+    /**
+     * 这个 id 需不需要改写。用来在动 NBT 之前先问一句 —— 绝大多数配件都不需要。
+     */
+    public static boolean needsUpdate(Identifier id) {
+        return OLD_TO_NEW.containsKey(id);
+    }
 }
