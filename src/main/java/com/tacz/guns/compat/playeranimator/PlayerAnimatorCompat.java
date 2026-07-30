@@ -26,7 +26,7 @@ public class PlayerAnimatorCompat {
     public static ResourceLocation ONCE_UPPER_ANIMATION = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "once_upper_animation");
     public static ResourceLocation ROTATION_ANIMATION = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "rotation");
 
-    private static final String PA = "playeranimator";
+    private static final String PA = "player_animation_library";
     private static boolean INSTALLED = false;
 
     public static void init() {

@@ -94,9 +94,9 @@ repositories {
             includeGroup "com.github.FiguraMC.luaj"
         }
     }
-    maven {
-        name = "KosmX's maven"
-        url = 'https://maven.kosmx.dev/'
+    maven {// Player Animation Library，PlayerAnimator 作者自己推荐的后继者
+        name = "RedLance"
+        url = 'https://repo.redlance.org/public'
     }
     maven {// CCA
         name = "Ladysnake Mods"
@@ -183,7 +183,7 @@ dependencies {
      * 按坐标取到的是 NeoForge 那个 jar，所以这里还是钉在 CurseForge 的文件 id 上 */
     modCompileOnly "curse.maven:carry-on-274259:${carry_on_file_id}"
 
-    modImplementation "dev.kosmx.player-anim:player-animation-lib-fabric:${player_animation_lib}"
+    modImplementation "com.zigythebird.playeranim:PlayerAnimationLibFabric:${player_animation_lib}"
 
     // kjs暂无Fabric1.21
     // kubejs开发环境引入

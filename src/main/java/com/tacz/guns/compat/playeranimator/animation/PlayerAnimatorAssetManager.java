@@ -1,12 +1,13 @@
 package com.tacz.guns.compat.playeranimator.animation;
 
 import com.google.common.collect.Maps;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.tacz.guns.GunMod;
-import dev.kosmx.playerAnim.api.IPlayable;
-import dev.kosmx.playerAnim.core.data.KeyframeAnimation;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
-import dev.kosmx.playerAnim.minecraftApi.codec.AnimationCodecs;
+import com.zigythebird.playeranimcore.animation.Animation;
+import com.zigythebird.playeranimcore.loading.UniversalAnimLoader;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
@@ -17,13 +18,19 @@ import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
-public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<Map<ResourceLocation, HashMap<String, KeyframeAnimation>>> implements IdentifiableResourceReloadListener {
+public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<Map<ResourceLocation, HashMap<String, Animation>>> implements IdentifiableResourceReloadListener {
     private static PlayerAnimatorAssetManager INSTANCE;
 
     private final FileToIdConverter filetoidconverter = new FileToIdConverter("player_animator", ".json");
-    private final HashMap<ResourceLocation, HashMap<String, KeyframeAnimation>> animations = new HashMap<>();
+    private final HashMap<ResourceLocation, HashMap<String, Animation>> animations = new HashMap<>();
 
     public static PlayerAnimatorAssetManager get() {
         if (INSTANCE == null) {
@@ -33,16 +40,33 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
     }
 
     void putAnimation(ResourceLocation id, InputStream stream) throws IOException {
-        Collection<IPlayable> keyframeAnimations = AnimationCodecs.deserialize("json", () -> stream);
-        for (var playable : keyframeAnimations) {
-            if (playable instanceof KeyframeAnimation animation && animation.extraData.get("name") instanceof String text) {
-                String name = PlayerAnimationRegistry.serializeTextToString(text).toLowerCase(Locale.ENGLISH);
-                animations.computeIfAbsent(id, k -> Maps.newHashMap()).put(name, animation);
-            }
-        }
+        animations.computeIfAbsent(id, k -> Maps.newHashMap()).putAll(read(stream));
     }
 
-    Optional<KeyframeAnimation> getAnimations(ResourceLocation id, String name) {
+    /**
+     * Parses one animation file into its animations, keyed by lowercased name.
+     * <p>
+     * The easing names are rewritten first — see {@link EasingNames} for why that is not
+     * optional. The loader handles both the Bedrock form gun packs are exported in and the
+     * library's own, and returns them already keyed by name.
+     */
+    private static Map<String, Animation> read(InputStream stream) throws IOException {
+        JsonElement json;
+        try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+            json = JsonParser.parseReader(reader);
+        }
+        if (!(json instanceof JsonObject object)) {
+            throw new JsonParseException("Expected a json object, found " + json);
+        }
+        EasingNames.translateInPlace(object);
+
+        Map<String, Animation> parsed = UniversalAnimLoader.loadAnimations(object);
+        Map<String, Animation> byLowercaseName = Maps.newHashMapWithExpectedSize(parsed.size());
+        parsed.forEach((name, animation) -> byLowercaseName.put(name.toLowerCase(Locale.ENGLISH), animation));
+        return byLowercaseName;
+    }
+
+    Optional<Animation> getAnimations(ResourceLocation id, String name) {
         var animationHashMap = this.animations.get(id);
         if (animationHashMap == null) {
             return Optional.empty();
@@ -59,29 +83,23 @@ public class PlayerAnimatorAssetManager extends SimplePreparableReloadListener<M
     }
 
     @Override
-    protected Map<ResourceLocation, HashMap<String, KeyframeAnimation>> prepare(ResourceManager manager, ProfilerFiller profiler) {
-        Map<ResourceLocation, HashMap<String, KeyframeAnimation>> output = Maps.newHashMap();
+    protected Map<ResourceLocation, HashMap<String, Animation>> prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<ResourceLocation, HashMap<String, Animation>> output = Maps.newHashMap();
         for (Map.Entry<ResourceLocation, Resource> entry : filetoidconverter.listMatchingResources(manager).entrySet()) {
-            ResourceLocation resourcelocation = entry.getKey();
-            ResourceLocation resourcelocation1 = filetoidconverter.fileToId(resourcelocation);
+            ResourceLocation file = entry.getKey();
+            ResourceLocation id = filetoidconverter.fileToId(file);
 
             try (InputStream stream = entry.getValue().open()) {
-                Collection<IPlayable> keyframeAnimations = AnimationCodecs.deserialize("json", () -> stream);
-                for (var playable : keyframeAnimations) {
-                    if (playable instanceof KeyframeAnimation animation && animation.extraData.get("name") instanceof String text) {
-                        String name = PlayerAnimationRegistry.serializeTextToString(text).toLowerCase(Locale.ENGLISH);
-                        output.computeIfAbsent(resourcelocation1, k -> Maps.newHashMap()).put(name, animation);
-                    }
-                }
-            } catch (IllegalArgumentException | IOException | JsonParseException jsonparseexception) {
-                GunMod.LOGGER.warn("Failed to player animation file: {}, entry: {}", resourcelocation, entry);
+                output.computeIfAbsent(id, k -> Maps.newHashMap()).putAll(read(stream));
+            } catch (IOException | RuntimeException e) {
+                GunMod.LOGGER.warn("Failed to read player animation file {}", file, e);
             }
         }
         return output;
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, HashMap<String, KeyframeAnimation>> map, ResourceManager manager, ProfilerFiller profiler) {
+    protected void apply(Map<ResourceLocation, HashMap<String, Animation>> map, ResourceManager manager, ProfilerFiller profiler) {
         animations.clear();
         animations.putAll(map);
     }

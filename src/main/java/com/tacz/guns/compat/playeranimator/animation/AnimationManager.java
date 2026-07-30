@@ -10,12 +10,13 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.client.resource.GunDisplayInstance;
 import com.tacz.guns.compat.playeranimator.AnimationName;
 import com.tacz.guns.compat.playeranimator.PlayerAnimatorCompat;
-import dev.kosmx.playerAnim.api.layered.IAnimation;
-import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
-import dev.kosmx.playerAnim.api.layered.ModifierLayer;
-import dev.kosmx.playerAnim.api.layered.modifier.AbstractFadeModifier;
-import dev.kosmx.playerAnim.core.util.Ease;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
+import com.zigythebird.playeranim.animation.PlayerAnimationController;
+import com.zigythebird.playeranim.api.PlayerAnimationAccess;
+import com.zigythebird.playeranimcore.animation.Animation;
+import com.zigythebird.playeranimcore.animation.layered.IAnimation;
+import com.zigythebird.playeranimcore.animation.layered.ModifierLayer;
+import com.zigythebird.playeranimcore.animation.layered.modifier.AbstractFadeModifier;
+import com.zigythebird.playeranimcore.easing.EasingType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
@@ -36,25 +37,30 @@ public class AnimationManager {
         return !player.onGround() && player.getAbilities().flying;
     }
 
+    /**
+     * The fade length, in ticks, used everywhere animations are swapped. Eight ticks is what
+     * makes hold, walk, run and aim blend into one another instead of snapping.
+     */
+    private static final int FADE_TICKS = 8;
+
+    private static AbstractFadeModifier fade(int ticks) {
+        return AbstractFadeModifier.standardFadeIn(ticks, EasingType.EASE_IN_OUT_SINE);
+    }
+
+    /**
+     * The controller behind one of the four per-player layers. The rotation layer is wrapped in a
+     * {@link ModifierLayer} so it can carry the adjustment modifier; the rest are bare.
+     */
+    private static PlayerAnimationController controller(AbstractClientPlayer player, ResourceLocation dataId) {
+        IAnimation layer = PlayerAnimationAccess.getPlayerAnimationLayer(player, dataId);
+        if (layer instanceof ModifierLayer<?> modifierLayer) {
+            layer = modifierLayer.getAnimation();
+        }
+        return layer instanceof PlayerAnimationController animationController ? animationController : null;
+    }
+
     public static void playRotationAnimation(AbstractClientPlayer player, GunDisplayInstance display) {
-        String animationName = AnimationName.EMPTY;
-        ResourceLocation dataId = PlayerAnimatorCompat.ROTATION_ANIMATION;
-        ResourceLocation animator3rd = display.getPlayerAnimator3rd();
-        if (animator3rd == null) {
-            return;
-        }
-        if (!PlayerAnimatorAssetManager.get().containsKey(animator3rd)) {
-            return;
-        }
-        PlayerAnimatorAssetManager.get().getAnimations(animator3rd, animationName).ifPresent(keyframeAnimation -> {
-            var associatedData = PlayerAnimationAccess.getPlayerAssociatedData(player);
-            var modifierLayer = (ModifierLayer<IAnimation>) associatedData.get(dataId);
-            if (modifierLayer == null) {
-                return;
-            }
-            AbstractFadeModifier fadeModifier = AbstractFadeModifier.standardFadeIn(8, Ease.INOUTSINE);
-            modifierLayer.replaceAnimationWithFade(fadeModifier, new KeyframeAnimationPlayer(keyframeAnimation));
-        });
+        playAnimation(player, display, PlayerAnimatorCompat.ROTATION_ANIMATION, AnimationName.EMPTY, true);
     }
 
     public static void playLowerAnimation(AbstractClientPlayer player, GunDisplayInstance display, float limbSwingAmount) {
@@ -145,36 +151,26 @@ public class AnimationManager {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Starts a looping animation, unless it is already the one playing.
+     */
     public static void playLoopAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId, String animationName) {
-        ResourceLocation animator3rd = display.getPlayerAnimator3rd();
-        if (animator3rd == null) {
-            return;
-        }
-        if (!PlayerAnimatorAssetManager.get().containsKey(animator3rd)) {
-            return;
-        }
-        PlayerAnimatorAssetManager.get().getAnimations(animator3rd, animationName).ifPresent(keyframeAnimation -> {
-            var associatedData = PlayerAnimationAccess.getPlayerAssociatedData(player);
-            var modifierLayer = (ModifierLayer<IAnimation>) associatedData.get(dataId);
-            if (modifierLayer == null) {
-                return;
-            }
-            if (modifierLayer.getAnimation() instanceof KeyframeAnimationPlayer animationPlayer && animationPlayer.isActive()) {
-                Object extraDataName = animationPlayer.getData().extraData.get("name");
-                if (extraDataName instanceof String name && !animationName.equals(name)) {
-                    AbstractFadeModifier fadeModifier = AbstractFadeModifier.standardFadeIn(8, Ease.INOUTSINE);
-                    modifierLayer.replaceAnimationWithFade(fadeModifier, new KeyframeAnimationPlayer(keyframeAnimation));
-                }
-                return;
-            }
-            AbstractFadeModifier fadeModifier = AbstractFadeModifier.standardFadeIn(8, Ease.INOUTSINE);
-            modifierLayer.replaceAnimationWithFade(fadeModifier, new KeyframeAnimationPlayer(keyframeAnimation));
-        });
+        playAnimation(player, display, dataId, animationName, true);
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Starts a one-shot animation, unless something on that layer is still playing.
+     */
     public static void playOnceAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId, String animationName) {
+        playAnimation(player, display, dataId, animationName, false);
+    }
+
+    /**
+     * @param interruptOther whether a different animation already playing on this layer should be
+     *                       faded out and replaced, or left to finish
+     */
+    private static void playAnimation(AbstractClientPlayer player, GunDisplayInstance display, ResourceLocation dataId,
+                                      String animationName, boolean interruptOther) {
         ResourceLocation animator3rd = display.getPlayerAnimator3rd();
         if (animator3rd == null) {
             return;
@@ -182,22 +178,27 @@ public class AnimationManager {
         if (!PlayerAnimatorAssetManager.get().containsKey(animator3rd)) {
             return;
         }
-        PlayerAnimatorAssetManager.get().getAnimations(animator3rd, animationName).ifPresent(keyframeAnimation -> {
-            var associatedData = PlayerAnimationAccess.getPlayerAssociatedData(player);
-            var modifierLayer = (ModifierLayer<IAnimation>) associatedData.get(dataId);
-            if (modifierLayer == null) {
+        PlayerAnimatorAssetManager.get().getAnimations(animator3rd, animationName).ifPresent(animation -> {
+            PlayerAnimationController animationController = controller(player, dataId);
+            if (animationController == null) {
                 return;
             }
-            IAnimation animation = modifierLayer.getAnimation();
-            if (animation == null || !animation.isActive()) {
-                AbstractFadeModifier fadeModifier = AbstractFadeModifier.standardFadeIn(8, Ease.INOUTSINE);
-                modifierLayer.replaceAnimationWithFade(fadeModifier, new KeyframeAnimationPlayer(keyframeAnimation));
+            if (animationController.isActive()) {
+                if (!interruptOther) {
+                    return;
+                }
+                Animation current = animationController.getCurrentAnimationInstance();
+                // already the one we want, leave it running rather than restarting it every frame
+                if (current != null && animationName.equals(current.data().name())) {
+                    return;
+                }
             }
+            animationController.replaceAnimationWithFade(fade(FADE_TICKS), animation);
         });
     }
 
     public static void stopAllAnimation(AbstractClientPlayer player) {
-        stopAllAnimation(player, 8);
+        stopAllAnimation(player, FADE_TICKS);
     }
 
     public static void stopAllAnimation(AbstractClientPlayer player, int fadeTime) {
@@ -208,13 +209,10 @@ public class AnimationManager {
     }
 
 
-    @SuppressWarnings("unchecked")
     private static void stopAnimation(AbstractClientPlayer player, ResourceLocation dataId, int fadeTime) {
-        var associatedData = PlayerAnimationAccess.getPlayerAssociatedData(player);
-        var modifierLayer = (ModifierLayer<IAnimation>) associatedData.get(dataId);
-        if (modifierLayer != null && modifierLayer.isActive()) {
-            AbstractFadeModifier fadeModifier = AbstractFadeModifier.standardFadeIn(fadeTime, Ease.INOUTSINE);
-            modifierLayer.replaceAnimationWithFade(fadeModifier, null);
+        PlayerAnimationController animationController = controller(player, dataId);
+        if (animationController != null && animationController.isActive()) {
+            animationController.replaceAnimationWithFade(fade(fadeTime), (Animation) null);
         }
     }
 
@@ -325,9 +323,9 @@ public class AnimationManager {
         ItemStack previousGunItem = event.getPreviousGunItem();
         // 在切枪时，重置上半身动画
         if (currentGunItem.getItem() instanceof IGun && previousGunItem.getItem() instanceof IGun) {
-            stopAnimation(player, PlayerAnimatorCompat.LOOP_UPPER_ANIMATION, 8);
-            stopAnimation(player, PlayerAnimatorCompat.ONCE_UPPER_ANIMATION, 8);
-            stopAnimation(player, PlayerAnimatorCompat.LOWER_ANIMATION, 8);
+            stopAnimation(player, PlayerAnimatorCompat.LOOP_UPPER_ANIMATION, FADE_TICKS);
+            stopAnimation(player, PlayerAnimatorCompat.ONCE_UPPER_ANIMATION, FADE_TICKS);
+            stopAnimation(player, PlayerAnimatorCompat.LOWER_ANIMATION, FADE_TICKS);
         }
     }
 }
