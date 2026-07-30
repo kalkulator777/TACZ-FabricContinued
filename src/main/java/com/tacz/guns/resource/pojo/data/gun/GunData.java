@@ -306,10 +306,11 @@ public class GunData {
             rpm = Mth.clamp(cacheProperty.<Integer>getCache(RpmModifier.ID), 1, 1200);
         }
         IGun iGun = IGun.getIGunOrNull(gunStack);
-        if (hasHeatData())
+        if (hasHeatData() && iGun != null) {
             rpm = (int) (rpm * iGun.lerpRPM(gunStack));
-
-        return 60_000L / rpm;
+        }
+        // 热量倍率在夹紧之后生效，会把 rpm 拉到 0，这里除零会打断服务端 tick
+        return 60_000L / Math.max(rpm, 1);
     }
 
     /**

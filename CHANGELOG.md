@@ -66,6 +66,18 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 
 **Fixed**
 
+- Firing a gun with heat data no longer divides by zero. The heat multiplier was
+  applied after the rounds-per-minute value had been clamped, so enough heat drove
+  it to zero and the exception came out of the server tick loop. The same call also
+  dereferenced the gun without a null check.
+- A gun whose fire mode tag holds an unrecognised value no longer throws. It came
+  straight from item NBT into `FireMode.valueOf`, and that is read from the tooltip,
+  the firing path and the tick loop; it now reads as `UNKNOWN`, which is already the
+  value used when the tag is missing.
+- Attachment tags that reference each other in a cycle no longer overflow the stack,
+  and a malformed id in tag contents no longer throws — the search keeps track of
+  where it has been and parses leniently. It also stops at the first match now
+  instead of walking the rest of the tree.
 - A modifier script that fails halfway no longer returns the previous call's
   result.
 - `gradlew` is marked executable in the repository.
