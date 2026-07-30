@@ -6,6 +6,7 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.attachment.AttachmentType;
 import com.tacz.guns.network.NetworkHandler;
 import com.tacz.guns.resource.modifier.AttachmentPropertyManager;
+import com.tacz.guns.util.InventoryUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -38,6 +39,11 @@ public record ClientMessageRefitGun(int attachmentSlotIndex, int gunSlotIndex,
         context.server().execute(() -> {
             ServerPlayer player = context.player();
             Inventory inventory = player.getInventory();
+            // The slot indices come from the client and are not trusted
+            if (!InventoryUtil.isValidSlot(inventory, message.attachmentSlotIndex)
+                    || !InventoryUtil.isValidSlot(inventory, message.gunSlotIndex)) {
+                return;
+            }
             ItemStack attachmentItem = inventory.getItem(message.attachmentSlotIndex);
             ItemStack gunItem = inventory.getItem(message.gunSlotIndex);
             IGun iGun = IGun.getIGunOrNull(gunItem);

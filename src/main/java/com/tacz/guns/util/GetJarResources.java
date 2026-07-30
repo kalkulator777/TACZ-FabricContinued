@@ -243,6 +243,7 @@ public final class GetJarResources {
         connection.setUseCaches(false);
         String rootEntry = normalizeDirectoryEntryName(connection.getEntryName());
         Files.createDirectories(targetPath);
+        Path targetRoot = targetPath.toAbsolutePath().normalize();
         try (JarFile jarFile = connection.getJarFile()) {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
@@ -255,6 +256,10 @@ public final class GetJarResources {
                     continue;
                 }
                 Path target = targetPath.resolve(relativePath);
+                // An entry name such as "../.." would escape the target directory (zip slip)
+                if (!target.toAbsolutePath().normalize().startsWith(targetRoot)) {
+                    throw new IOException("Entry " + entry.getName() + " would be extracted outside of " + targetRoot);
+                }
                 if (entry.isDirectory()) {
                     Files.createDirectories(target);
                     continue;

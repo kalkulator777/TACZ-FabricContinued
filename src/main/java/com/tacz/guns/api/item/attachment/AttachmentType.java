@@ -64,7 +64,15 @@ public enum AttachmentType implements StringRepresentable {
         return serializedName;
     }
 
+    /**
+     * @param id the ordinal of an {@link AttachmentType}, possibly out of range when it was decoded
+     *           from a network packet
+     * @return the matching type, or {@link #NONE} if the id does not name one
+     */
     public static AttachmentType fromId(int id) {
+        if (id < 0 || id >= VALUES.length) {
+            return NONE;
+        }
         return VALUES[id];
     }
 

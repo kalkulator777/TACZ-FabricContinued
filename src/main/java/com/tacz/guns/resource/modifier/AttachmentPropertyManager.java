@@ -15,18 +15,25 @@ import com.tacz.guns.resource.pojo.data.attachment.Modifier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import com.tacz.guns.util.LuaSandbox;
 import org.apache.commons.lang3.StringUtils;
-import org.luaj.vm2.script.LuaScriptEngineFactory;
+import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaError;
+import org.luaj.vm2.LuaValue;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class AttachmentPropertyManager {
-    private static final ScriptEngine LUAJ_ENGINE = new LuaScriptEngineFactory().getScriptEngine();
+    /**
+     * Modifier scripts come from gun packs, so they run in a sandbox — see {@link LuaSandbox}.
+     * One evaluator per thread: the script communicates through globals, which is not safe to share
+     * between the client and the server thread.
+     */
+    private static final ThreadLocal<ModifierEvaluator> EVALUATOR = ThreadLocal.withInitial(ModifierEvaluator::new);
     private static final Map<String, IAttachmentModifier<?, ?>> MODIFIERS = Maps.newLinkedHashMap();
 
     public static void registerModifier() {
@@ -112,17 +119,45 @@ public class AttachmentPropertyManager {
     }
 
     public static double functionEval(double value, double defaultValue, String script) {
-        script = script.toLowerCase(Locale.ENGLISH);
-        LUAJ_ENGINE.put("x", value);
-        LUAJ_ENGINE.put("r", defaultValue);
-        try {
-            LUAJ_ENGINE.eval(script);
-        } catch (ScriptException e) {
-            GunMod.LOGGER.error(e.getMessage(), e);
+        return EVALUATOR.get().eval(value, defaultValue, script.toLowerCase(Locale.ENGLISH));
+    }
+
+    /**
+     * Evaluates the {@code function} field of an attachment modifier. The script reads {@code x}
+     * (the value accumulated so far) and {@code r} (the unmodified default) and writes {@code y}.
+     */
+    private static final class ModifierEvaluator {
+        private final Globals globals = LuaSandbox.createGlobals();
+        /**
+         * Compiled chunks, keyed by source. This runs per shot for properties such as recoil, and the
+         * set of distinct scripts is bounded by the loaded gun packs.
+         */
+        private final Map<String, LuaValue> compiled = new HashMap<>();
+
+        private double eval(double value, double defaultValue, String script) {
+            LuaValue chunk = compiled.computeIfAbsent(script, source -> {
+                try {
+                    return globals.load(source, "attachment_modifier");
+                } catch (LuaError e) {
+                    GunMod.LOGGER.error("Failed to compile attachment modifier script: {}", source, e);
+                    return LuaValue.NIL;
+                }
+            });
+            if (chunk.isnil()) {
+                return value;
+            }
+            globals.set("x", LuaValue.valueOf(value));
+            globals.set("r", LuaValue.valueOf(defaultValue));
+            // Clear the output, otherwise a script that fails halfway returns the previous call's result
+            globals.set("y", LuaValue.NIL);
+            try {
+                chunk.call();
+            } catch (LuaError e) {
+                GunMod.LOGGER.error("Failed to run attachment modifier script: {}", script, e);
+                return value;
+            }
+            LuaValue result = globals.get("y");
+            return result.isnumber() ? result.todouble() : value;
         }
-        if (LUAJ_ENGINE.get("y") instanceof Number number) {
-            return number.doubleValue();
-        }
-        return value;
     }
 }

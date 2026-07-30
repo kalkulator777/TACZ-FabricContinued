@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonParseException;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.vmlib.LuaLibrary;
+import com.tacz.guns.util.LuaSandbox;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resources.FileToIdConverter;
 import net.minecraft.resources.ResourceLocation;
@@ -13,14 +14,6 @@ import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.jetbrains.annotations.NotNull;
 import org.luaj.vm2.*;
-import org.luaj.vm2.compiler.LuaC;
-import org.luaj.vm2.lib.Bit32Lib;
-import org.luaj.vm2.lib.PackageLib;
-import org.luaj.vm2.lib.TableLib;
-import org.luaj.vm2.lib.jse.JseBaseLib;
-import org.luaj.vm2.lib.jse.JseMathLib;
-import org.luaj.vm2.lib.jse.JsePlatform;
-import org.luaj.vm2.lib.jse.JseStringLib;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
@@ -94,7 +87,7 @@ public class ScriptManager extends SimplePreparableReloadListener<List<Map.Entry
     }
 
     private void initGlobals() {
-        globals = secureStandardGlobals();
+        globals = LuaSandbox.createGlobals();
         //LuaJC.install(globals);
         if (libraries != null) {
             libraries.forEach(library -> library.install(globals));
@@ -107,23 +100,6 @@ public class ScriptManager extends SimplePreparableReloadListener<List<Map.Entry
 
     public LuaTable getScript(ResourceLocation id) {
         return scriptMap.get(getModuleName(id));
-    }
-
-    private static Globals secureStandardGlobals() {
-        Globals globals = new Globals();
-        globals.load(new JseBaseLib());
-        globals.load(new PackageLib());
-        globals.load(new Bit32Lib());
-        globals.load(new TableLib());
-        globals.load(new JseStringLib());
-        // No CoroutineLib
-        globals.load(new JseMathLib());
-        // No JseIoLib
-        // No JseOsLib
-        // No LuajavaLib
-        LoadState.install(globals);
-        LuaC.install(globals);
-        return globals;
     }
 
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "script_manager");

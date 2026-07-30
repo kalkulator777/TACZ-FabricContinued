@@ -5,6 +5,7 @@ import com.tacz.guns.api.item.IAttachment;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.attachment.AttachmentType;
 import com.tacz.guns.api.item.nbt.AttachmentItemDataAccessor;
+import com.tacz.guns.util.InventoryUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
@@ -26,7 +27,9 @@ public class ClientMessageLaserColor implements CustomPacketPayload {
             ResourceLocation.fromNamespaceAndPath(GunMod.MOD_ID, "client_laser_color")
     );
     public static final StreamCodec<RegistryFriendlyByteBuf, ClientMessageLaserColor> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.map(HashMap::new, ByteBufCodecs.idMapper(AttachmentType::fromId, AttachmentType::ordinal), ByteBufCodecs.INT), message -> message.colorMap,
+            // The map is bounded to the number of attachment types, otherwise a client can announce an
+            // arbitrarily large one and make the server allocate it
+            ByteBufCodecs.map(HashMap::new, ByteBufCodecs.idMapper(AttachmentType::fromId, AttachmentType::ordinal), ByteBufCodecs.INT, AttachmentType.values().length), message -> message.colorMap,
             ByteBufCodecs.BOOL, message -> message.applyGunColor,
             ByteBufCodecs.INT, message -> message.gunColor,
             ByteBufCodecs.INT, message -> message.gunSlotIndex,
@@ -75,20 +78,25 @@ public class ClientMessageLaserColor implements CustomPacketPayload {
     public static void handle(ClientMessageLaserColor message, ServerPlayNetworking.Context context) {
         context.server().execute(() -> {
             ServerPlayer player = context.player();
-            if (message.gunSlotIndex == -1) {
+            Inventory inventory = player.getInventory();
+            // The slot index comes from the client and is not trusted
+            if (!InventoryUtil.isValidSlot(inventory, message.gunSlotIndex)) {
                 return;
             }
-            Inventory inventory = player.getInventory();
             ItemStack gunItem = inventory.getItem(message.gunSlotIndex);
             IGun iGun = IGun.getIGunOrNull(gunItem);
             if (iGun != null) {
                 for (var entry : message.colorMap.entrySet()) {
                     AttachmentType type = entry.getKey();
+                    if (type == AttachmentType.NONE) {
+                        continue;
+                    }
                     int color = entry.getValue();
                     CompoundTag tag = iGun.getAttachmentTag(gunItem, type);
-                    if (tag != null) {
-                        AttachmentItemDataAccessor.setLaserColorToTag(tag, color);
+                    if (tag == null) {
+                        continue;
                     }
+                    AttachmentItemDataAccessor.setLaserColorToTag(tag, color);
                     iGun.setAttachmentTag(gunItem, type, tag);
                 }
                 if (message.applyGunColor) {
