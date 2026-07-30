@@ -1,10 +1,8 @@
 package com.tacz.guns.client.renderer.item;
 
-import cn.sh1rocu.simplebedrockmodel.api.event.ViewportEvent;
-import com.github.mcmodderanchor.simplebedrockmodel.v1.client.animation.IFPAnimationInstance;
-import com.github.mcmodderanchor.simplebedrockmodel.v1.client.renderer.IFPGeoItemRenderer;
-import com.maydaymemory.mae.basic.DummyPose;
-import com.maydaymemory.mae.basic.Pose;
+import cn.sh1rocu.tacz.api.event.ViewportEvent;
+import com.tacz.guns.api.client.renderer.IFPAnimationInstance;
+import com.tacz.guns.api.client.renderer.IFPGeoItemRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.tacz.guns.api.TimelessAPI;
@@ -30,7 +28,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
@@ -217,7 +214,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
     }
 
     /**
-     * 渲染第一人称，暂时只用于玩家，入口参见 {@link com.tacz.guns.client.event.FirstPersonRenderEvent}
+     * 渲染第一人称，暂时只用于玩家，入口参见 {@link com.tacz.guns.client.event.FirstPersonRenderHandler}
      */
     public void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, MultiBufferSource bufferSource,
                                   int light, float partialTick) {
@@ -341,28 +338,8 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
             }
 
             @Override
-            public Pose getPose() {
-                return DummyPose.INSTANCE;
-            }
+            public void tick(float partialTick) {
 
-            @Override
-            public void tick(float v) {
-
-            }
-
-            @Override
-            public @NotNull Quaternionf getCameraRotation() {
-                return new Quaternionf();
-            }
-
-            @Override
-            public void setCameraRotation(@NotNull Quaternionf quaternionf) {
-
-            }
-
-            @Override
-            public Pose getCachedPose() {
-                return DummyPose.INSTANCE;
             }
 
             @Override

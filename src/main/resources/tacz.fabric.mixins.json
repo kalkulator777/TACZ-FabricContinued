@@ -33,6 +33,7 @@
     "accessor.BlockableEventLoopAccessor",
     "accessor.ScreenAccessor",
     "client.AbstractPlayerMixin",
+    "client.CameraMixin",
     "client.ChannelAccessHandleMixin",
     "client.ClientLevelMixin",
     "client.ClientPacketListenerMixin",

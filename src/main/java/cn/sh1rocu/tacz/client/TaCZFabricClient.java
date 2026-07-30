@@ -1,12 +1,15 @@
 package cn.sh1rocu.tacz.client;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import cn.sh1rocu.simplebedrockmodel.api.event.RenderTickEvent;
-import cn.sh1rocu.simplebedrockmodel.api.event.ViewportEvent;
+import cn.sh1rocu.tacz.api.event.RenderHandEvent;
+import cn.sh1rocu.tacz.api.event.RenderTickEvent;
+import cn.sh1rocu.tacz.api.event.ViewportEvent;
 import cn.sh1rocu.tacz.api.event.*;
 import cn.sh1rocu.tacz.api.extension.IItem;
 import com.tacz.guns.api.client.event.BeforeRenderHandEvent;
 import com.tacz.guns.api.client.event.RenderItemInHandBobEvent;
+import com.tacz.guns.client.animation.FirstPersonClock;
+import com.tacz.guns.client.event.FirstPersonRenderHandler;
 import com.tacz.guns.api.client.event.SwapItemWithOffHand;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import com.tacz.guns.api.event.common.EntityKillByGunEvent;
@@ -66,7 +69,15 @@ public class TaCZFabricClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register(CommonNetworkCacheEvent::onClientPlayerLoggingIn);
 
-        // RenderHandEvent.EVENT.register(FirstPersonRenderEvent::onRenderHand);
+        /* The first-person driver, absorbed from SimpleBedrockModel along with the events it
+         * runs on. Its client entrypoint used to register these. */
+        RenderTickEvent.EVENT.register(FirstPersonClock::onRenderTick);
+        ClientPlayConnectionEvents.DISCONNECT.register(FirstPersonClock::onLoggingOut);
+        ClientPlayConnectionEvents.DISCONNECT.register(FirstPersonRenderHandler::onPlayerLoggedOut);
+        SwapItemWithOffHand.CALLBACK.register(FirstPersonRenderHandler::onSwapItemWithOffHand);
+        ClientTickEvents.START_CLIENT_TICK.register(FirstPersonRenderHandler::onClientTick);
+        RenderTickEvent.EVENT.register(FirstPersonRenderHandler::tickAnimation);
+        RenderHandEvent.EVENT.register(FirstPersonRenderHandler::onRenderHand);
 
         RenderItemInHandBobEvent.VIEW.register(FirstPersonRenderGunEvent::cancelItemInHandViewBobbing);
         GunFireEvent.CALLBACK.register(FirstPersonRenderGunEvent::onGunFire);

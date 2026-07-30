@@ -121,9 +121,7 @@ repositories {
     mavenCentral()
     // 这里原本还有 mavenLocal()。它会让构建结果取决于开发者本机 ~/.m2 里恰好躺着什么，
     // 同一个提交在两台机器上可以编译出不同的东西。所有依赖都能从上面的仓库解析到。
-    flatDir {
-        dir 'libs'
-    }
+    // libs/ 的 flatDir 随 SimpleBedrockModel 一起去掉了，那是最后一个本地 jar。
 }
 
 dependencies {
@@ -141,12 +139,6 @@ dependencies {
     modCompileOnly 'com.google.code.findbugs:jsr305:3.0.2'
     annotationProcessor 'com.google.code.findbugs:jsr305:3.0.2'
 
-    modImplementation(include("libs:simplebedrockmodel-fabric:2.3.0.1+mc1.21.1"))
-    implementation("com.maydaymemory:mae:1.1.1") {
-        exclude group: 'com.google.code.findbugs', module: 'jsr305'
-        exclude group: 'it.unimi.dsi', module: 'fastutil'
-        exclude group: 'org.joml', module: 'joml'
-    }
 
     // Apache Commons Math 库，用于进行一些插值运算
     implementation(include('org.apache.commons:commons-math3:3.6.1'))

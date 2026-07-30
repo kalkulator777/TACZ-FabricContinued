@@ -2,6 +2,7 @@ package cn.sh1rocu.tacz.mixin.client;
 
 import cn.sh1rocu.tacz.api.event.AddPackFindersEvent;
 import cn.sh1rocu.tacz.api.event.InputEvent;
+import cn.sh1rocu.tacz.api.event.RenderTickEvent;
 import cn.sh1rocu.tacz.api.mixin.PackRepositoryExtension;
 import cn.sh1rocu.tacz.api.event.ClientPlayerNetworkEvent;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -53,6 +54,23 @@ public abstract class MinecraftMixin {
     @Shadow
     @Nullable
     public LocalPlayer player;
+
+    @Shadow
+    @Final
+    private DeltaTracker.Timer timer;
+
+    /* Frame-resolution ticks, which the animation interpolation and the crosshair need and
+     * ClientTickEvents cannot give. Absorbed from SimpleBedrockModel, which patched the same
+     * method from its own mixin. */
+    @Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", ordinal = 0, shift = At.Shift.BEFORE))
+    private void tacz$renderTickStart(boolean tick, CallbackInfo ci) {
+        RenderTickEvent.EVENT.invoker().post(new RenderTickEvent((Minecraft) (Object) this, RenderTickEvent.Phase.START, this.timer));
+    }
+
+    @Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;pop()V", ordinal = 4, shift = At.Shift.AFTER))
+    private void tacz$renderTickEnd(boolean tick, CallbackInfo ci) {
+        RenderTickEvent.EVENT.invoker().post(new RenderTickEvent((Minecraft) (Object) this, RenderTickEvent.Phase.END, this.timer));
+    }
 
     @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/packs/repository/PackRepository;reload()V"))
     private void tacz$addPacks(GameConfig gameConfig, CallbackInfo ci) {

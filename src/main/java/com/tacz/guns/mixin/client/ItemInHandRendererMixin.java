@@ -1,12 +1,15 @@
 package com.tacz.guns.mixin.client;
 
+import cn.sh1rocu.tacz.api.event.RenderHandEvent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.api.client.event.BeforeRenderHandEvent;
 import com.tacz.guns.api.client.other.KeepingItemRenderer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,6 +36,21 @@ public class ItemInHandRendererMixin implements KeepingItemRenderer {
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     public void beforeHandRender(float pPartialTicks, PoseStack pMatrixStack, MultiBufferSource.BufferSource pBuffer, LocalPlayer pPlayerEntity, int pCombinedLight, CallbackInfo ci) {
         BeforeRenderHandEvent.CALLBACK.invoker().post(new BeforeRenderHandEvent(pMatrixStack));
+    }
+
+    /**
+     * Cancelling this replaces vanilla's held-item rendering, which is how the gun model gets
+     * drawn. Absorbed from SimpleBedrockModel, which patched the same class from its own mixin.
+     */
+    @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
+    private void tacz$renderHand(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand,
+                                 float swingProgress, ItemStack stack, float equipProgress, PoseStack poseStack,
+                                 MultiBufferSource bufferSource, int light, CallbackInfo ci) {
+        RenderHandEvent event = new RenderHandEvent(player, hand, stack, poseStack, bufferSource, tickDelta, pitch, swingProgress, equipProgress, light);
+        RenderHandEvent.EVENT.invoker().post(event);
+        if (event.isCanceled()) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "tick", at = @At("HEAD"))

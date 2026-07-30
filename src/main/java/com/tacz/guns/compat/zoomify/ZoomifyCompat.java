@@ -1,6 +1,6 @@
 package com.tacz.guns.compat.zoomify;
 
-import cn.sh1rocu.simplebedrockmodel.api.event.ViewportEvent;
+import cn.sh1rocu.tacz.api.event.ViewportEvent;
 import com.tacz.guns.GunMod;
 import dev.isxander.zoomify.Zoomify;
 import net.fabricmc.loader.api.FabricLoader;

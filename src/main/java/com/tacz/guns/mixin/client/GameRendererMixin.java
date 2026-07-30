@@ -1,5 +1,8 @@
 package com.tacz.guns.mixin.client;
 
+import cn.sh1rocu.tacz.api.event.ViewportEvent;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.api.client.event.RenderItemInHandBobEvent;
 import com.tacz.guns.api.client.event.RenderLevelBobEvent;
@@ -74,5 +77,18 @@ public abstract class GameRendererMixin {
     @Inject(method = "getFov", at = @At("HEAD"))
     public void switchRenderType(Camera pActiveRenderInfo, float pPartialTicks, boolean pUseFOVSetting, CallbackInfoReturnable<Double> cir) {
         this.tacz$useFovSetting = pUseFOVSetting;
+    }
+
+    /**
+     * Scope magnification and the gun model's own FOV modifier hook this. Absorbed from
+     * SimpleBedrockModel, which patched the same method from its own mixin.
+     */
+    @ModifyReturnValue(method = "getFov", at = @At(value = "RETURN", ordinal = 1))
+    private double tacz$computeFov(double original, @Local(argsOnly = true) Camera camera,
+                                   @Local(argsOnly = true) float partialTicks,
+                                   @Local(argsOnly = true) boolean useConfigured) {
+        ViewportEvent.ComputeFov event = new ViewportEvent.ComputeFov((GameRenderer) (Object) this, camera, partialTicks, original, useConfigured);
+        ViewportEvent.FOV.invoker().post(event);
+        return event.getFOV();
     }
 }
