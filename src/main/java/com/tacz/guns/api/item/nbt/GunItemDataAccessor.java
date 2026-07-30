@@ -12,6 +12,7 @@ import com.tacz.guns.client.resource.index.ClientAttachmentIndex;
 import com.tacz.guns.resource.index.CommonGunIndex;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
@@ -39,6 +40,13 @@ public interface GunItemDataAccessor extends IGun {
     String LASER_COLOR_TAG = "LaserColor";
     String GUN_OVERHEAT_TAG = "HeatAmount";
     String GUN_OVERHEAT_LOCK_TAG = "OverHeated";
+    /**
+     * 配件是以序列化的 ItemStack 存在枪的 NBT 里的，它的 components 用组件的注册 id 做键。
+     * 这里以前直接用组件对象的 toString()，靠它恰好返回注册名才对，
+     * 而且每次调用都要反查一遍注册表 —— 这几个方法是每帧都会走的。
+     */
+    String CUSTOM_DATA_KEY = Objects.requireNonNull(
+            BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(DataComponents.CUSTOM_DATA)).toString();
 
     @Override
     default boolean useDummyAmmo(ItemStack gun) {
@@ -245,8 +253,8 @@ public interface GunItemDataAccessor extends IGun {
         CompoundTag stack = nbt.getCompound(key);
         if (!stack.contains("components", Tag.TAG_COMPOUND)) return null;
         CompoundTag components = stack.getCompound("components");
-        if (!components.contains(DataComponents.CUSTOM_DATA.toString())) return null;
-        return components.getCompound(DataComponents.CUSTOM_DATA.toString());
+        if (!components.contains(CUSTOM_DATA_KEY)) return null;
+        return components.getCompound(CUSTOM_DATA_KEY);
     }
 
     @Override
@@ -260,8 +268,8 @@ public interface GunItemDataAccessor extends IGun {
             CompoundTag stack = tag.getCompound(key);
             if (!stack.contains("components", Tag.TAG_COMPOUND)) return;
             CompoundTag components = stack.getCompound("components");
-            if (!components.contains(DataComponents.CUSTOM_DATA.toString())) return;
-            components.put(DataComponents.CUSTOM_DATA.toString(), attachmentTag);
+            if (!components.contains(CUSTOM_DATA_KEY)) return;
+            components.put(CUSTOM_DATA_KEY, attachmentTag);
         }));
     }
 

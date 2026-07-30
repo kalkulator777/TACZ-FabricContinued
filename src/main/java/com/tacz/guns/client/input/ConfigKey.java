@@ -22,15 +22,21 @@ import static com.tacz.guns.util.InputExtraCheck.isInGame;
 
 @Environment(EnvType.CLIENT)
 public class ConfigKey {
+    /* Forge 版这个键是 Shift+T，靠 Forge 的 KeyModifier 和 KeyConflictContext 才不会和聊天打架。
+     * 原版 KeyMapping 没有修饰键，所以直接绑 T 的结果是按 T 弹出配置界面而不是聊天框，
+     * 也就是装上这个模组之后聊天键就没了。原版没有哪个键是空的，随便挑一个又会撞上别的模组，
+     * 所以默认不绑定：在"选项-控制"里能看到它，配置本身也能从 Mod Menu 打开。 */
     public static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping("key.tacz.open_config.desc",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_T,
+            InputConstants.UNKNOWN.getValue(),
             "key.category.tacz");
 
     public static void onOpenConfig(InputEvent.Key event) {
+        if (OPEN_CONFIG_KEY.isUnbound()) {
+            return;
+        }
         if (isInGame() && event.getAction() == GLFW.GLFW_PRESS
-                && OPEN_CONFIG_KEY.matches(event.getKey(), event.getScanCode())
-            /*&& ((IKeyBinding) OPEN_CONFIG_KEY).getKeyModifier().isActive(((IKeyBinding) OPEN_CONFIG_KEY).getKeyConflictContext())*/) {
+                && OPEN_CONFIG_KEY.matches(event.getKey(), event.getScanCode())) {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null || player.isSpectator()) {
                 return;

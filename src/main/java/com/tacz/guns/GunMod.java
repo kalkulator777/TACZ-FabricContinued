@@ -33,10 +33,7 @@ public class GunMod {
         ModSounds.init();
         ModParticles.init();
         ModAttributes.init();
-        ModPainting.init();
-        if (FabricLoader.getInstance().isModLoaded("kubejs")) {
-            // TimelessKubeJSPlugin.onItemRegister();
-        }
+        // 画作是数据包注册表，data/tacz/painting_variant 和 placeable 标签就够了，不需要代码注册
 
         registerDefaultExtraGunPack();
         AttachmentPropertyManager.registerModifier();
