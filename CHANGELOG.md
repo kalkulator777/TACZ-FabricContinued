@@ -38,6 +38,16 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   API note: `AbstractGunItem.findAndExtractInventoryAmmo` and its deprecated twin now
   take a `net.minecraft.world.Container` instead of the removed `IItemHandler`.
 
+- Reimplementations of Forge events that Fabric API already provides are gone:
+  player login and logout now come from `ServerPlayConnectionEvents`, and entity
+  removal from `ServerEntityEvents.ENTITY_UNLOAD`. Two mixins and a mixin injection
+  went with them. The trampoline classes that existed only to let a mixin fire an
+  event now have the mixins fire it directly.
+
+  API note: `cn.sh1rocu.tacz.api.event.PlayerEvent` and `EntityRemoveEvent` are
+  removed. `LogicalSide` is not — it is the logical side, which `EnvType` cannot
+  express, and it is part of the gun event API.
+
 **Removed**
 
 - Dead code: the unused version checker and the deprecated gun pack JSON loader

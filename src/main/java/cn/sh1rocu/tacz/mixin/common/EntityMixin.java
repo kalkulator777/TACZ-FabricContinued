@@ -1,6 +1,5 @@
 package cn.sh1rocu.tacz.mixin.common;
 
-import cn.sh1rocu.tacz.api.event.EntityRemoveEvent;
 import cn.sh1rocu.tacz.api.extension.IEntityPersistentData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -17,14 +16,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class EntityMixin implements IEntityPersistentData {
     @Shadow
     private Level level;
-
-    @Inject(method = "remove", at = @At("TAIL"))
-    private void remove(Entity.RemovalReason reason, CallbackInfo ci) {
-        if (!this.level.isClientSide) {
-            EntityRemoveEvent event = new EntityRemoveEvent((Entity) (Object) this);
-            EntityRemoveEvent.EVENT.invoker().onEntityRemove(event);
-        }
-    }
 
     @Unique
     private CompoundTag tacz$persistentData;

@@ -19,7 +19,6 @@
     "common.LootTableMixin",
     "common.PackRepositoryMixin",
     "common.PersistentEntitySectionManagerMixin",
-    "common.PlayerListMixin",
     "common.PlayerMixin",
     "common.RecipeManagerMixin",
     "common.ReloadableResourcesMixin",

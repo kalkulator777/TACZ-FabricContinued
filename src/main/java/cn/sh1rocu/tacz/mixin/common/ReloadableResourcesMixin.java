@@ -1,6 +1,6 @@
 package cn.sh1rocu.tacz.mixin.common;
 
-import cn.sh1rocu.tacz.util.forge.EventHooks;
+import cn.sh1rocu.tacz.api.event.AddReloadListenerEvent;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
@@ -34,7 +34,7 @@ public abstract class ReloadableResourcesMixin {
     @ModifyArg(method = "method_58296", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/packs/resources/SimpleReloadInstance;create(Lnet/minecraft/server/packs/resources/ResourceManager;Ljava/util/List;Ljava/util/concurrent/Executor;Ljava/util/concurrent/Executor;Ljava/util/concurrent/CompletableFuture;Z)Lnet/minecraft/server/packs/resources/ReloadInstance;"))
     private static List<PreparableReloadListener> tacz$addReloadListener(List<PreparableReloadListener> original, @Local(argsOnly = true) LayeredRegistryAccess<RegistryLayer> registryAccess) {
         ArrayList<PreparableReloadListener> listeners = new ArrayList<>(original);
-        listeners.addAll(EventHooks.onResourceReload(tacz$serverResources, registryAccess.compositeAccess()));
+        listeners.addAll(AddReloadListenerEvent.gatherListeners(tacz$serverResources, registryAccess.compositeAccess()));
         return listeners;
     }
 

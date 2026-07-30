@@ -253,6 +253,8 @@ the target version. Most predate this fork.
 - A `-1` sentinel from a missing gun index is tested against `0`, which can leave a
   player permanently unable to fire with no diagnostic.
 - The first shot after each respawn or dimension change is silently swallowed.
+- The legacy gun pack hint never appears in multiplayer. It is a client-side message
+  hooked to a server-side join, so it only fires on an integrated server.
 - Lua script writes to item NBT are silently dropped despite the API documenting
   them as persistent.
 - Glass breaking, ignition and bell ringing bypass region protection and the

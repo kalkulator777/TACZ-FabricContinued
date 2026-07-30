@@ -1,5 +1,6 @@
 package cn.sh1rocu.tacz.client;
 
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import cn.sh1rocu.simplebedrockmodel.api.event.RenderTickEvent;
 import cn.sh1rocu.simplebedrockmodel.api.event.ViewportEvent;
 import cn.sh1rocu.tacz.api.event.*;
@@ -75,7 +76,8 @@ public class TaCZFabricClient implements ClientModInitializer {
         SwapItemWithOffHand.CALLBACK.register(InventoryEvent::onPlayerSwapMainHand);
         ClientPlayerNetworkEvent.LOGGING_OUT.register(InventoryEvent::onPlayerLoggedOut);
 
-        PlayerEvent.LOGGED_IN.register(PlayerEnterWorld::onPlayerEnterWorld);
+        // Fires on the integrated server only, matching where this used to be hooked
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> PlayerEnterWorld.onPlayerEnterWorld(handler.player));
 
         EntityHurtByGunEvent.POST.register(PlayerHurtByGunEvent::onPlayerHurtByGun);
 

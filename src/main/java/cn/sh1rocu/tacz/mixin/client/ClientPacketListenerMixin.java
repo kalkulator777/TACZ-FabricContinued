@@ -1,6 +1,6 @@
 package cn.sh1rocu.tacz.mixin.client;
 
-import cn.sh1rocu.tacz.util.forge.ClientHooks;
+import cn.sh1rocu.tacz.api.event.ClientPlayerNetworkEvent;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
@@ -22,6 +22,7 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
 
     @Inject(method = "handleRespawn", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;addEntity(Lnet/minecraft/world/entity/Entity;)V"))
     private void tacz$cloneEvent(ClientboundRespawnPacket packet, CallbackInfo ci, @Local(ordinal = 0) LocalPlayer oldPlayer, @Local(ordinal = 1) LocalPlayer newPlayer) {
-        ClientHooks.firePlayerRespawn(this.minecraft.gameMode, oldPlayer, newPlayer, newPlayer.connection.getConnection());
+        ClientPlayerNetworkEvent.CLONE.invoker().post(new ClientPlayerNetworkEvent.Clone(
+                this.minecraft.gameMode, oldPlayer, newPlayer, newPlayer.connection.getConnection()));
     }
 }

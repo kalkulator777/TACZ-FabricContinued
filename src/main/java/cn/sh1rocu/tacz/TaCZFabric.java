@@ -1,5 +1,6 @@
 package cn.sh1rocu.tacz;
 
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import cn.sh1rocu.tacz.api.event.*;
 import cn.sh1rocu.tacz.util.forge.EnumArgument;
 import com.tacz.guns.GunMod;
@@ -118,7 +119,7 @@ public class TaCZFabric implements ModInitializer {
         LivingHurtEvent.CALLBACK.register(LOW, EntityDamageEvent::onLivingHurt);
 
         PlayerTickEvent.END.register(HitboxHelperEvent::onPlayerTick);
-        PlayerEvent.LOGGED_OUT.register(HitboxHelperEvent::onPlayerLoggedOut);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> HitboxHelperEvent.onPlayerLoggedOut(handler.player));
 
         LivingKnockBackEvent.CALLBACK.register(KnockbackChange::onKnockback);
 

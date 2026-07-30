@@ -4,9 +4,17 @@ import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.world.entity.player.Player;
 
-public class PlayerTickEvent extends PlayerEvent {
+public class PlayerTickEvent extends LivingEvent {
+    private final Player player;
+
     protected PlayerTickEvent(Player player) {
         super(player);
+        this.player = player;
+    }
+
+    @Override
+    public Player getEntity() {
+        return player;
     }
 
     public static final Event<Pre.Callback> START = EventFactory.createArrayBacked(Pre.Callback.class, callbacks -> event -> {

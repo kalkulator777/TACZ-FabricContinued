@@ -1,6 +1,6 @@
 package cn.sh1rocu.tacz.mixin.client;
 
-import cn.sh1rocu.tacz.util.forge.ClientHooks;
+import cn.sh1rocu.tacz.api.event.ComputeFovModifierEvent;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
@@ -19,6 +19,8 @@ public abstract class AbstractPlayerMixin extends Player {
 
     @WrapOperation(method = "getFieldOfViewModifier", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
     private float tacz$getForgeFovModifier(float delta, float start, float end, Operation<Float> original) {
-        return ClientHooks.getFieldOfViewModifier(this, end);
+        ComputeFovModifierEvent event = new ComputeFovModifierEvent(this, end);
+        ComputeFovModifierEvent.CALLBACK.invoker().post(event);
+        return event.getNewFovModifier();
     }
 }

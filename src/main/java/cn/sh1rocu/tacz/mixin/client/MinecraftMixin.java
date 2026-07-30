@@ -3,7 +3,7 @@ package cn.sh1rocu.tacz.mixin.client;
 import cn.sh1rocu.tacz.api.event.AddPackFindersEvent;
 import cn.sh1rocu.tacz.api.event.InputEvent;
 import cn.sh1rocu.tacz.api.mixin.PackRepositoryExtension;
-import cn.sh1rocu.tacz.util.forge.ClientHooks;
+import cn.sh1rocu.tacz.api.event.ClientPlayerNetworkEvent;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -62,7 +62,9 @@ public abstract class MinecraftMixin {
 
     @Inject(method = "clearClientLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;resetData()V"))
     private void tacz$disconnect(Screen screen, CallbackInfo ci) {
-        ClientHooks.firePlayerLogout(this.gameMode, this.player);
+        ClientPlayerNetworkEvent.LOGGING_OUT.invoker().post(new ClientPlayerNetworkEvent.LoggingOut(
+                this.gameMode, this.player,
+                this.player != null && this.player.connection != null ? this.player.connection.getConnection() : null));
     }
 
     @Unique

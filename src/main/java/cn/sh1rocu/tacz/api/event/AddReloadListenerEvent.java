@@ -31,6 +31,15 @@ public class AddReloadListenerEvent extends BaseEvent {
         void post(AddReloadListenerEvent event);
     }
 
+    /**
+     * Fires the event and returns everything the listeners registered.
+     */
+    public static List<PreparableReloadListener> gatherListeners(ReloadableServerResources serverResources, RegistryAccess registryAccess) {
+        AddReloadListenerEvent event = new AddReloadListenerEvent(serverResources, registryAccess);
+        CALLBACK.invoker().post(event);
+        return event.getListeners();
+    }
+
     public AddReloadListenerEvent(ReloadableServerResources serverResources, RegistryAccess registryAccess) {
         this.serverResources = serverResources;
         this.registryAccess = registryAccess;
