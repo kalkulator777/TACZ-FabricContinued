@@ -178,7 +178,7 @@ public class ClientIndexManager {
     }
 
     private static void warmUpHotbarModels(LocalPlayer player) {
-        var items = player.getInventory().items;
+        var items = player.getInventory().getNonEquipmentItems();
         int hotbarSize = Math.min(HOTBAR_SLOT_COUNT, items.size());
         for (int i = 0; i < hotbarSize; i++) {
             warmUpItemModel(items.get(i));
@@ -186,7 +186,7 @@ public class ClientIndexManager {
     }
 
     private static void warmUpBackpackModels(LocalPlayer player) {
-        var items = player.getInventory().items;
+        var items = player.getInventory().getNonEquipmentItems();
         for (int i = Math.min(HOTBAR_SLOT_COUNT, items.size()); i < items.size(); i++) {
             warmUpItemModel(items.get(i));
         }

@@ -61,7 +61,7 @@ public class GunSmithTableBlockB extends AbstractGunSmithTableBlock {
     @Override
     public void setPlacedBy(Level worldIn, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(worldIn, pos, state, placer, stack);
-        if (!worldIn.isClientSide) {
+        if (!worldIn.isClientSide()) {
             BlockPos relative = pos.relative(state.getValue(FACING));
             worldIn.setBlock(relative, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
             worldIn.blockUpdated(pos, Blocks.AIR);
@@ -72,7 +72,7 @@ public class GunSmithTableBlockB extends AbstractGunSmithTableBlock {
     @Override
     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState blockState, Player player) {
         // 用于抑制创造模式下摧毁head方块时foot的掉落
-        if (!level.isClientSide && player.isCreative()) {
+        if (!level.isClientSide() && player.isCreative()) {
             BedPart bedPart = blockState.getValue(PART);
             if (bedPart == BedPart.FOOT) {
                 BlockPos blockpos = pos.relative(getNeighbourDirection(bedPart, blockState.getValue(FACING)));

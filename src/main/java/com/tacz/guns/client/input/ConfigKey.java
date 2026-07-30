@@ -29,14 +29,14 @@ public class ConfigKey {
     public static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping("key.tacz.open_config.desc",
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
-            "key.category.tacz");
+            ModKeyCategory.TACZ);
 
     public static void onOpenConfig(InputEvent.Key event) {
         if (OPEN_CONFIG_KEY.isUnbound()) {
             return;
         }
         if (isInGame() && event.getAction() == GLFW.GLFW_PRESS
-                && OPEN_CONFIG_KEY.matches(event.getKey(), event.getScanCode())) {
+                && OPEN_CONFIG_KEY.matches(event.getKeyEvent())) {
             LocalPlayer player = Minecraft.getInstance().player;
             if (player == null || player.isSpectator()) {
                 return;

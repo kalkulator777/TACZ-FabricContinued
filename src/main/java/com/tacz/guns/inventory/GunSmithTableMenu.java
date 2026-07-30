@@ -123,7 +123,7 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
 
             // 给玩家对应的物品
             Level level = player.level();
-            if (!level.isClientSide) {
+            if (!level.isClientSide()) {
                 ItemEntity itemEntity = new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), recipe.getResultItem(player.level().registryAccess()).copy());
                 itemEntity.setPickUpDelay(0);
                 level.addFreshEntity(itemEntity);

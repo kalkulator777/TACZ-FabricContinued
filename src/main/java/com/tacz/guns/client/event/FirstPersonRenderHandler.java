@@ -76,7 +76,7 @@ public final class FirstPersonRenderHandler {
         if (player == null) {
             return;
         }
-        int slot = player.getInventory().selected;
+        int slot = player.getInventory().getSelectedSlot();
         ItemStack mainHand = player.getMainHandItem();
         boolean slotChanged = slot != realSelectedSlot || forceHandSwapFlag;
         boolean itemChanged = !isSameItemStacks(realMainHand, mainHand);

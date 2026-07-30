@@ -10,7 +10,7 @@ public class HitboxHelperEvent {
         Player player = event.getEntity();
         // 这里要的是逻辑端，不是物理端：单人游戏和开放局域网的世界里内置服务端跑在客户端发行版上，
         // 用 EnvType 判断会让命中箱历史和位置历史一次都不记录
-        if (player.level().isClientSide) {
+        if (player.level().isClientSide()) {
             return;
         }
         HitboxHelper.onPlayerTick(player);

@@ -27,7 +27,7 @@ public class ClientMessagePlayerDrawGun implements CustomPacketPayload {
         context.server().execute(() -> {
             ServerPlayer entity = context.player();
             Inventory inventory = entity.getInventory();
-            int selected = inventory.selected;
+            int selected = inventory.getSelectedSlot();
             IGunOperator.fromLivingEntity(entity).draw(() -> inventory.getItem(selected));
         });
     }

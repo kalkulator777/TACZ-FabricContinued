@@ -44,7 +44,7 @@ public class HumanoidOffhandRender {
         }
         Inventory inventory = player.getInventory();
         for (int i = 0; i < 9; i++) {
-            if (i == inventory.selected) {
+            if (i == inventory.getSelectedSlot()) {
                 continue;
             }
             ItemStack stack = inventory.getItem(i);

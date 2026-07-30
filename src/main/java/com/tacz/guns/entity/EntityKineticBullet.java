@@ -247,7 +247,7 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
         // 调用 TaC 子弹服务器事件
         this.onBulletTick();
         // 粒子效果
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             AmmoParticleSpawner.addParticle(this);
         }
         // 子弹模型的旋转与抛物线
@@ -464,7 +464,7 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
         // 只对 LivingEntity 执行击杀判定
         if (parts.core() instanceof LivingEntity livingCore) {
             // 事件同步，从服务端到客户端
-            if (!level().isClientSide) {
+            if (!level().isClientSide()) {
                 int attackerId = attacker == null ? 0 : attacker.getId();
                 // 如果生物死了
                 if (livingCore.isDeadOrDying()) {

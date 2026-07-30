@@ -30,7 +30,7 @@ public class TargetMinecartItem extends Item {
             return InteractionResult.FAIL;
         } else {
             ItemStack itemstack = context.getItemInHand();
-            if (!level.isClientSide) {
+            if (!level.isClientSide()) {
                 RailShape railshape = blockstate.getBlock() instanceof BaseRailBlock baseRailBlock ? blockstate.getValue(baseRailBlock.getShapeProperty()) /*baseRailBlock.getRailDirection(blockstate, level, blockpos, null)*/ : RailShape.NORTH_SOUTH;
                 double yOffset = 0;
                 if (railshape.isAscending()) {
@@ -44,7 +44,7 @@ public class TargetMinecartItem extends Item {
                 level.gameEvent(context.getPlayer(), GameEvent.ENTITY_PLACE, blockpos);
             }
             itemstack.shrink(1);
-            return InteractionResult.sidedSuccess(level.isClientSide);
+            return InteractionResult.sidedSuccess(level.isClientSide());
         }
     }
 }

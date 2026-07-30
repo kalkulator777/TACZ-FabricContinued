@@ -36,7 +36,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
 
     @Override
     protected InteractionResult useWithoutItem(BlockState pState, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        if (level.isClientSide) {
+        if (level.isClientSide()) {
             return InteractionResult.SUCCESS;
         } else {
             BlockEntity blockEntity = level.getBlockEntity(getRootPos(pos, pState));
@@ -66,7 +66,7 @@ public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
     @Override
     public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(world, pos, state, placer, stack);
-        if (!world.isClientSide) {
+        if (!world.isClientSide()) {
             if (stack.getItem() instanceof BlockItemDataAccessor accessor) {
                 Identifier id = accessor.getBlockId(stack);
                 BlockEntity blockentity = world.getBlockEntity(pos);

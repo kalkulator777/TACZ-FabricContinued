@@ -277,7 +277,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
             GunSmithTableIngredient ingredient = ingredients.get(i);
             Inventory inventory = player.getInventory();
             int count = 0;
-            for (ItemStack stack : inventory.items) {
+            for (ItemStack stack : inventory.getNonEquipmentItems()) {
                 if (!stack.isEmpty() && ingredient.getIngredient().test(stack)) {
                     count = count + stack.getCount();
                 }

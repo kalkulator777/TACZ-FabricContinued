@@ -18,16 +18,16 @@ public class FireSelectKey {
     public static final KeyMapping FIRE_SELECT_KEY = new KeyMapping("key.tacz.fire_select.desc",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_G,
-            "key.category.tacz");
+            ModKeyCategory.TACZ);
 
     public static void onFireSelectKeyPress(InputEvent.Key event) {
-        if (isInGame() && event.getAction() == GLFW.GLFW_PRESS && FIRE_SELECT_KEY.matches(event.getKey(), event.getScanCode())) {
+        if (isInGame() && event.getAction() == GLFW.GLFW_PRESS && FIRE_SELECT_KEY.matches(event.getKeyEvent())) {
             doFireSelectLogic();
         }
     }
 
     public static void onFireSelectMousePress(InputEvent.MouseButton.Post event) {
-        if (isInGame() && event.getAction() == GLFW.GLFW_PRESS && FIRE_SELECT_KEY.matchesMouse(event.getButton())) {
+        if (isInGame() && event.getAction() == GLFW.GLFW_PRESS && FIRE_SELECT_KEY.matchesMouse(event.getMouseButtonEvent())) {
             doFireSelectLogic();
         }
     }

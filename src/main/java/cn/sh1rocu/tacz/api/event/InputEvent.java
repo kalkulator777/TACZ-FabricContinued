@@ -5,6 +5,8 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.InteractionHand;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -60,25 +62,29 @@ public abstract class InputEvent extends BaseEvent {
             for (KeyCallback e : callbacks) e.onKey(event);
         });
 
-        private final int key;
-        private final int scanCode;
+        private final KeyEvent event;
         private final int action;
-        private final int modifiers;
 
         @ApiStatus.Internal
-        public Key(int key, int scanCode, int action, int modifiers) {
-            this.key = key;
-            this.scanCode = scanCode;
+        public Key(KeyEvent event, int action) {
+            this.event = event;
             this.action = action;
-            this.modifiers = modifiers;
+        }
+
+        /**
+         * 1.21.9 把键盘输入收进了 {@link KeyEvent}，而 {@link KeyMapping#matches} 只认这个类型，
+         * 所以事件带的是原版的记录本身，下面几个取值方法只是为了不动调用方。
+         */
+        public KeyEvent getKeyEvent() {
+            return this.event;
         }
 
         public int getKey() {
-            return this.key;
+            return this.event.key();
         }
 
         public int getScanCode() {
-            return this.scanCode;
+            return this.event.scancode();
         }
 
         public int getAction() {
@@ -86,7 +92,7 @@ public abstract class InputEvent extends BaseEvent {
         }
 
         public int getModifiers() {
-            return this.modifiers;
+            return this.event.modifiers();
         }
     }
 
@@ -95,19 +101,24 @@ public abstract class InputEvent extends BaseEvent {
             for (MouseCallback e : callbacks) e.onMouse(event);
         });
 
-        private final int button;
+        private final MouseButtonEvent event;
         private final int action;
-        private final int modifiers;
 
         @ApiStatus.Internal
-        protected MouseButton(int button, int action, int modifiers) {
-            this.button = button;
+        protected MouseButton(MouseButtonEvent event, int action) {
+            this.event = event;
             this.action = action;
-            this.modifiers = modifiers;
+        }
+
+        /**
+         * 同 {@link Key#getKeyEvent()}：{@link KeyMapping#matchesMouse} 要的是原版记录。
+         */
+        public MouseButtonEvent getMouseButtonEvent() {
+            return this.event;
         }
 
         public int getButton() {
-            return this.button;
+            return this.event.button();
         }
 
         public int getAction() {
@@ -115,7 +126,7 @@ public abstract class InputEvent extends BaseEvent {
         }
 
         public int getModifiers() {
-            return this.modifiers;
+            return this.event.modifiers();
         }
 
         public static class Post extends InputEvent.MouseButton {
@@ -124,8 +135,8 @@ public abstract class InputEvent extends BaseEvent {
             });
 
             @ApiStatus.Internal
-            public Post(int button, int action, int modifiers) {
-                super(button, action, modifiers);
+            public Post(MouseButtonEvent event, int action) {
+                super(event, action);
             }
         }
 
@@ -135,8 +146,8 @@ public abstract class InputEvent extends BaseEvent {
             });
 
             @ApiStatus.Internal
-            public Pre(int button, int action, int modifiers) {
-                super(button, action, modifiers);
+            public Pre(MouseButtonEvent event, int action) {
+                super(event, action);
             }
         }
     }

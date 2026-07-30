@@ -20,10 +20,10 @@ public class CrawlKey {
     public static final KeyMapping CRAWL_KEY = new KeyMapping("key.tacz.crawl.desc",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_C,
-            "key.category.tacz");
+            ModKeyCategory.TACZ);
 
     public static void onCrawlPress(InputEvent.Key event) {
-        if (isInGame() && CRAWL_KEY.matches(event.getKey(), event.getScanCode())) {
+        if (isInGame() && CRAWL_KEY.matches(event.getKeyEvent())) {
             if (!SyncConfig.ENABLE_CRAWL.get()) {
                 return;
             }

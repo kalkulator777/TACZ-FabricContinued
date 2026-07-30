@@ -24,7 +24,7 @@ public class ShootKey {
     public static final KeyMapping SHOOT_KEY = new KeyMapping("key.tacz.shoot.desc",
             InputConstants.Type.MOUSE,
             GLFW.GLFW_MOUSE_BUTTON_LEFT,
-            "key.category.tacz");
+            ModKeyCategory.TACZ);
     private static boolean lastTimeShootSuccess = false;
     private static boolean controllerShootDown = false;
 
