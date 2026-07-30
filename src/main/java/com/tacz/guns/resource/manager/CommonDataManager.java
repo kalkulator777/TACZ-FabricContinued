@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public class CommonDataManager<T> extends JsonDataManager<T> implements INetworkCacheReloadListener {
     private final DataType type;
-    protected Map<ResourceLocation, String> networkCache;
+    protected Map<ResourceLocation, String> networkCache = Map.of();
 
     public final ResourceLocation ID;
 
@@ -42,7 +42,12 @@ public class CommonDataManager<T> extends JsonDataManager<T> implements INetwork
         super.apply(pObject, pResourceManager, pProfiler);
 
         ImmutableMap.Builder<ResourceLocation, String> builder = ImmutableMap.builder();
-        pObject.forEach((id, element) -> builder.put(id, element.toString()));
+        // 只同步解析成功的文件。坏掉的那份在客户端一样解析不了，白占同步包的体积
+        pObject.forEach((id, element) -> {
+            if (this.dataMap.containsKey(id)) {
+                builder.put(id, element.toString());
+            }
+        });
         this.networkCache = builder.build();
     }
 

@@ -1,6 +1,5 @@
 package com.tacz.guns.client.resource;
 
-import cn.sh1rocu.tacz.TaCZFabric;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.tacz.guns.GunMod;
@@ -26,7 +25,6 @@ import com.tacz.guns.client.resource.serialize.AnimationKeyframesSerializer;
 import com.tacz.guns.client.resource.serialize.ItemStackSerializer;
 import com.tacz.guns.client.resource.serialize.SoundEffectKeyframesSerializer;
 import com.tacz.guns.client.resource.serialize.Vector3fSerializer;
-import com.tacz.guns.resource.CommonAssetsManager;
 import com.tacz.guns.resource.manager.LazyJsonDataManager;
 import com.tacz.guns.resource.manager.ScriptManager;
 import net.fabricmc.api.EnvType;
@@ -191,16 +189,14 @@ public enum ClientAssetsManager {
         return packInfo.getData(namespace.getNamespace());
     }
 
+    /**
+     * 重载客户端资源。命令是在服务端线程上跑的，而资源重载只能在客户端线程上发起，
+     * 所以这里只负责派发，不等它做完 —— 等它就是拿服务端线程去等客户端线程。
+     * 数据端的重载由命令自己负责，不在这里顺手做第二遍。
+     */
     @Environment(EnvType.CLIENT)
     public static void reloadAllPack() {
-        try {
-            Minecraft.getInstance().reloadResourcePacks().get();
-            if (TaCZFabric.getServer() != null) {
-                // 直接刷新data
-                CommonAssetsManager.reloadAllPack();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.execute(minecraft::reloadResourcePacks);
     }
 }

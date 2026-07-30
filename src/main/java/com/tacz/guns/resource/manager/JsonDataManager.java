@@ -3,7 +3,6 @@ package com.tacz.guns.resource.manager;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.util.ResourceScanner;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
@@ -66,7 +65,10 @@ public class JsonDataManager<T> extends SimplePreparableReloadListener<Map<Resou
                 if (data != null) {
                     dataMap.put(id, data);
                 }
-            } catch (JsonParseException | IllegalArgumentException e) {
+            } catch (RuntimeException e) {
+                /* 一个坏文件不该让整个重载挂掉。以前这里只接 JsonParseException 和
+                 * IllegalArgumentException，而这些反序列化器缺字段时抛的是 NPE 之类，
+                 * 那种异常会一路冒到重载框架上，整个数据包重载都失败。 */
                 GunMod.LOGGER.error(marker, "Failed to load data file {}", id, e);
             }
         }

@@ -25,24 +25,15 @@ public class ReloadCommand {
 
     private static int reloadAllPack(CommandContext<CommandSourceStack> context) {
         StopWatch watch = StopWatch.createStarted();
-        {
-            if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) ReloadCommand.reloadClient();
-            CommonAssetsManager.reloadAllPack();
-        }
+        // 数据端的重载是同步的，vanilla 在服务端线程上调用时会自己 managedBlock 等完
+        CommonAssetsManager.reloadAllPack();
         watch.stop();
         double time = watch.getTime(TimeUnit.MICROSECONDS) / 1000.0;
-//        if (context.getSource().getEntity() instanceof ServerPlayer serverPlayer) {
-//
-//            if (OtherConfig.DEFAULT_PACK_DEBUG.get()) {
-//                serverPlayer.sendSystemMessage(Component.translatable("commands.tacz.reload.overwrite_off"));
-//                serverPlayer.sendSystemMessage(Component.translatable("commands.tacz.reload.overwrite_command.off"));
-//            } else {
-//                serverPlayer.sendSystemMessage(Component.translatable("commands.tacz.reload.overwrite_on"));
-//                serverPlayer.sendSystemMessage(Component.translatable("commands.tacz.reload.overwrite_command.on"));
-//                serverPlayer.sendSystemMessage(Component.translatable("commands.tacz.reload.backup"));
-//            }
-//        }
-//        GunMod.LOGGER.info("Model loading time: {} ms", time);
+        /* 客户端资源要另外重载一次，而且必须派发到客户端线程上，所以它不算进上面的时间里。
+         * 专用服务器上没有客户端资源可以重载。 */
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
+            reloadClient();
+        }
         context.getSource().sendSystemMessage(Component.translatable("commands.tacz.reload.success", time));
         return Command.SINGLE_SUCCESS;
     }
