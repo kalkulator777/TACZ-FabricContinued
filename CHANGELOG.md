@@ -62,6 +62,20 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 
 **Changed**
 
+- Third-person player animation moved from PlayerAnimator to Player Animation
+  Library. PlayerAnimator has no build past 1.21.7 and its author now points at
+  PAL, which covers 1.21.1 through 26.2. Nothing changes for gun packs: the same
+  animation files load, and the mod reads them from the same folder.
+
+  Mostly a package rename, with one trap. Packs are exported with
+  PlayerAnimator's easing names — `INOUTSINE` and friends — and PAL spells the
+  same curves `easeinoutsine`, falling back to `LINEAR` for anything it does not
+  recognise without logging anything. Migrating without translating them would
+  have turned every keyframe in every pack linear: no crash, no warning, just
+  animations that no longer look like what their author made. The three built-in
+  animations alone name an easing on all 2619 of their keyframes. The names are
+  rewritten on load and the tests pin it.
+
 - SimpleBedrockModel is no longer a dependency. It had no build for any version
   this fork is heading to and was the last jar in `libs/`, and it was not the
   peripheral library it looked like: the mod implements its `IFPGeoItemRenderer`,

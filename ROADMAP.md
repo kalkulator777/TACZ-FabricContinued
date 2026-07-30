@@ -7,7 +7,7 @@ The short version: the mod is on 1.21.1 today. The goal is Minecraft 26.1, with
 
 Everything here is a plan, not a promise. Dates are deliberately absent.
 
-Current work is phase 1 — see [§6](#6-phases) for what is done and what is next, and
+Current work is phase 2 — see [§6](#6-phases) for what is done and what is next, and
 the [changelog](CHANGELOG.md) for what has already landed.
 
 ---
@@ -89,10 +89,10 @@ anything is removed, so addons get a compile warning rather than a
 `NoSuchMethodError`.
 
 **Optional integrations may lag.** Every integration is already gated on the other
-mod being installed and has a fallback, so none of them can block a release — but two
-need a decision rather than a wait. PlayerAnimator has no build past 1.21.7 and its
-author now points at Player Animation Library instead, so third-person animations move
-to that. Accelerated Rendering has been dropped outright; see §3.
+mod being installed and has a fallback, so none of them can block a release. Both that
+needed a decision have had one: third-person animation moved from PlayerAnimator, which
+stopped at 1.21.7, to Player Animation Library, and Accelerated Rendering was dropped
+outright — see §3.
 
 ---
 
@@ -115,7 +115,7 @@ Verified against the published Fabric artifacts.
 | REI | yes | yes |
 | Mod Menu | yes | yes |
 | Shoulder Surfing Reloaded | `5.0.7` — API break, see below | yes |
-| PlayerAnimator | no — 1.21.7 is the last build | no |
+| Player Animation Library | `1.1.9+mc.1.21.11` | `1.2.5+mc.26.1` |
 | Accelerated Rendering | no — dropped, see below | no |
 | SimpleBedrockModel-Fabric | no — absorbed, see §4 | no — absorbed |
 | Parchment | no release | no release |
@@ -247,64 +247,23 @@ bump happens in phase 2.
 
 #### Phase 1 — clear the external blockers, still on 1.21.1
 
-Both items remove a dependency that does not exist on the target, while the tree still
-compiles and a mistake is still distinguishable from a porting mistake.
+**Done.** Both items removed a dependency that does not exist on the target, while the
+tree still compiled and a mistake was still distinguishable from a porting mistake.
+Nothing on the dependency list now blocks the version bump.
 
 - [x] Absorb SimpleBedrockModel — see §4.
-- [ ] Move third-person animation from PlayerAnimator to Player Animation Library.
-      PlayerAnimator's own README points there. Verified against the published
-      artifacts and sources rather than the docs:
+- [x] Move third-person animation from PlayerAnimator to Player Animation Library.
+      Done — see the [changelog](CHANGELOG.md). PAL covers 1.21.1 through 26.2, so this
+      clears the way to both targets at once. Mostly a package rename; the loader got
+      shorter because PAL returns the animations already keyed by name.
 
-      - **Versions.** `com.zigythebird.playeranim:PlayerAnimationLibFabric` from
-        `https://repo.redlance.org/public`, at `1.1.5+mc.1.21.1`, `1.1.9+mc.1.21.11`
-        and `1.2.5+mc.26.1`. The whole chain is covered and sources are published.
-      - **The API is closer than the porting guide suggests.** `ModifierLayer`,
-        `IAnimation`, `AdjustmentModifier`, `AbstractFadeModifier`,
-        `PlayerAnimationAccess` and `PlayerAnimationFactory.registerFactory` all still
-        exist under the same names; `PlayerAnimationController` is an addition, not a
-        replacement. Mostly a package rename, plus `KeyframeAnimation` → `Animation`,
-        `Ease` → `EasingType` and snake_case bone names in the modifier.
-      - **The animation format loads.** The packs ship Bedrock-format JSON
-        (`format_version` plus an `animations` map), not the Emotecraft `emote` form,
-        and PAL's `UniversalAnimLoader` reads exactly that, returning a map keyed by
-        animation name — the shape this mod wants, with less work than today.
-      - **Easing names do not, and would fail silently.** The packs write
-        `"lerp_mode": "INOUTSINE"` — kosmx's naming, on all 2619 keyframes of the
-        three built-in animations. PAL calls its easings `easeinoutsine` and falls
-        back to `LINEAR` for anything it does not recognise, so a straight migration
-        would quietly turn every keyframe in every gun pack linear. There is no public
-        API to register aliases. The fix belongs on our side of the loader: normalise
-        the name before handing the JSON over, deriving the alias table from
-        `EasingType.values()` rather than hardcoding it, so it stays right if PAL adds
-        easings. Worth reporting upstream in parallel.
-      - Gun packs need no changes: the mod reads
-        `<namespace>/player_animator/**.json` with its own loader rather than using
-        the library's asset convention, so the folder rename in the porting guide does
-        not apply.
-
-      The mapping, read off the sources rather than guessed:
-
-      | kosmx | PAL |
-      |---|---|
-      | `dev.kosmx.playerAnim.api.layered.IAnimation` | `com.zigythebird.playeranimcore.animation.layered.IAnimation` |
-      | `…api.layered.ModifierLayer` | `…animation.layered.ModifierLayer` — same shape |
-      | `…api.layered.modifier.AbstractFadeModifier` | `…animation.layered.modifier.AbstractFadeModifier` |
-      | `…api.layered.modifier.AdjustmentModifier` | same, but `PartModifier` bone names are snake_case |
-      | `…core.util.Ease.INOUTSINE` | `…easing.EasingType.EASE_IN_OUT_SINE` |
-      | `…core.util.Vec3f` | `…playeranimcore.math.Vec3f` |
-      | `…core.data.KeyframeAnimation` | `…playeranimcore.animation.Animation` |
-      | `…minecraftApi.PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory` | `com.zigythebird.playeranim.api.PlayerAnimationFactory` — same signature |
-      | `…minecraftApi.PlayerAnimationAccess.getPlayerAssociatedData(p).get(id)` | `PlayerAnimationAccess.getPlayerAnimationLayer(player, id)` |
-      | `new KeyframeAnimationPlayer(anim)` inside `replaceAnimationWithFade` | `AnimationController.replaceAnimationWithFade(fade, animation)` takes the `Animation` directly |
-      | `player.getData().extraData.get("name")` | `AnimationController.getCurrentAnimationInstance()`, then `Animation.data().name()` |
-      | `AnimationCodecs.deserialize("json", stream)` then filter by `extraData` | `UniversalAnimLoader.loadAnimations(stream)` returns the name-keyed map directly |
-
-      An `AnimationController` is itself an `IAnimation`, so the four per-player layers
-      can stay exactly as they are — a `ModifierLayer` for the one that carries the
-      adjustment modifier, the controller alone for the other three. The 8-tick
-      crossfades between hold, walk, run and aim are preserved by
-      `replaceAnimationWithFade`, so this does not have to become the controller's own
-      transition model.
+      The one thing that would have gone wrong silently: gun packs write
+      PlayerAnimator's easing names (`INOUTSINE`), PAL spells the same curve
+      `easeinoutsine`, and its lookup answers `LINEAR` for anything unrecognised without
+      logging. Every keyframe in every pack would have gone linear with no error
+      anywhere. `EasingNames` translates them, with the table derived from
+      `EasingType.values()`, and the tests pin it. Worth asking PAL upstream for the
+      aliases so nobody else has to find this the hard way.
 
 #### Phase 2 — port to 1.21.11 and release
 
@@ -430,8 +389,6 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 | The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | medium | high; changes how every optical scope looks | prototype it before committing to the render port |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
-| PlayerAnimator never appears for the target | certain | low; the fallback poses still work | migrate to Player Animation Library in phase 1 |
-| Player Animation Library silently degrades pack animations | ~~low~~ confirmed | medium; every keyframe in every pack would go linear | found before starting: easing names differ, normalise them in our loader — see phase 1 |
 | No Parchment | high | low | accept |
 | Addons break at the storage migration | high | medium | deprecated delegating facade for a release |
 | Two live branches to maintain | certain | medium | keep the chain linear; fixes land before the fork point |
