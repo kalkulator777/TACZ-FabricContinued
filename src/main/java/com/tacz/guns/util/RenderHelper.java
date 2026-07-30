@@ -1,10 +1,8 @@
 package com.tacz.guns.util;
 
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.tacz.guns.compat.ar.ARCompat;
-import com.tacz.guns.compat.optifine.OptifineCompat;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -16,7 +14,6 @@ import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.world.entity.HumanoidArm;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
 
 @Environment(EnvType.CLIENT)
 public final class RenderHelper {
@@ -44,23 +41,7 @@ public final class RenderHelper {
 
     public static void enableItemEntityStencilTest() {
         RenderSystem.assertOnRenderThread();
-        if (OptifineCompat.isOptifineInstalled()) {
-            // 以下代码用于应对 使用 optifine 的场景
-            int depthTextureId = GL30.glGetFramebufferAttachmentParameteri(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
-            int stencilTextureId = GL30.glGetFramebufferAttachmentParameteri(GL30.GL_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
-            if (depthTextureId != GL30.GL_NONE && stencilTextureId == GL30.GL_NONE) {
-                GL30.glBindTexture(GL30.GL_TEXTURE_2D, depthTextureId);
-                int dataType = GL30.glGetTexLevelParameteri(GL30.GL_TEXTURE_2D, 0, GL30.GL_TEXTURE_DEPTH_TYPE);
-                if (dataType == GL30.GL_UNSIGNED_NORMALIZED) {
-                    int width = GL30.glGetTexLevelParameteri(GL30.GL_TEXTURE_2D, 0, GL30.GL_TEXTURE_WIDTH);
-                    int height = GL30.glGetTexLevelParameteri(GL30.GL_TEXTURE_2D, 0, GL30.GL_TEXTURE_HEIGHT);
-                    GlStateManager._texImage2D(GL30.GL_TEXTURE_2D, 0, GL30.GL_DEPTH24_STENCIL8, width, height, 0, GL30.GL_DEPTH_STENCIL, GL30.GL_UNSIGNED_INT_24_8, null);
-                    GlStateManager._glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, 3553, depthTextureId, 0);
-                }
-            }
-        } else {
-            Minecraft.getInstance().getMainRenderTarget().tacz$enableStencil();
-        }
+        Minecraft.getInstance().getMainRenderTarget().tacz$enableStencil();
         GL11.glEnable(GL11.GL_STENCIL_TEST);
     }
 

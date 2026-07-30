@@ -30,8 +30,7 @@
     "common.itemhandler.LivingEntityMixin",
     "common.itemhandler.PlayerMixin",
     "compat.carryon.ConfigLoaderMixin",
-    "compat.controllable.BindingContextMixin",
-    "compat.tweakeroo.ItemMixin"
+    "compat.controllable.BindingContextMixin"
   ],
   "client": [
     "accessor.AbstractSliderButtonAccessor",

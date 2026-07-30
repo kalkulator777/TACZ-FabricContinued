@@ -16,12 +16,10 @@
     "client.HumanoidModelMixin",
     "client.ItemInHandLayerMixin",
     "client.ItemInHandRendererMixin",
-    "client.LanguageMixin",
     "client.LocalPlayerMixin",
     "client.MouseHandlerMixin",
     "client.PlayerModelMixin",
-    "client.SoundManagerPreparationsMixin",
-    "client.StairBlockAccessor"
+    "client.SoundManagerPreparationsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
