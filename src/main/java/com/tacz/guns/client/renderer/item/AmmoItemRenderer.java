@@ -16,6 +16,7 @@ import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
@@ -85,7 +86,7 @@ public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements
             if (transformType == GUI || ammoModel == null || modelTexture == null) {
                 poseStack.translate(0.5, 1.5, 0.5);
                 poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                VertexConsumer buffer = pBuffer.getBuffer(RenderType.entityTranslucent(ammoIndex.getSlotTextureLocation()));
+                VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(ammoIndex.getSlotTextureLocation()));
                 SLOT_AMMO_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
                 return;
             }
@@ -99,13 +100,13 @@ public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements
             // 应用 display 数据中的缩放
             applyScaleTransform(transformType, ammoIndex.getTransform().getScale(), poseStack);
             // 渲染子弹盒模型
-            RenderType renderType = RenderType.entityCutout(modelTexture);
+            RenderType renderType = RenderTypes.entityCutout(modelTexture);
             ammoModel.render(poseStack, transformType, renderType, pPackedLight, pPackedOverlay);
         }, () -> {
             // 没有这个 ammoID，渲染个错误材质提醒别人
             poseStack.translate(0.5, 1.5, 0.5);
             poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-            VertexConsumer buffer = pBuffer.getBuffer(RenderType.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
+            VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
             SLOT_AMMO_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
         });
         poseStack.popPose();

@@ -16,6 +16,7 @@ import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
@@ -54,7 +55,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 if (transformType == ItemDisplayContext.GUI) {
                     poseStack.translate(0.5, 1.5, 0.5);
                     poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                    VertexConsumer buffer = pBuffer.getBuffer(RenderType.entityTranslucent(attachmentIndex.getSlotTexture()));
+                    VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()));
                     SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
                     return;
                 }
@@ -69,7 +70,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 // 没有这个 attachmentId，渲染黑紫材质以提醒
                 poseStack.translate(0.5, 1.5, 0.5);
                 poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                VertexConsumer buffer = pBuffer.getBuffer(RenderType.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
+                VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
                 SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
             });
             poseStack.popPose();
@@ -88,7 +89,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 model = lodModel.getLeft();
                 texture = lodModel.getRight();
             }
-            RenderType renderType = RenderType.entityCutout(texture);
+            RenderType renderType = RenderTypes.entityCutout(texture);
             model.render(null, null, poseStack, transformType, renderType, pPackedLight, pPackedOverlay);
         }
         // 否则，以 GUI 形式渲染
@@ -98,7 +99,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
             if (transformType == ItemDisplayContext.FIXED) {
                 poseStack.mulPose(Axis.YP.rotationDegrees(90));
             }
-            VertexConsumer buffer = pBuffer.getBuffer(RenderType.entityTranslucent(attachmentIndex.getSlotTexture()));
+            VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()));
             SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
         }
     }

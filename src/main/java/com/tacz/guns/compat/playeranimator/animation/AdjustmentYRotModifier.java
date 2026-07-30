@@ -7,7 +7,7 @@ import com.zigythebird.playeranimcore.math.Vec3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Avatar;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -20,9 +20,9 @@ import java.util.function.Function;
  * arms {@code leftArm} and {@code rightArm}.
  */
 public class AdjustmentYRotModifier implements Function<String, Optional<AdjustmentModifier.PartModifier>> {
-    private final Player player;
+    private final Avatar player;
 
-    private AdjustmentYRotModifier(Player player) {
+    private AdjustmentYRotModifier(Avatar player) {
         this.player = player;
     }
 
@@ -67,7 +67,7 @@ public class AdjustmentYRotModifier implements Function<String, Optional<Adjustm
         };
     }
 
-    public static AdjustmentModifier getModifier(Player player) {
+    public static AdjustmentModifier getModifier(Avatar player) {
         return new AdjustmentModifier(new AdjustmentYRotModifier(player));
     }
 }

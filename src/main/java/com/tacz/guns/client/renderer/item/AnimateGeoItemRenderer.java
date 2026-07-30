@@ -21,6 +21,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -77,7 +78,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
     }
 
     public RenderType getRenderType(ItemStack stack) {
-        return RenderType.entityCutout(getTextureLocation(stack));
+        return RenderTypes.entityCutout(getTextureLocation(stack));
     }
 
     public boolean needReInit(ItemStack stack) {
@@ -271,7 +272,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
             poseStack.translate(0.5, 1.5f, 0.5);
             // 基岩版模型是上下颠倒的，需要翻转过来。
             poseStack.mulPose(Axis.ZP.rotationDegrees(180f));
-            model.render(poseStack, ctx, RenderType.entityCutout(
+            model.render(poseStack, ctx, RenderTypes.entityCutout(
                     getTextureLocation(stack)
             ), light, overlay);
             poseStack.popPose();

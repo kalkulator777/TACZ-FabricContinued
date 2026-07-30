@@ -11,6 +11,7 @@ import com.tacz.guns.config.client.RenderConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -49,7 +50,7 @@ public class TargetRenderer implements BlockEntityRenderer<TargetBlockEntity> {
             poseStack.mulPose(Axis.YN.rotationDegrees(facing.get2DDataValue() * 90));
             poseStack.mulPose(Axis.ZN.rotationDegrees(180));
             poseStack.translate(0, -1.275, 0.0125);
-            RenderType renderType = RenderType.entityTranslucent(InternalAssetLoader.TARGET_TEXTURE_LOCATION);
+            RenderType renderType = RenderTypes.entityTranslucent(InternalAssetLoader.TARGET_TEXTURE_LOCATION);
             model.render(poseStack, ItemDisplayContext.NONE, renderType, combinedLightIn, combinedOverlayIn);
             if (blockEntity.getOwner() != null) {
                 poseStack.translate(0, 1.25, 0);
@@ -58,7 +59,7 @@ public class TargetRenderer implements BlockEntityRenderer<TargetBlockEntity> {
                 Identifier skin;
                 skin = minecraft.getSkinManager().getInsecureSkin(blockEntity.getOwner().gameProfile()).texture();
                 headModel.visible = true;
-                RenderType skullRenderType = RenderType.entityCutout(skin);
+                RenderType skullRenderType = RenderTypes.entityCutout(skin);
                 headModel.render(poseStack, ItemDisplayContext.NONE, bufferIn.getBuffer(skullRenderType), combinedLightIn, OverlayTexture.NO_OVERLAY);
             }
             poseStack.popPose();
