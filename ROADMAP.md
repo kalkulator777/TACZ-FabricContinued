@@ -7,7 +7,7 @@ The short version: the mod is on 1.21.1 today. The goal is Minecraft 26.1, with
 
 Everything here is a plan, not a promise. Dates are deliberately absent.
 
-Current work is phase 0 — see [§6](#6-phases) for what is done and what is next, and
+Current work is phase 1 — see [§6](#6-phases) for what is done and what is next, and
 the [changelog](CHANGELOG.md) for what has already landed.
 
 ---
@@ -117,7 +117,7 @@ Verified against the published Fabric artifacts.
 | Shoulder Surfing Reloaded | `5.0.7` — API break, see below | yes |
 | PlayerAnimator | no — 1.21.7 is the last build | no |
 | Accelerated Rendering | no — dropped, see below | no |
-| SimpleBedrockModel-Fabric | no | no — see §4 |
+| SimpleBedrockModel-Fabric | no — absorbed, see §4 | no — absorbed |
 | Parchment | no release | no release |
 
 The picture is identical for both targets: there is nothing available on 26.1 that
@@ -153,68 +153,27 @@ number, where the maven coordinate resolves to the NeoForge jar.
 
 ### 4. SimpleBedrockModel
 
-The one library with no build for either target. It is a Bedrock model, animation,
-molang and particle library, shipped as a jar in `libs/` and bundled with jar-in-jar.
-It is LGPL-3.0 by Sh1roCu, the author of this port; GPL-3 can absorb that, with
-attribution kept.
+**Done.** The library had no build for either target and was the last jar in `libs/`.
+Rather than port a Bedrock model, molang and particle library the mod does not use, the
+part it runs on was absorbed and the rest dropped — 8 new files against a 347-class jar.
+See the [changelog](CHANGELOG.md) for what came across and what did not.
 
-**It is not a peripheral dependency.** The import surface is small — 6 types across
-10 files — but one of those types is `FirstPersonRenderHandler`, and that is the
-driver for the whole first-person view:
-
-| Type | Origin | Used by |
-|---|---|---|
-| `ViewportEvent` (and `ComputeCameraAngles`, `ComputeFov`) | the library's Fabric shim | 5 imports |
-| `RenderTickEvent` | the library's Fabric shim | 4 imports |
-| `RenderHandEvent` | the library's Fabric shim | 1 import |
-| `IFPGeoItemRenderer`, `IFPAnimationInstance` | the library proper | `client/renderer/item/AnimateGeoItemRenderer.java` |
-| `FirstPersonRenderHandler` | the library proper | `client/resource/ClientIndexManager.java` |
-| `Pose`, `DummyPose` | `com.maydaymemory:mae`, a separate artifact already on Maven | `AnimateGeoItemRenderer.java` |
-
+The reason it was not the peripheral dependency the earlier plan assumed:
 `AnimateGeoItemRenderer` implements the library's `IFPGeoItemRenderer`, so the library
-finds our renderer and calls it. `FirstPersonRenderHandler` owns the draw and
-put-away transitions, the item-switch state machine and a first-person particle
-system. The mod's own `client/event/FirstPersonRenderEvent` used to be that entry
-point; its registration is commented out in `TaCZFabricClient` and the class is
-dead — a javadoc in `AnimateGeoItemRenderer` still names it as the entry point and is
-now wrong. The switch came with the upstream sync to the NeoForge branch.
+found our renderer and drove it. `FirstPersonRenderHandler` is what draws the player's
+own hands.
 
-**Two competing copies of four events.** `com/tacz/guns/api/client/event/` holds
-`BeforeRenderHandEvent`, `RenderItemInHandBobEvent`, `RenderLevelBobEvent` and
-`SwapItemWithOffHand`; the library holds its own `v1/client/event/` versions of all
-four, fired from its own mixins on the same vanilla methods. The mod listens to its
-copies, `FirstPersonRenderHandler` listens to the library's. Absorbing has to merge
-these pairs, not just move files.
+Two things worth remembering from it:
 
-**Sizing, measured over the jar's bytecode rather than the import list.** Reachable
-from what the mod touches:
-
-| Scope | Classes |
-|---|---:|
-| whole jar | 347 |
-| everything reachable from the shim and the first-person handler | 281 |
-| the same with the particle system and molang cut | 97 |
-| minimal — the three events, the two interfaces, the handler, its clock, five mixins | 31 |
-
-The molang runtime and the particle system are reachable only through the particle
-system that `FirstPersonRenderHandler` instantiates. The mod never feeds it: it does
-not override `updateParticleEmitterTransforms` and does not call `getParticleSystem`,
-so it ticks and draws nothing — that needs confirming in a running game before the
-cut, not after.
-
-**Options.**
-
-1. *Absorb the minimal set (31 classes)*, cut the particle system out of the handler,
-   merge the four duplicated event pairs, depend on `mae` from Maven, drop the jar.
-   Removes `libs/`, the jar-in-jar and the mixin overlap, and leaves one codebase to
-   port. Cost: we own the first-person driver.
-2. *Absorb everything (281 classes)*, including a molang runtime and a particle
-   engine the mod does not use. More code to port, not less.
-3. *Reinstate the mod's own `FirstPersonRenderEvent`* and drop the library entirely.
-   Cheapest, but loses the draw and put-away transitions and the item-switch
-   smoothing the handler adds — a visible behaviour regression against upstream.
-
-Option 1 unless the particle check says otherwise.
+- **`mae` was only ever present because the library bundled it.** It is declared as an
+  ordinary dependency here with no `include`, so removing the library without removing
+  the last use of `mae` would have been a `NoClassDefFoundError` on any real install.
+  Worth checking the same for anything else declared without `include`.
+- **The off-hand render pass is suspicious.** The handler cancels vanilla rendering for
+  the off hand and then renders the gun anyway, so with something in the off hand the
+  gun is drawn a second time against the off-hand pose. The mod's own first-person entry
+  point, dead since the upstream NeoForge sync, returned at that point instead. Upstream
+  behaviour is preserved for now; it needs one look in game.
 
 ---
 
@@ -291,7 +250,7 @@ bump happens in phase 2.
 Both items remove a dependency that does not exist on the target, while the tree still
 compiles and a mistake is still distinguishable from a porting mistake.
 
-- [ ] Absorb SimpleBedrockModel — see §4.
+- [x] Absorb SimpleBedrockModel — see §4.
 - [ ] Move third-person animation from PlayerAnimator to Player Animation Library.
       PlayerAnimator's own README points there and the successor covers 1.21.1
       through 26.2, so one move covers both targets. The integration is 705 lines in
@@ -368,6 +327,10 @@ What follows is what is still open. Everything already fixed is in the
   them as persistent.
 - Glass breaking, ignition and bell ringing bypass region protection and the
   `mobGriefing` rule.
+- On the off-hand render pass the first-person handler cancels vanilla rendering and
+  then draws the gun anyway, so with something in the off hand the gun is drawn a second
+  time against the off-hand pose. Upstream behaviour, preserved on absorbing the handler
+  rather than changed blind — see §4.
 - The velocity stored in the hitbox history is the movement of two ticks, not one.
   `HitboxHelper.onPlayerTick` records the velocity before trimming the position
   history, so the sample it takes spans three positions. The hitbox offsets around it

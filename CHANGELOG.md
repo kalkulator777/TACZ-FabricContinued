@@ -62,6 +62,26 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 
 **Changed**
 
+- SimpleBedrockModel is no longer a dependency. It had no build for any version
+  this fork is heading to and was the last jar in `libs/`, and it was not the
+  peripheral library it looked like: the mod implements its `IFPGeoItemRenderer`,
+  so the library found the mod's renderer and drove it — the whole first-person
+  view ran through the library's `FirstPersonRenderHandler`.
+
+  The part the mod runs on was absorbed: three events, two interfaces, the
+  first-person handler and its animation clock. Four mixins came with them, and
+  none needed a new file except `Camera` — the library patched `Minecraft`,
+  `GameRenderer` and `ItemInHandRenderer`, which this mod already patches, so two
+  sets of mixins on the same vanilla methods became one.
+
+  Left behind: the molang runtime and the particle system, reachable only through
+  a first-person particle system nothing here ever fed, and 250-odd other classes.
+  Also `mae`, whose only use was constant stubs for methods the interface no longer
+  declares — it reached the runtime solely because the library bundled it.
+
+  Original library is LGPL-3.0 by Sh1roCu; the absorbed files say where they came
+  from.
+
 - The Iris integration uses the stable `api.v0` where one exists. Three of its
   four calls went through Iris internals; two had an API equivalent and now use
   it, a third was the same check under a different name and had no callers. The
