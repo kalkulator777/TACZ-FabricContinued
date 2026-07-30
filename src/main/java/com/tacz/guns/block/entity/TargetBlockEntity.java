@@ -9,7 +9,11 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+
+import java.util.Set;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -31,7 +35,7 @@ import static com.tacz.guns.block.TargetBlock.OUTPUT_POWER;
 import static com.tacz.guns.block.TargetBlock.STAND;
 
 public class TargetBlockEntity extends BlockEntity implements Nameable {
-    public static final BlockEntityType<TargetBlockEntity> TYPE = BlockEntityType.Builder.of(TargetBlockEntity::new, ModBlocks.TARGET).build(null);
+    public static final BlockEntityType<TargetBlockEntity> TYPE = new BlockEntityType<>(TargetBlockEntity::new, Set.of(ModBlocks.TARGET));
     /**
      * 标靶复位时间，暂定为 5 秒
      */
@@ -62,33 +66,25 @@ public class TargetBlockEntity extends BlockEntity implements Nameable {
     }
 
     public void setOwner(@Nullable ResolvableProfile owner) {
+        /* 以前这里会立刻把档案解析成完整的 GameProfile 再刷新方块。1.21.11 起原版的头颅
+         * 也不在方块实体里解析了 —— ResolvableProfile 只存着，解析在客户端渲染时由
+         * PlayerSkinRenderCache 完成，所以这里跟着原版走。*/
         this.owner = owner;
-        if (this.owner != null) {
-            this.owner.resolve().thenAcceptAsync((profile) -> {
-                this.owner = profile;
-                this.refresh();
-            }, SkullBlockEntity.CHECKED_MAIN_THREAD_EXECUTOR);
-        }
+        this.refresh();
     }
 
     @Override
-    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        tag.getCompound(OWNER_TAG).ifPresent(owner -> this.owner = DataComponents.PROFILE.codec()
-                .parse(provider.createSerializationContext(NbtOps.INSTANCE), owner).getOrThrow());
-        tag.getString(CUSTOM_NAME_TAG).ifPresent(name -> this.name = Component.Serializer.fromJson(name, provider));
+    public void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        this.owner = input.read(OWNER_TAG, ResolvableProfile.CODEC).orElse(null);
+        this.name = input.read(CUSTOM_NAME_TAG, ComponentSerialization.CODEC).orElse(null);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        ;
-        if (owner != null) {
-            tag.put(OWNER_TAG, DataComponents.PROFILE.codec().encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), owner).getOrThrow());
-        }
-        if (this.name != null) {
-            tag.putString(CUSTOM_NAME_TAG, Component.Serializer.toJson(this.name, provider));
-        }
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.storeNullable(OWNER_TAG, ResolvableProfile.CODEC, this.owner);
+        output.storeNullable(CUSTOM_NAME_TAG, ComponentSerialization.CODEC, this.name);
     }
 
     @Override

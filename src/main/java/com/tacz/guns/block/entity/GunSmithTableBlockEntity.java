@@ -7,7 +7,10 @@ import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+
+import java.util.Set;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -23,12 +26,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory<Identifier> {
-    public static final BlockEntityType<GunSmithTableBlockEntity> TYPE = BlockEntityType.Builder.of(GunSmithTableBlockEntity::new,
+    public static final BlockEntityType<GunSmithTableBlockEntity> TYPE = new BlockEntityType<>(GunSmithTableBlockEntity::new, Set.of(
             ModBlocks.GUN_SMITH_TABLE,
             ModBlocks.WORKBENCH_111,
             ModBlocks.WORKBENCH_121,
             ModBlocks.WORKBENCH_211
-    ).build(null);
+    ));
 
     private static final String ID_TAG = "BlockId";
 
@@ -78,16 +81,16 @@ public class GunSmithTableBlockEntity extends BlockEntity implements ExtendedScr
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        this.id = tag.getString(ID_TAG).map(Identifier::tryParse).orElse(DefaultAssets.DEFAULT_BLOCK_ID);
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        this.id = input.getString(ID_TAG).map(Identifier::tryParse).orElse(DefaultAssets.DEFAULT_BLOCK_ID);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
         if (id != null) {
-            tag.putString(ID_TAG, id.toString());
+            output.putString(ID_TAG, id.toString());
         }
     }
 

@@ -6,7 +6,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+
+import java.util.Set;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -20,7 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import static com.tacz.guns.block.StatueBlock.FACING;
 
 public class StatueBlockEntity extends BlockEntity {
-    public static final BlockEntityType<StatueBlockEntity> TYPE = BlockEntityType.Builder.of(StatueBlockEntity::new, ModBlocks.STATUE).build(null);
+    public static final BlockEntityType<StatueBlockEntity> TYPE = new BlockEntityType<>(StatueBlockEntity::new, Set.of(ModBlocks.STATUE));
     private static final String ITEM_TAG = "Item";
     private ItemStack gunItem = ItemStack.EMPTY;
 
@@ -71,22 +74,21 @@ public class StatueBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        tag.getCompound(ITEM_TAG).ifPresent(item -> this.gunItem = ItemStack.parseOptional(provider, item));
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
+        this.gunItem = input.read(ITEM_TAG, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        tag.put(ITEM_TAG, gunItem.saveOptional(provider));
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        output.store(ITEM_TAG, ItemStack.OPTIONAL_CODEC, gunItem);
     }
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag = super.getUpdateTag(provider);
-        tag.put(ITEM_TAG, gunItem.saveOptional(provider));
-        return tag;
+        // saveCustomOnly 走的就是上面那对方法，和以前手写的「空的更新标签 + Item」是同一份数据
+        return saveCustomOnly(provider);
     }
 
     // TODO
