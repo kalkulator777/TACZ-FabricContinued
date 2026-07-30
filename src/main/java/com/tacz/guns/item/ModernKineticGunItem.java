@@ -529,7 +529,7 @@ public class ModernKineticGunItem extends AbstractGunItem implements GunItemData
             return;
         }
         for (EffectData data : effects) {
-            Holder<MobEffect> mobEffect = BuiltInRegistries.MOB_EFFECT.getHolder(data.getEffectId()).orElse(null);
+            Holder<MobEffect> mobEffect = BuiltInRegistries.MOB_EFFECT.get(data.getEffectId()).orElse(null);
             if (mobEffect == null) {
                 continue;
             }

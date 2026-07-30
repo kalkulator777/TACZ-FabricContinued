@@ -21,7 +21,7 @@ public class ModDamageTypes {
 
     public static class Sources {
         private static Holder.Reference<DamageType> getHolder(RegistryAccess access, ResourceKey<DamageType> damageTypeKey) {
-            return access.lookupOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(damageTypeKey);
+            return access.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(damageTypeKey);
         }
 
         public static DamageSource bullet(RegistryAccess access, Entity bullet, Entity shooter, boolean ignoreArmor) {

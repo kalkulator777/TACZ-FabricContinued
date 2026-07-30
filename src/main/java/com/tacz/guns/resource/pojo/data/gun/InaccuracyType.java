@@ -73,11 +73,13 @@ public enum InaccuracyType {
     }
 
     private static boolean isMove(LivingEntity livingEntity) {
-        double distance = Math.abs(livingEntity.walkDist - livingEntity.walkDistO);
         if (livingEntity instanceof Player player) {
-            distance = HitboxHelper.getPlayerVelocity(player).length();
+            return HitboxHelper.getPlayerVelocity(player).length() > 0.05f;
         }
-        return distance > 0.05f;
+        /* walkDist 和 walkDistO 都没了。接替它们的 walkAnimation.speed 是每 tick 水平位移的
+         * 四倍（截到 1，再按 0.4 的系数平滑），所以阈值也乘四。平滑意味着起步和停下各差几 tick，
+         * 对「这个生物在不在动」这个判断只有好处。*/
+        return livingEntity.walkAnimation.speed() > 0.2f;
     }
 
     public boolean isAim() {

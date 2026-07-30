@@ -26,6 +26,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.WalkAnimationState;
 import net.minecraft.world.item.ItemStack;
 import org.joml.Vector3f;
 import org.luaj.vm2.LuaTable;
@@ -342,7 +343,7 @@ public class GunAnimationStateContext extends ItemAnimationStateContext {
      */
     public void anchorWalkDist() {
         processCameraEntity(entity -> {
-            walkDistAnchor = entity.walkDist + (entity.walkDist - entity.walkDistO) * partialTicks;
+            walkDistAnchor = walkDistOf(entity);
             return null;
         });
     }
@@ -353,10 +354,18 @@ public class GunAnimationStateContext extends ItemAnimationStateContext {
      * @return 与锚点相对的行走距离。如果没有打锚点，则直接返回行走距离。
      */
     public float getWalkDist() {
-        return processCameraEntity(entity -> {
-            float currentWalkDist = entity.walkDist + (entity.walkDist - entity.walkDistO) * partialTicks;
-            return currentWalkDist - walkDistAnchor;
-        }).orElse(0f);
+        return processCameraEntity(entity -> walkDistOf(entity) - walkDistAnchor).orElse(0f);
+    }
+
+    /**
+     * 走过的距离，按帧内进度插值。
+     * <p>
+     * 以前是手算的 {@code walkDist + (walkDist - walkDistO) * partialTicks}，两个字段
+     * 在 1.21.9 都没了；{@link WalkAnimationState#position(float)} 算的就是这个东西，
+     * 原版自己的肢体摆动也是从它来的。
+     */
+    private float walkDistOf(net.minecraft.world.entity.Entity entity) {
+        return entity instanceof LivingEntity livingEntity ? livingEntity.walkAnimation.position(partialTicks) : 0f;
     }
 
     /**

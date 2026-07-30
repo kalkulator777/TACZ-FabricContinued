@@ -7,6 +7,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 
@@ -15,7 +16,13 @@ public class ModRecipe {
 
     }
 
-    public static RecipeSerializer<?> GUN_SMITH_TABLE_RECIPE_SERIALIZER = registerSerializer("gun_smith_table_crafting", new GunSmithTableSerializer());
+    public static RecipeSerializer<GunSmithTableRecipe> GUN_SMITH_TABLE_RECIPE_SERIALIZER = registerSerializer("gun_smith_table_crafting", new GunSmithTableSerializer());
+    /**
+     * 配方书分类在 1.21.2 变成了注册表对象，而 Recipe 必须给出一个。工作台配方不进配方书，
+     * 注册一个自己的分类正好达到这个效果：配方书只画它自己那份分类列表里的东西。
+     */
+    public static RecipeBookCategory GUN_SMITH_TABLE_CATEGORY = Registry.register(BuiltInRegistries.RECIPE_BOOK_CATEGORY,
+            Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "gun_smith_table_crafting"), new RecipeBookCategory());
     public static RecipeType<GunSmithTableRecipe> GUN_SMITH_TABLE_CRAFTING = registerRecipe("gun_smith_table_crafting", new RecipeType<>() {
         @Override
         public String toString() {

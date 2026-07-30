@@ -59,7 +59,7 @@ public class GunSmithTableResult {
                     result = new GunSmithTableResult(itemStack, tabOverride);
                     if (extraTag != null) {
                         result.getResult().update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
-                            for (String key : extraTag.getAllKeys()) {
+                            for (String key : extraTag.keySet()) {
                                 Tag value = extraTag.get(key);
                                 if (value != null) {
                                     tag.put(key, value);

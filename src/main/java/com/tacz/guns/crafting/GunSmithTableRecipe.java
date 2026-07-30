@@ -9,7 +9,9 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.PlacementInfo;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SmithingRecipeInput;
@@ -51,23 +53,28 @@ public class GunSmithTableRecipe implements Recipe<SmithingRecipeInput> {
         return ItemStack.EMPTY;
     }
 
+    /**
+     * 工作台有自己的界面，这些配方从来不进原版配方书，所以位置信息是「不可摆放」，
+     * 分类是本模组自己注册的一个 —— 配方书只显示它认识的分类，注册一个自己的就等于不显示。
+     * 1.21.2 起这两个方法是 Recipe 的抽象方法，不实现不行。
+     */
     @Override
-    public boolean canCraftInDimensions(int pWidth, int pHeight) {
-        return true;
+    public PlacementInfo placementInfo() {
+        return PlacementInfo.NOT_PLACEABLE;
     }
 
     @Override
-    public ItemStack getResultItem(HolderLookup.Provider provider) {
-        return this.result.getResult().copy();
+    public RecipeBookCategory recipeBookCategory() {
+        return ModRecipe.GUN_SMITH_TABLE_CATEGORY;
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<GunSmithTableRecipe> getSerializer() {
         return ModRecipe.GUN_SMITH_TABLE_RECIPE_SERIALIZER;
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeType<GunSmithTableRecipe> getType() {
         return ModRecipe.GUN_SMITH_TABLE_CRAFTING;
     }
 
