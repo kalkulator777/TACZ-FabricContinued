@@ -154,10 +154,13 @@ number, where the maven coordinate resolves to the NeoForge jar.
 ### 4. SimpleBedrockModel
 
 The one library with no build for either target. It is a Bedrock model, animation,
-molang and particle library, and the mod uses almost none of it — it has its own
-Bedrock model system in `client/model/bedrock/`.
+molang and particle library, shipped as a jar in `libs/` and bundled with jar-in-jar.
+It is LGPL-3.0 by Sh1roCu, the author of this port; GPL-3 can absorb that, with
+attribution kept.
 
-The actual consumption surface is **10 files and 6 types**:
+**It is not a peripheral dependency.** The import surface is small — 6 types across
+10 files — but one of those types is `FirstPersonRenderHandler`, and that is the
+driver for the whole first-person view:
 
 | Type | Origin | Used by |
 |---|---|---|
@@ -166,17 +169,52 @@ The actual consumption surface is **10 files and 6 types**:
 | `RenderHandEvent` | the library's Fabric shim | 1 import |
 | `IFPGeoItemRenderer`, `IFPAnimationInstance` | the library proper | `client/renderer/item/AnimateGeoItemRenderer.java` |
 | `FirstPersonRenderHandler` | the library proper | `client/resource/ClientIndexManager.java` |
-| `Pose`, `DummyPose` | `com.maydaymemory:mae`, a separate artifact | `AnimateGeoItemRenderer.java` |
+| `Pose`, `DummyPose` | `com.maydaymemory:mae`, a separate artifact already on Maven | `AnimateGeoItemRenderer.java` |
 
-The molang runtime (33 classes), the particle system (25+ classes) and the Bedrock
-model loader are not referenced at all. The library's Fabric half is five client
-mixins targeting the same vanilla classes the mod already patches, so today two
-mods compete for the same methods.
+`AnimateGeoItemRenderer` implements the library's `IFPGeoItemRenderer`, so the library
+finds our renderer and calls it. `FirstPersonRenderHandler` owns the draw and
+put-away transitions, the item-switch state machine and a first-person particle
+system. The mod's own `client/event/FirstPersonRenderEvent` used to be that entry
+point; its registration is commented out in `TaCZFabricClient` and the class is
+dead — a javadoc in `AnimateGeoItemRenderer` still names it as the entry point and is
+now wrong. The switch came with the upstream sync to the NeoForge branch.
 
-**Plan: absorb it.** Move three event classes, three interfaces and five mixins
-into the mod, depend on `mae` directly from Maven, drop the rest. That removes the
-`libs/` flat directory, removes the jar-in-jar, removes the mixin overlap, and
-leaves one codebase to port instead of two.
+**Two competing copies of four events.** `com/tacz/guns/api/client/event/` holds
+`BeforeRenderHandEvent`, `RenderItemInHandBobEvent`, `RenderLevelBobEvent` and
+`SwapItemWithOffHand`; the library holds its own `v1/client/event/` versions of all
+four, fired from its own mixins on the same vanilla methods. The mod listens to its
+copies, `FirstPersonRenderHandler` listens to the library's. Absorbing has to merge
+these pairs, not just move files.
+
+**Sizing, measured over the jar's bytecode rather than the import list.** Reachable
+from what the mod touches:
+
+| Scope | Classes |
+|---|---:|
+| whole jar | 347 |
+| everything reachable from the shim and the first-person handler | 281 |
+| the same with the particle system and molang cut | 97 |
+| minimal — the three events, the two interfaces, the handler, its clock, five mixins | 31 |
+
+The molang runtime and the particle system are reachable only through the particle
+system that `FirstPersonRenderHandler` instantiates. The mod never feeds it: it does
+not override `updateParticleEmitterTransforms` and does not call `getParticleSystem`,
+so it ticks and draws nothing — that needs confirming in a running game before the
+cut, not after.
+
+**Options.**
+
+1. *Absorb the minimal set (31 classes)*, cut the particle system out of the handler,
+   merge the four duplicated event pairs, depend on `mae` from Maven, drop the jar.
+   Removes `libs/`, the jar-in-jar and the mixin overlap, and leaves one codebase to
+   port. Cost: we own the first-person driver.
+2. *Absorb everything (281 classes)*, including a molang runtime and a particle
+   engine the mod does not use. More code to port, not less.
+3. *Reinstate the mod's own `FirstPersonRenderEvent`* and drop the library entirely.
+   Cheapest, but loses the draw and put-away transitions and the item-switch
+   smoothing the handler adds — a visible behaviour regression against upstream.
+
+Option 1 unless the particle check says otherwise.
 
 ---
 
