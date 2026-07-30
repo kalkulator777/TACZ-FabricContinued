@@ -31,6 +31,26 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   name — the key is a constant now. These methods run several times per frame
   from the HUD and the gun model.
 
+**Build**
+
+- There is CI. A GitHub Actions workflow builds every push and pull request.
+- There is a test suite, run by `./gradlew build`. It starts with the Lua
+  sandbox — those tests exist so that a change back to
+  `JsePlatform.standardGlobals()` fails the build rather than quietly
+  reintroducing arbitrary code execution — plus the modifier evaluator and fire
+  mode parsing.
+- `mavenLocal()` is out of the repository list. With it there, the result of a
+  build depended on whatever happened to be sitting in the developer's `~/.m2`,
+  so the same commit could produce different jars on two machines.
+- The publish repository is no longer a hardcoded Windows path on the upstream
+  author's machine. It comes from `-Ppublish_repo` or `TACZ_PUBLISH_REPO` and
+  falls back to `build/repo`; the published coordinates are unchanged.
+- The eleven Gradle deprecation warnings the build printed on every run are
+  gone, including `processResources` reading `project` at execution time, which
+  is what stops the configuration cache from working.
+- The `yarn_mappings` property is dropped. Mappings are Mojmap plus Parchment
+  and the Yarn line has been commented out for a long time.
+
 **Changed**
 
 - The config screen keybind ships unbound. It defaulted to `T`, which is vanilla's

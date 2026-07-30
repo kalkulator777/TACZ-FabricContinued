@@ -185,9 +185,12 @@ to tell a porting bug from a bug that was always there.
 
 #### Phase 0 — cleanup and fixes on 1.21.1
 
-Branched from `58a1c51` on the `1.21.1` branch. Note that the parent repository's
-default branch is `1.20.1`, so a clone without `--branch 1.21.1` lands on the wrong
-tree.
+This work lives on the `1.21.11` branch, which is this fork's default. It was branched
+from `58a1c51` on the parent repository's `1.21.1` branch — the parent's default is
+`1.20.1`, so a clone of *that* repository without `--branch 1.21.1` lands on the wrong
+tree. The branch is named for where it is going, not for the version it currently
+builds against: everything up to and including phase 1 still targets 1.21.1, and the
+bump happens in phase 2.
 
 - [x] **Security.** Sandbox gun pack scripts, range-check network slot indices,
       guard jar extraction. See the [changelog](CHANGELOG.md).
@@ -204,12 +207,16 @@ tree.
       the client from the server thread. What is left in §7 is either robustness
       work that needs a running game to judge, or performance work that belongs
       with the version bump.
-- [ ] **Build hygiene.** Drop `mavenLocal()`, unhardcode the publish repository,
-      remove Gradle 9 incompatibilities, remove the vestigial Yarn mapping property.
-- [ ] **Infrastructure.** There is no CI and no test suite. Several components are
-      testable without a Minecraft harness: the resource scanner, the JSON data
-      managers, tag tree search, the modifier evaluator, the pack converter's
-      rewrite table.
+- [x] **Build hygiene.** `mavenLocal()` is gone, the publish repository comes from a
+      property, the eleven Gradle deprecation warnings are fixed, and the vestigial
+      Yarn mapping property is dropped.
+- [x] **Infrastructure.** A GitHub Actions workflow builds every push and pull
+      request, and there is a JUnit suite that `./gradlew build` runs. It starts
+      with the Lua sandbox — those tests exist so that going back to
+      `JsePlatform.standardGlobals()` fails the build rather than quietly
+      reintroducing arbitrary code execution — plus the modifier evaluator and fire
+      mode parsing. Still worth covering: the resource scanner, the JSON data
+      managers, tag tree search, and the pack converter's rewrite table.
 
 #### Phase 1 — absorb SimpleBedrockModel, still on 1.21.1
 

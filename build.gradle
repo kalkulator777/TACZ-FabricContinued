@@ -16,6 +16,14 @@ fabricApi {
     }
 }
 
+sourceSets {
+    // Loom 把重映射后的 Minecraft 挂在 main 上，测试要用得自己接过来
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
 loom {
     accessWidenerPath = file("src/main/resources/tacz.accesswidener")
     mixin {
@@ -232,6 +240,18 @@ dependencies {
 
     // 加速渲染
     modImplementation "maven.modrinth:accrelatedrendering-refabricated:pgm8CkON"
+
+    testImplementation platform("org.junit:junit-bom:${junit_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "failed"
+        exceptionFormat = "full"
+    }
 }
 
 processResources {

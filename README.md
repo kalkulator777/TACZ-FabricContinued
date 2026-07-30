@@ -51,7 +51,15 @@ Requires JDK 21.
 ./gradlew build
 ```
 
-The built jar lands in `build/libs/`.
+This compiles, runs the unit tests and remaps the jar, which lands in
+`build/libs/`. The same command runs in CI on every push.
+
+To publish to a local Maven repository, pass a target — otherwise it goes to
+`build/repo`:
+
+```
+./gradlew publish -Ppublish_repo=/path/to/repository
+```
 
 ### Credits
 
