@@ -9,8 +9,6 @@
     "minVersion": "0.5.0"
   },
   "mixins": [
-    "common.AbstractMinecartMixin",
-    "common.ArmorStandMixin",
     "common.BlockBehaviourMixin",
     "common.BundlePacketMixin",
     "common.EntityMixin",

@@ -273,7 +273,7 @@ public interface GunItemDataAccessor extends IGun {
         CompoundTag nbt = gun.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         String key = GUN_ATTACHMENT_BASE + type.name();
         return nbt.getCompound(key)
-                .flatMap(attachment -> ItemStack.CODEC
+                .flatMap(attachment -> ItemStack.OPTIONAL_CODEC
                         .parse(provider.createSerializationContext(NbtOps.INSTANCE), attachment).result())
                 .orElse(ItemStack.EMPTY);
     }
@@ -316,8 +316,7 @@ public interface GunItemDataAccessor extends IGun {
         }
         gun.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             String key = GUN_ATTACHMENT_BASE + iAttachment.getType(attachment).name();
-            Tag attachmentTag = attachment.saveOptional(provider);
-            tag.put(key, attachmentTag);
+            tag.store(key, ItemStack.OPTIONAL_CODEC, provider.createSerializationContext(NbtOps.INSTANCE), attachment);
         }));
     }
 
@@ -328,7 +327,7 @@ public interface GunItemDataAccessor extends IGun {
         }
         gun.update(DataComponents.CUSTOM_DATA, CustomData.EMPTY, data -> data.update(tag -> {
             String key = GUN_ATTACHMENT_BASE + type.name();
-            tag.put(key, ItemStack.EMPTY.saveOptional(provider));
+            tag.store(key, ItemStack.OPTIONAL_CODEC, provider.createSerializationContext(NbtOps.INSTANCE), ItemStack.EMPTY);
         }));
     }
 

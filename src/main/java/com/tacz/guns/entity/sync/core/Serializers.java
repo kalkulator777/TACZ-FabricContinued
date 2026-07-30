@@ -212,7 +212,7 @@ public class Serializers {
 
         @Override
         public String read(HolderLookup.Provider provider, Tag tag) {
-            return tag.value();
+            return tag.asString().orElse("");
         }
     };
 
@@ -294,17 +294,18 @@ public class Serializers {
 
         @Override
         public ItemStack read(FriendlyByteBuf buf) {
-            return buf.readJsonWithCodec(ItemStack.CODEC);
+            return buf.readLenientJsonWithCodec(ItemStack.CODEC);
         }
 
         @Override
         public Tag write(HolderLookup.Provider provider, ItemStack value) {
-            return value.save(provider, new CompoundTag());
+            return ItemStack.OPTIONAL_CODEC.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), value).getOrThrow();
         }
 
         @Override
         public ItemStack read(HolderLookup.Provider provider, Tag tag) {
-            return ItemStack.parseOptional(provider, (CompoundTag) tag);
+            return ItemStack.OPTIONAL_CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag)
+                    .result().orElse(ItemStack.EMPTY);
         }
     };
 
@@ -326,7 +327,7 @@ public class Serializers {
 
         @Override
         public Identifier read(HolderLookup.Provider provider, Tag tag) {
-            return Identifier.tryParse(tag.value());
+            return tag.asString().map(Identifier::tryParse).orElse(null);
         }
     };
 }
