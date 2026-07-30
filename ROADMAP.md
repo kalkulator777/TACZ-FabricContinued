@@ -88,9 +88,11 @@ methods stay in place as `@Deprecated` delegates for at least one release before
 anything is removed, so addons get a compile warning rather than a
 `NoSuchMethodError`.
 
-**Optional integrations may lag.** PlayerAnimator has no build past 1.21.7, so
-third-person player animations become an optional module that is disabled when the
-library is absent. The mod itself does not depend on it.
+**Optional integrations may lag.** Every integration is already gated on the other
+mod being installed and has a fallback, so none of them can block a release — but two
+need a decision rather than a wait. PlayerAnimator has no build past 1.21.7 and its
+author now points at Player Animation Library instead, so third-person animations move
+to that. Accelerated Rendering has been dropped outright; see §3.
 
 ---
 
@@ -102,22 +104,50 @@ Verified against the published Fabric artifacts.
 |---|:---:|:---:|
 | Fabric API | `0.141.6+1.21.11` | `0.155.2+26.1.2` |
 | Cloth Config | yes | yes |
+| Sodium | `0.8.13` | `0.9.1` |
+| Iris | `1.10.7` | `1.11.2` |
+| ImmediatelyFast | yes | — |
+| Zoomify | yes | — |
 | Cardinal Components API | yes | yes |
 | Forge Config API Port | yes | yes |
 | Architectury | yes | yes |
 | JEI | yes | yes |
 | REI | yes | yes |
 | Mod Menu | yes | yes |
-| Shoulder Surfing Reloaded | yes | yes |
+| Shoulder Surfing Reloaded | `5.0.7` — API break, see below | yes |
 | PlayerAnimator | no — 1.21.7 is the last build | no |
+| Accelerated Rendering | no — dropped, see below | no |
 | SimpleBedrockModel-Fabric | no | no — see §4 |
 | Parchment | no release | no release |
 
 The picture is identical for both targets: there is nothing available on 26.1 that
 is missing on 1.21.11. Dependencies are not what makes this port hard.
 
-A few development-time and compatibility dependencies pinned to opaque CurseForge
-file IDs have gone stale and will be dropped or repointed at Modrinth coordinates.
+**Sodium and Iris are the right choice and are already in use.** Upstream TACZ is a
+Forge mod and integrates with Oculus and Embeddium, which are the Forge ports of Iris
+and Sodium; on Fabric the originals are what exist, and both are current on every
+target. Only Iris is integrated in code — four calls, now down to one on an internal
+symbol.
+
+**Accelerated Rendering was dropped.** It moved gun model vertex transforms onto the
+GPU through compute shaders. The Fabric port stopped at 1.21.1 and is alpha
+throughout, and the NeoForge original it was ported from stopped there too, so there
+is nothing to wait for. It was also the most invasive integration in the client
+renderer — a second, parallel set of render paths through the gun model, the
+attachment model and the laser — sitting in exactly the code the 1.21.2 → 1.21.6
+render rewrites force us to rework. Every call site was guarded and fell back to the
+vanilla path, which is now the only path. If the mod is ported forward, the
+integration comes back out of the history in one piece.
+
+**Shoulder Surfing 5.x changes `IShoulderSurfingPlugin.register`** from taking a
+registrar to taking an event bus, so the version bump has to adapt our plugin. We
+build against 4.14.1 until then.
+
+Development and compatibility dependencies are now pinned by readable version where a
+Modrinth coordinate exists. Four remain on CurseForge file IDs, each with a comment
+saying why: two dev-only test mods and MrCrayfish's Framework and Controllable have no
+Modrinth listing, and Carry On publishes all three loaders under one Modrinth version
+number, where the maven coordinate resolves to the NeoForge jar.
 
 ---
 
@@ -218,9 +248,22 @@ bump happens in phase 2.
       mode parsing. Still worth covering: the resource scanner, the JSON data
       managers, tag tree search, and the pack converter's rewrite table.
 
-#### Phase 1 — absorb SimpleBedrockModel, still on 1.21.1
+#### Phase 1 — clear the external blockers, still on 1.21.1
 
-- [ ] See §4.
+Both items remove a dependency that does not exist on the target, while the tree still
+compiles and a mistake is still distinguishable from a porting mistake.
+
+- [ ] Absorb SimpleBedrockModel — see §4.
+- [ ] Move third-person animation from PlayerAnimator to Player Animation Library.
+      PlayerAnimator's own README points there and the successor covers 1.21.1
+      through 26.2, so one move covers both targets. The integration is 705 lines in
+      one package and only four files name a `dev.kosmx` type. The migration renames
+      `KeyframeAnimationPlayer`/`AnimationLayer`/`ModifierLayer` to one
+      `PlayerAnimationController` and `KeyframeAnimation` to `Animation`; the care is
+      in the modifier, which now receives bones instead of loose vectors under changed
+      axis conventions. Gun packs are unaffected — the mod reads
+      `<namespace>/player_animator/**.json` with its own loader rather than using the
+      library's asset convention — but confirm the JSON format is unchanged first.
 
 #### Phase 2 — port to 1.21.11 and release
 
@@ -233,7 +276,8 @@ bump happens in phase 2.
       mask, camera and FOV handling, `RenderPipeline` for the laser beam.
 - [ ] Mixins last — they only validate in a running game.
 - [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
-- [ ] Make PlayerAnimator support an optional module.
+- [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
+- [ ] Re-check the Iris buffer flush against the Iris release for the target.
 
 #### Phase 3 — item data storage, shipped with the 1.21.11 release
 
@@ -305,7 +349,9 @@ What follows is what is still open. Everything already fixed is in the
 - A static handoff field leaks the reloadable server resources permanently.
 - The loot table id cache is a static strong-reference map that is never cleared, and
   it re-scans the registry on every roll for a table it failed to resolve.
-- Two Iris integration points call internal symbols rather than the stable `api.v0`.
+- One Iris integration point still calls an internal symbol rather than the stable
+  `api.v0`: flushing `FullyBufferedMultiBufferSource`, which has no API equivalent. It
+  has to be re-checked on every Iris update.
 
 **The gun pack sync packet**
 
@@ -339,7 +385,8 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 | The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | medium | high; changes how every optical scope looks | prototype it before committing to the render port |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
-| PlayerAnimator never appears for the target | high | low; optional module | ship without it, fork later if worth it |
+| PlayerAnimator never appears for the target | certain | low; the fallback poses still work | migrate to Player Animation Library in phase 1 |
+| Player Animation Library will not read the existing `.player_animation` JSON | low | medium; every pack's third-person animations would need re-exporting | confirm the format before starting the migration, not after |
 | No Parchment | high | low | accept |
 | Addons break at the storage migration | high | medium | deprecated delegating facade for a release |
 | Two live branches to maintain | certain | medium | keep the chain linear; fixes land before the fork point |

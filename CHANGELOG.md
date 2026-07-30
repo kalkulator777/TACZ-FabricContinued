@@ -50,8 +50,24 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
   is what stops the configuration cache from working.
 - The `yarn_mappings` property is dropped. Mappings are Mojmap plus Parchment
   and the Yarn line has been commented out for a long time.
+- Sodium was declared as a compile dependency and is not referenced anywhere.
+  Sodium and Iris are both runtime dependencies now, so the dev client actually
+  exercises the Iris integration — previously both were compile-only and that
+  code never ran during development.
+- Dependencies pinned to opaque CurseForge file IDs are on readable Modrinth
+  versions where one exists. Four stay on CurseForge and now say why in a
+  comment: two dev-only test mods and MrCrayfish's Framework and Controllable
+  have no Modrinth listing, and Carry On publishes all three loaders under one
+  Modrinth version number, where the coordinate resolves to the NeoForge jar.
 
 **Changed**
+
+- The Iris integration uses the stable `api.v0` where one exists. Three of its
+  four calls went through Iris internals; two had an API equivalent and now use
+  it, a third was the same check under a different name and had no callers. The
+  remaining one — flushing Iris's batched buffer so our stencil-based scope
+  rendering happens where we put it — has no API equivalent and is isolated in
+  a class that only loads when Iris is present.
 
 - The config screen keybind ships unbound. It defaulted to `T`, which is vanilla's
   chat key — on Forge the binding is Shift+T and Forge's key modifiers keep the
@@ -88,6 +104,15 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 
 **Removed**
 
+- The Accelerated Rendering integration. It moved gun model vertex transforms
+  onto the GPU through compute shaders, but the Fabric port stopped at 1.21.1
+  and is alpha throughout, and the NeoForge original it was ported from stopped
+  there too — there is nothing newer to follow. It was also the most invasive
+  integration in the client renderer: not a hook but a second, parallel set of
+  render paths through the gun model, the attachment model and the laser, in
+  exactly the code the 1.21.2 → 1.21.6 render rewrites force us to rework.
+  Nothing is lost but frames — every call site was guarded and fell back to the
+  vanilla path, which is now the only path.
 - Dead code: the unused version checker and the deprecated gun pack JSON loader
   (neither was referenced), two mixins whose bodies were entirely commented out,
   an empty compatibility mixin, and a dead access widener entry.

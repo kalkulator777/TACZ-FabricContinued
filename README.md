@@ -23,6 +23,13 @@ versions. See the [roadmap](ROADMAP.md) for where it is headed and the
 - [Fabric Loader](https://fabricmc.net/use/) and [Fabric API](https://modrinth.com/mod/fabric-api)
 - [Forge Config API Port](https://modrinth.com/mod/forge-config-api-port) — required
 
+Optional, and picked up automatically if installed: [Cloth Config](https://modrinth.com/mod/cloth-config)
+and [Mod Menu](https://modrinth.com/mod/modmenu) for the settings screen,
+[Iris](https://modrinth.com/mod/iris) for shader-pack support,
+[PlayerAnimator](https://modrinth.com/mod/playeranimator) for third-person gun
+animations, plus Shoulder Surfing Reloaded, Zoomify, ImmediatelyFast, Controllable
+and Carry On. Nothing here is required and there is a working fallback for each.
+
 ### Gun packs
 
 Custom gun packs go in the `tacz` folder inside your game directory.
@@ -40,8 +47,13 @@ No changes to gun packs are required for any planned version — see
 
 - Keybinds can conflict with other mods. [Keybind Fix Plus](https://modrinth.com/mod/keybind-fix-plus)
   or a similar mod resolves it.
-- Third-person player animations depend on PlayerAnimator, which has no build past
-  1.21.7. That integration will become optional.
+- Third-person player animations need PlayerAnimator, which has no build past
+  1.21.7. Without it guns still pose in third person, but there are no reload,
+  melee, firing or prone animations. The move to its successor, Player Animation
+  Library, is on the roadmap.
+- The Accelerated Rendering integration is gone. It was an FPS optimisation with
+  no build past 1.21.1 on either loader — see
+  [§3 of the roadmap](ROADMAP.md#3-dependency-status).
 
 ### Building
 
