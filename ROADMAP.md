@@ -282,6 +282,30 @@ compiles and a mistake is still distinguishable from a porting mistake.
         the library's asset convention, so the folder rename in the porting guide does
         not apply.
 
+      The mapping, read off the sources rather than guessed:
+
+      | kosmx | PAL |
+      |---|---|
+      | `dev.kosmx.playerAnim.api.layered.IAnimation` | `com.zigythebird.playeranimcore.animation.layered.IAnimation` |
+      | `…api.layered.ModifierLayer` | `…animation.layered.ModifierLayer` — same shape |
+      | `…api.layered.modifier.AbstractFadeModifier` | `…animation.layered.modifier.AbstractFadeModifier` |
+      | `…api.layered.modifier.AdjustmentModifier` | same, but `PartModifier` bone names are snake_case |
+      | `…core.util.Ease.INOUTSINE` | `…easing.EasingType.EASE_IN_OUT_SINE` |
+      | `…core.util.Vec3f` | `…playeranimcore.math.Vec3f` |
+      | `…core.data.KeyframeAnimation` | `…playeranimcore.animation.Animation` |
+      | `…minecraftApi.PlayerAnimationFactory.ANIMATION_DATA_FACTORY.registerFactory` | `com.zigythebird.playeranim.api.PlayerAnimationFactory` — same signature |
+      | `…minecraftApi.PlayerAnimationAccess.getPlayerAssociatedData(p).get(id)` | `PlayerAnimationAccess.getPlayerAnimationLayer(player, id)` |
+      | `new KeyframeAnimationPlayer(anim)` inside `replaceAnimationWithFade` | `AnimationController.replaceAnimationWithFade(fade, animation)` takes the `Animation` directly |
+      | `player.getData().extraData.get("name")` | `AnimationController.getCurrentAnimationInstance()`, then `Animation.data().name()` |
+      | `AnimationCodecs.deserialize("json", stream)` then filter by `extraData` | `UniversalAnimLoader.loadAnimations(stream)` returns the name-keyed map directly |
+
+      An `AnimationController` is itself an `IAnimation`, so the four per-player layers
+      can stay exactly as they are — a `ModifierLayer` for the one that carries the
+      adjustment modifier, the controller alone for the other three. The 8-tick
+      crossfades between hold, walk, run and aim are preserved by
+      `replaceAnimationWithFade`, so this does not have to become the controller's own
+      transition model.
+
 #### Phase 2 — port to 1.21.11 and release
 
 - [ ] Toolchain: Loom, Gradle, loader, Fabric API.
