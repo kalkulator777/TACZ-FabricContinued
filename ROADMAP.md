@@ -7,8 +7,9 @@ The short version: the mod is on 1.21.1 today. The goal is Minecraft 26.1, with
 
 Everything here is a plan, not a promise. Dates are deliberately absent.
 
-Current work is phase 2 — see [§6](#6-phases) for what is done and what is next, and
-the [changelog](CHANGELOG.md) for what has already landed.
+Current work is phase 2, the version bump itself — see [§6](#6-phases) for what is
+done and what is next, and the [changelog](CHANGELOG.md) for what has already landed.
+The tree does not compile while that is under way.
 
 ---
 
@@ -42,11 +43,18 @@ already happened before 1.21.11:
 | 1.21.4 | item model rework — `BuiltinItemRendererRegistry` and `BlockEntityWithoutLevelRenderer` removed |
 | 1.21.5 | `RenderPipeline` replaced `ShaderInstance`, stencil helpers removed, `CompoundTag` moved to `Optional` getters |
 | 1.21.6 | `GlStateManager` and `LayeredDraw` gone, `GuiGraphics.pose()` became a 2D `Matrix3x2fStack`, `ValueInput`/`ValueOutput` serialization |
-| 1.21.9 | blockstate JSON format |
+| 1.21.9 | blockstate JSON format, a large renaming pass in the official mappings, input moved into records |
 
 Reaching 1.21.11 absorbs all of it. What remains for 26.1 is mostly the switch to
 an unobfuscated toolchain plus one drop's worth of API churn. So 1.21.11 is not
 extra work — it is the same work with a point where a release can ship.
+
+The renaming pass deserves its own line, because it is the single largest edit in
+the port and it was not on this list before the work started. `ResourceLocation`
+is `Identifier` now — same package, same API, 1430 occurrences here — along with
+`FastColor` to `ARGB`, `MetadataSectionSerializer` to `MetadataSectionType`,
+`ToastComponent` to `ToastManager` and six package moves. None of it is hard;
+all of it is everywhere.
 
 The second reason is testing. A gun mod is rendering, animation, netcode and gun
 packs of several thousand files. Only real players find those bugs. Shipping
@@ -267,17 +275,48 @@ Nothing on the dependency list now blocks the version bump.
 
 #### Phase 2 — port to 1.21.11 and release
 
-- [ ] Toolchain: Loom, Gradle, loader, Fabric API.
-- [ ] Common code: item and block properties, `Optional` NBT getters, the rewritten
-      recipe system, `ValueInput`/`ValueOutput`, minecarts, explosions, entity spawn
-      data, reload listeners.
+**In progress.** The tree does not compile, which is expected and is why phases 0
+and 1 emptied everything they could out of this one first. Progress is measured
+in distinct compile errors: **4756 at the bump, 600 now**.
+
+- [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
+      the one that keeps remapping to intermediary — Gradle 9.5.1, loader 0.19.3,
+      Fabric API 0.141.6, and every dependency on its 1.21.11 build. Parchment is
+      dropped for having no release here. The dev-only convenience mods are parked
+      for the duration: nothing references them, and while the tree is red they only
+      make "what did I break" harder to answer.
+- [x] **The renaming pass.** See §1. Derived from a diff of the two remapped jars
+      rather than written by hand, so the moves are what the jar says they are.
+- [x] **NBT.** Every getter returns an `Optional` and `contains` lost its type
+      argument. The one place that keeps the old semantics by hand is
+      `LuaNbtAccessor.contains(key, type)`, because gun pack scripts call it.
+- [x] **Input and keybinds.** Keybinds take a registered `KeyMapping.Category`;
+      the label follows the id, so the language files moved from `key.category.tacz`
+      to `key.category.tacz.guns`. Keyboard and mouse input are records now, and the
+      event shim carries them.
+- [x] **Forge Config API Port** — `neoforge.v4` became `v5`, same methods.
+- [x] **Block entities** on `ValueInput`/`ValueOutput`.
+- [ ] Common code, still open: the rewritten recipe system, the explosion split
+      (`Explosion` is an interface now, so `ProjectileExplosion` wants rebuilding on
+      `ServerExplosion`), minecarts, entity spawn data, reload listeners, the block
+      API (`blockUpdated`, `updateShape`, `getCloneItemStack`, `RenderShape`),
+      `Ingredient` as a `HolderSet`, and the tooltip-hiding component.
 - [ ] Client: item rendering without `BuiltinItemRendererRegistry`, HUD on
       `HudElementRegistry`, 2D `GuiGraphics`, entity render states, the scope stencil
-      mask, camera and FOV handling, `RenderPipeline` for the laser beam.
-- [ ] Mixins last — they only validate in a running game.
+      mask, camera and FOV handling, `RenderPipeline` for the laser beam. This is the
+      bulk of what is left and the part §8 calls risky.
+- [ ] Mixins last — they only validate in a running game. `KeyboardHandler.keyPress`
+      and `MouseHandler.onPress` have already changed shape underneath them.
 - [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
 - [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
 - [ ] Re-check the Iris buffer flush against the Iris release for the target.
+
+One behaviour change is already committed rather than deferred, because vanilla
+made it: the target block no longer resolves its owner's profile itself. Skulls
+stopped doing that too — the block entity holds an unresolved `ResolvableProfile`
+and the client's skin cache resolves it at render time. `TargetRenderer` still
+asks the skin manager directly and needs the same treatment when the client
+renderers are ported, or the target will show a default skin.
 
 #### Phase 3 — item data storage, shipped with the 1.21.11 release
 
