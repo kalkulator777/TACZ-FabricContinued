@@ -12,7 +12,6 @@ import com.tacz.guns.client.tooltip.ClientAmmoBoxTooltip;
 import com.tacz.guns.client.tooltip.ClientAttachmentItemTooltip;
 import com.tacz.guns.client.tooltip.ClientBlockItemTooltip;
 import com.tacz.guns.client.tooltip.ClientGunTooltip;
-import com.tacz.guns.compat.ar.ARCompat;
 import com.tacz.guns.compat.controllable.ControllableCompat;
 import com.tacz.guns.compat.immediatelyfast.ImmediatelyFastCompat;
 import com.tacz.guns.compat.playeranimator.PlayerAnimatorCompat;
@@ -119,9 +118,6 @@ public class ClientSetupEvent {
 
         // 与 Controllable 的兼容
         ControllableCompat.init();
-
-        // 与 Accelerated Rendering 的兼容
-        ARCompat.init();
 
         ZoomifyCompat.init();
         ImmediatelyFastCompat.init();

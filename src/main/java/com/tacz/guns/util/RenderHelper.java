@@ -2,7 +2,6 @@ package com.tacz.guns.util;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.tacz.guns.compat.ar.ARCompat;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -58,18 +57,10 @@ public final class RenderHelper {
         // int oldId = RenderSystem.getShaderTexture(0);
         // RenderSystem.setShaderTexture(0, player.getSkinTextureLocation());
 
-        if (ARCompat.shouldAccelerate()) {
-            ARCompat.setRenderingLevel();
-        }
-
         if (hand == HumanoidArm.RIGHT) {
             renderer.renderRightHand(matrixStack, buffer, combinedLight, player);
         } else {
             renderer.renderLeftHand(matrixStack, buffer, combinedLight, player);
-        }
-
-        if (ARCompat.shouldAccelerate()) {
-            ARCompat.resetRenderingLevel();
         }
 
         // RenderSystem.setShaderTexture(0, oldId);

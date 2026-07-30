@@ -238,9 +238,6 @@ dependencies {
         }
     }
 
-    // 加速渲染
-    modImplementation "maven.modrinth:accrelatedrendering-refabricated:pgm8CkON"
-
     testImplementation platform("org.junit:junit-bom:${junit_version}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
