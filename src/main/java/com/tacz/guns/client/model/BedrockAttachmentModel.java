@@ -17,6 +17,7 @@ import com.tacz.guns.util.RenderHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -184,6 +185,63 @@ public class BedrockAttachmentModel extends BedrockAnimatedModel {
                 BeamRenderer.renderLaserBeam(attachmentItem, matrixStack, transformType, entry);
             }
         }
+    }
+
+    /**
+     * 走收集器的那条路，给物品渲染器用。
+     * <p>
+     * 只覆盖非第一人称的分支。第一人称那条是模板遮罩，它要求这些绘制按顺序立刻发生 ——
+     * 写模板、按模板裁剪、再写下一层，而收集器是把几何体攒起来之后一起画的，顺序保证不了。
+     * 所以第一人称仍然落回上面那个即时方法。
+     */
+    public void render(@Nullable ItemStack attachmentItem, ItemStack currentGunItem, PoseStack matrixStack,
+                       ItemDisplayContext transformType, SubmitNodeCollector collector, RenderType renderType,
+                       Identifier texture, int light, int overlay) {
+        if (transformType.firstPerson()) {
+            render(attachmentItem, currentGunItem, matrixStack, transformType, renderType, texture, light, overlay);
+            return;
+        }
+        this.currentGunItem = currentGunItem;
+        this.attachmentItem = attachmentItem;
+        if (scopeBodyPath != null) {
+            submitTempPart(matrixStack, transformType, collector, renderType, light, overlay, scopeBodyPath);
+        }
+        if (ocularRingPath != null) {
+            submitTempPart(matrixStack, transformType, collector, renderType, light, overlay, ocularRingPath);
+        }
+        if (!isScope && !isSight && laserBeamPaths != null) {
+            for (var entry : laserBeamPaths) {
+                BeamRenderer.renderLaserBeam(attachmentItem, matrixStack, transformType, entry);
+            }
+        }
+        super.render(matrixStack, transformType, collector, renderType, light, overlay);
+        if ((isScope || isSight) && laserBeamPaths != null) {
+            for (var entry : laserBeamPaths) {
+                BeamRenderer.renderLaserBeam(attachmentItem, matrixStack, transformType, entry);
+            }
+        }
+    }
+
+    /**
+     * {@link #renderTempPart} 的收集器版本。那些部件平时是隐藏的，只在这里临时打开 ——
+     * 而几何体是延后画的，所以 visible 不能在提交之后再关掉，得在回调里开、在回调里关。
+     */
+    private void submitTempPart(PoseStack poseStack, ItemDisplayContext transformType, SubmitNodeCollector collector,
+                                RenderType renderType, int light, int overlay, @Nonnull List<BedrockPart> path) {
+        poseStack.pushPose();
+        for (int i = 0; i < path.size() - 1; ++i) {
+            path.get(i).translateAndRotateAndScale(poseStack);
+        }
+        BedrockPart part = path.get(path.size() - 1);
+        collector.submitCustomGeometry(poseStack, renderType, (pose, builder) -> {
+            PoseStack local = new PoseStack();
+            local.last().set(pose);
+            boolean wasVisible = part.visible;
+            part.visible = true;
+            part.render(local, transformType, builder, light, overlay);
+            part.visible = wasVisible;
+        });
+        poseStack.popPose();
     }
 
     private Vector3f getBedrockPartCenter(PoseStack poseStack, @Nonnull List<BedrockPart> path) {

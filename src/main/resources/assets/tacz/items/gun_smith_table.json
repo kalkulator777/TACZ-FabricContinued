@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "tacz:item/gun_smith_table",
+    "model": {
+      "type": "tacz:dynamic"
+    }
+  }
+}

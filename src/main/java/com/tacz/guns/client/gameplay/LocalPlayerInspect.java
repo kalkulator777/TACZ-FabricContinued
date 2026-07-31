@@ -8,7 +8,7 @@ import com.tacz.guns.client.resource.index.ClientGunIndex;
 import com.tacz.guns.client.sound.SoundPlayManager;
 import com.tacz.guns.resource.pojo.data.gun.Bolt;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
 
@@ -26,7 +26,7 @@ public class LocalPlayerInspect {
         ItemStack mainHandItem = player.getMainHandItem();
 
         if (!(mainHandItem.getItem() instanceof IGun iGun)) {
-            if (BuiltinItemRendererRegistry.INSTANCE.get(mainHandItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+            if (IDynamicItemRenderer.of(mainHandItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
                 renderer.triggerAnimation(mainHandItem, GunAnimationConstant.INPUT_INSPECT);
             }
             return;

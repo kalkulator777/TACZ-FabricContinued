@@ -10,7 +10,7 @@ import com.tacz.guns.client.sound.SoundPlayManager;
 import com.tacz.guns.network.message.ClientMessagePlayerDrawGun;
 import com.tacz.guns.resource.modifier.AttachmentPropertyManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -80,7 +80,7 @@ public class LocalPlayerDraw {
     }
 
     private void doPutAway(ItemStack lastItem, long putAwayTime) {
-        if (BuiltinItemRendererRegistry.INSTANCE.get(lastItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+        if (IDynamicItemRenderer.of(lastItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
             renderer.tryExit(lastItem, putAwayTime);
         }
         TimelessAPI.getGunDisplay(lastItem).ifPresent(display -> {
@@ -93,7 +93,7 @@ public class LocalPlayerDraw {
     }
 
     private long getDrawTime(ItemStack lastItem, IGun lastGun, long drawTime) {
-        if (BuiltinItemRendererRegistry.INSTANCE.get(lastItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+        if (IDynamicItemRenderer.of(lastItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
             long putAwayTime = renderer.getPutAwayTime(lastItem);
             if (drawTime > putAwayTime) {
                 drawTime = putAwayTime;

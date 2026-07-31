@@ -2,21 +2,17 @@ package com.tacz.guns.client.renderer.item;
 
 import com.google.common.base.Suppliers;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.tacz.guns.client.model.SlotModel;
 import com.tacz.guns.client.model.bedrock.BedrockModel;
 import com.tacz.guns.client.renderer.block.GunSmithTableRenderer;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.geom.EntityModelSet;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.block.model.ItemTransform;
 import net.minecraft.client.renderer.block.model.ItemTransforms;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -25,25 +21,13 @@ import net.minecraft.world.item.ItemStack;
 import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
-public class GunSmithTableItemRenderer extends BlockEntityWithoutLevelRenderer implements BuiltinItemRendererRegistry.DynamicItemRenderer {
+public class GunSmithTableItemRenderer implements IDynamicItemRenderer {
     private static final SlotModel SLOT_BLOCK_MODEL = new SlotModel();
 
-    public static final Supplier<GunSmithTableItemRenderer> INSTANCE = Suppliers.memoize(() -> {
-        Minecraft client = Minecraft.getInstance();
-        return new GunSmithTableItemRenderer(client.getBlockEntityRenderDispatcher(), client.getEntityModels());
-    });
-
-    public GunSmithTableItemRenderer(BlockEntityRenderDispatcher dispatcher, EntityModelSet modelSet) {
-        super(dispatcher, modelSet);
-    }
+    public static final Supplier<GunSmithTableItemRenderer> INSTANCE = Suppliers.memoize(GunSmithTableItemRenderer::new);
 
     @Override
-    public void render(ItemStack stack, ItemDisplayContext mode, PoseStack matrices, MultiBufferSource vertexConsumers, int light, int overlay) {
-        renderByItem(stack, mode, matrices, vertexConsumers, light, overlay);
-    }
-
-    @Override
-    public void renderByItem(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull MultiBufferSource pBuffer, int pPackedLight, int pPackedOverlay) {
+    public void render(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull SubmitNodeCollector collector, int pPackedLight, int pPackedOverlay) {
         GunSmithTableRenderer.getIndex(stack).ifPresentOrElse(index -> {
             BedrockModel model = index.getModel();
             Identifier texture = index.getTexture();
@@ -54,22 +38,25 @@ public class GunSmithTableItemRenderer extends BlockEntityWithoutLevelRenderer i
 
             ItemTransforms transforms = index.getTransforms();
             if (transforms != null) {
-                poseStack.translate(0.5F, 0.5F, 0.5F);
                 ItemTransform transform = transforms.getTransform(transformType);
-                transform.apply(false, poseStack);
-                poseStack.translate(-0.5F, -0.5F, -0.5F);
+                // apply 现在收的是 Pose 而不是整个 PoseStack，而且 NO_TRANSFORM 那支会自己
+                // 平移 -0.5 —— 那是从旧调用方折进来的，这里外面已经做过了，所以要跳开
+                if (transform != ItemTransform.NO_TRANSFORM) {
+                    poseStack.translate(0.5F, 0.5F, 0.5F);
+                    transform.apply(false, poseStack.last());
+                    poseStack.translate(-0.5F, -0.5F, -0.5F);
+                }
             }
 
             poseStack.translate(0.5, 1.5, 0.5);
             poseStack.mulPose(Axis.ZN.rotationDegrees(180));
             RenderType renderType = RenderTypes.entityTranslucent(texture);
-            model.render(poseStack, transformType, renderType, pPackedLight, pPackedOverlay);
+            model.render(poseStack, transformType, collector, renderType, pPackedLight, pPackedOverlay);
             poseStack.popPose();
         }, () -> {
             poseStack.translate(0.5, 1.5, 0.5);
             poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-            VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
-            SLOT_BLOCK_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+            SLOT_BLOCK_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()), pPackedLight, pPackedOverlay);
         });
     }
 }

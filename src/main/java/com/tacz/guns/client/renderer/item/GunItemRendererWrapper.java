@@ -27,6 +27,7 @@ import com.tacz.guns.util.math.MathUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
@@ -258,7 +259,7 @@ public class GunItemRendererWrapper extends AnimateGeoItemRenderer<BedrockGunMod
 
 
     @Override
-    public void renderByItem(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull MultiBufferSource pBuffer,
+    public void renderByItem(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull SubmitNodeCollector collector,
                              int pPackedLight, int pPackedOverlay) {
         if (!(stack.getItem() instanceof IGun)) {
             return;
@@ -275,7 +276,7 @@ public class GunItemRendererWrapper extends AnimateGeoItemRenderer<BedrockGunMod
             }
             // GUI 特殊渲染
             if (transformType == GUI) {
-                renderSlotTexture(poseStack, pBuffer, pPackedLight, pPackedOverlay, gunIndex.getSlotTexture());
+                renderSlotTexture(poseStack, collector, pPackedLight, pPackedOverlay, gunIndex.getSlotTexture());
                 return;
             }
             // 剩下的渲染
@@ -290,7 +291,7 @@ public class GunItemRendererWrapper extends AnimateGeoItemRenderer<BedrockGunMod
                 gunTexture = lodModel.getRight();
             }
             if (gunModel == null) {
-                renderSlotTexture(poseStack, pBuffer, pPackedLight, pPackedOverlay, gunIndex.getSlotTexture());
+                renderSlotTexture(poseStack, collector, pPackedLight, pPackedOverlay, gunIndex.getSlotTexture());
                 return;
             }
             // 移动到模型原点
@@ -303,19 +304,18 @@ public class GunItemRendererWrapper extends AnimateGeoItemRenderer<BedrockGunMod
             applyScaleTransform(transformType, gunIndex.getTransform().getScale(), poseStack);
             // 渲染枪械模型
             RenderType renderType = RenderTypes.entityCutout(gunTexture);
-            gunModel.render(poseStack, stack, transformType, renderType, pPackedLight, pPackedOverlay);
+            gunModel.render(poseStack, stack, transformType, collector, renderType, pPackedLight, pPackedOverlay);
         }, () -> {
             // 没有这个 gunID，渲染个错误材质提醒别人
-            renderSlotTexture(poseStack, pBuffer, pPackedLight, pPackedOverlay, MissingTextureAtlasSprite.getLocation());
+            renderSlotTexture(poseStack, collector, pPackedLight, pPackedOverlay, MissingTextureAtlasSprite.getLocation());
         });
         poseStack.popPose();
     }
 
-    private static void renderSlotTexture(PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay, Identifier texture) {
+    private static void renderSlotTexture(PoseStack poseStack, SubmitNodeCollector collector, int packedLight, int packedOverlay, Identifier texture) {
         poseStack.translate(0.5, 1.5, 0.5);
         poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-        VertexConsumer buffer = bufferSource.getBuffer(RenderTypes.entityTranslucent(texture));
-        SLOT_GUN_MODEL.renderToBuffer(poseStack, buffer, packedLight, packedOverlay);
+        SLOT_GUN_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(texture), packedLight, packedOverlay);
     }
 
     private static void applyPositioningTransform(ItemDisplayContext transformType, TransformScale scale, BedrockGunModel model,

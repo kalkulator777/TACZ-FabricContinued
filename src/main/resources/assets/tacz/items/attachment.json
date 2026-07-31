@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "tacz:item/attachment",
+    "model": {
+      "type": "tacz:dynamic"
+    }
+  }
+}

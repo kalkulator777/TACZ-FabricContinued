@@ -2,7 +2,6 @@ package com.tacz.guns.client.renderer.item;
 
 import com.google.common.base.Suppliers;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAttachment;
@@ -10,14 +9,11 @@ import com.tacz.guns.client.model.BedrockAttachmentModel;
 import com.tacz.guns.client.model.SlotModel;
 import com.tacz.guns.client.resource.index.ClientAttachmentIndex;
 import com.tacz.guns.util.RenderDistance;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.geom.EntityModelSet;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -28,25 +24,14 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 import java.util.function.Supplier;
 
-public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer implements BuiltinItemRendererRegistry.DynamicItemRenderer {
+public class AttachmentItemRenderer implements IDynamicItemRenderer {
     public static final SlotModel SLOT_ATTACHMENT_MODEL = new SlotModel();
 
-    public static final Supplier<AttachmentItemRenderer> INSTANCE = Suppliers.memoize(() -> {
-        Minecraft client = Minecraft.getInstance();
-        return new AttachmentItemRenderer(client.getBlockEntityRenderDispatcher(), client.getEntityModels());
-    });
+    public static final Supplier<AttachmentItemRenderer> INSTANCE = Suppliers.memoize(AttachmentItemRenderer::new);
 
-    public AttachmentItemRenderer(BlockEntityRenderDispatcher pBlockEntityRenderDispatcher, EntityModelSet pEntityModelSet) {
-        super(pBlockEntityRenderDispatcher, pEntityModelSet);
-    }
 
     @Override
-    public void render(ItemStack stack, ItemDisplayContext mode, PoseStack matrices, MultiBufferSource vertexConsumers, int light, int overlay) {
-        renderByItem(stack, mode, matrices, vertexConsumers, light, overlay);
-    }
-
-    @Override
-    public void renderByItem(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull MultiBufferSource pBuffer, int pPackedLight, int pPackedOverlay) {
+    public void render(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull SubmitNodeCollector collector, int pPackedLight, int pPackedOverlay) {
         if (stack.getItem() instanceof IAttachment iAttachment) {
             Identifier attachmentId = iAttachment.getAttachmentId(stack);
             poseStack.pushPose();
@@ -55,8 +40,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 if (transformType == ItemDisplayContext.GUI) {
                     poseStack.translate(0.5, 1.5, 0.5);
                     poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                    VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()));
-                    SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+                    SLOT_ATTACHMENT_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()), pPackedLight, pPackedOverlay);
                     return;
                 }
                 poseStack.translate(0.5, 2, 0.5);
@@ -65,19 +49,18 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 if (transformType == ItemDisplayContext.FIXED) {
                     poseStack.mulPose(Axis.YN.rotationDegrees(90f));
                 }
-                this.renderDefaultAttachment(transformType, poseStack, pBuffer, pPackedLight, pPackedOverlay, attachmentIndex);
+                this.renderDefaultAttachment(transformType, poseStack, collector, pPackedLight, pPackedOverlay, attachmentIndex);
             }, () -> {
                 // 没有这个 attachmentId，渲染黑紫材质以提醒
                 poseStack.translate(0.5, 1.5, 0.5);
                 poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
-                SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+                SLOT_ATTACHMENT_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()), pPackedLight, pPackedOverlay);
             });
             poseStack.popPose();
         }
     }
 
-    private void renderDefaultAttachment(@NotNull ItemDisplayContext transformType, @NotNull PoseStack poseStack, @NotNull MultiBufferSource pBuffer, int pPackedLight, int pPackedOverlay, ClientAttachmentIndex attachmentIndex) {
+    private void renderDefaultAttachment(@NotNull ItemDisplayContext transformType, @NotNull PoseStack poseStack, @NotNull SubmitNodeCollector collector, int pPackedLight, int pPackedOverlay, ClientAttachmentIndex attachmentIndex) {
         BedrockAttachmentModel model = attachmentIndex.getAttachmentModel();
         Identifier texture = attachmentIndex.getModelTexture();
         // 有模型？正常渲染
@@ -90,7 +73,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
                 texture = lodModel.getRight();
             }
             RenderType renderType = RenderTypes.entityCutout(texture);
-            model.render(null, null, poseStack, transformType, renderType, texture, pPackedLight, pPackedOverlay);
+            model.render(null, null, poseStack, transformType, collector, renderType, texture, pPackedLight, pPackedOverlay);
         }
         // 否则，以 GUI 形式渲染
         else {
@@ -99,8 +82,7 @@ public class AttachmentItemRenderer extends BlockEntityWithoutLevelRenderer impl
             if (transformType == ItemDisplayContext.FIXED) {
                 poseStack.mulPose(Axis.YP.rotationDegrees(90));
             }
-            VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()));
-            SLOT_ATTACHMENT_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+            SLOT_ATTACHMENT_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(attachmentIndex.getSlotTexture()), pPackedLight, pPackedOverlay);
         }
     }
 }

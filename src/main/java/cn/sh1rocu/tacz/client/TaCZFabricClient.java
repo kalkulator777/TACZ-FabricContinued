@@ -31,7 +31,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.client.renderer.item.TaczSpecialItemRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class TaCZFabricClient implements ClientModInitializer {
@@ -44,8 +44,7 @@ public class TaCZFabricClient implements ClientModInitializer {
         ModContainerScreen.registerScreens();
         ModEntitiesRender.registerEntityRenderers();
         ParticleFactories.registerParticles();
-        BuiltInRegistries.ITEM.stream().filter(item -> item instanceof IItem).forEach(clientEx ->
-                BuiltinItemRendererRegistry.INSTANCE.register(clientEx, ((IItem) clientEx).getCustomRenderer()));
+        TaczSpecialItemRenderer.register();
         subscribeEvents();
     }
 

@@ -9,7 +9,7 @@ import com.tacz.guns.client.resource.index.ClientBlockIndex;
 import com.tacz.guns.inventory.tooltip.BlockItemTooltip;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -30,7 +30,7 @@ public class GunSmithTableItem extends BlockItem implements BlockItemDataAccesso
 
     @Environment(EnvType.CLIENT)
     @Override
-    public BuiltinItemRendererRegistry.DynamicItemRenderer getCustomRenderer() {
+    public IDynamicItemRenderer getCustomRenderer() {
         return GunSmithTableItemRenderer.INSTANCE.get();
     }
 

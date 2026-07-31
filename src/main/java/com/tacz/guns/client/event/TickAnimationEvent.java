@@ -6,7 +6,7 @@ import com.tacz.guns.client.animation.statemachine.GunAnimationConstant;
 import com.tacz.guns.client.renderer.item.AnimateGeoItemRenderer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -52,7 +52,7 @@ public class TickAnimationEvent {
             return;
         }
         ItemStack mainHandItem = player.getMainHandItem();
-        if (BuiltinItemRendererRegistry.INSTANCE.get(mainHandItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+        if (IDynamicItemRenderer.of(mainHandItem.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
             // 如果物品不一样了，先尝试初始化状态机
             if (renderer.needReInit(mainHandItem)) {
                 renderer.tryInit(mainHandItem, player, event.getDeltaTracker().getGameTimeDeltaPartialTick(false));

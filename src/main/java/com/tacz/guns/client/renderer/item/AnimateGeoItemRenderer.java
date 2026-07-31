@@ -15,11 +15,11 @@ import com.tacz.guns.client.model.BedrockAnimatedModel;
 import com.tacz.guns.client.model.bedrock.BedrockPart;
 import com.tacz.guns.client.sound.SoundPlayManager;
 import com.tacz.guns.util.math.MathUtil;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -44,20 +44,19 @@ import java.util.List;
  * @param <CTX> 动画状态机上下文
  */
 public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX extends ItemAnimationStateContext>
-        extends BlockEntityWithoutLevelRenderer implements IFPGeoItemRenderer, BuiltinItemRendererRegistry.DynamicItemRenderer {
+        implements IFPGeoItemRenderer, IDynamicItemRenderer {
     @Nullable
     protected LuaAnimationStateMachine<CTX> stateMachine;
     protected M model;
 
     @Override
-    public void render(ItemStack stack, ItemDisplayContext mode, PoseStack matrices, MultiBufferSource vertexConsumers, int light, int overlay) {
-        this.renderByItem(stack, mode, matrices, vertexConsumers, light, overlay);
+    public void render(ItemStack stack, ItemDisplayContext mode, PoseStack matrices, SubmitNodeCollector collector, int light, int overlay) {
+        this.renderByItem(stack, mode, matrices, collector, light, overlay);
     }
 
     public Identifier textureLocation;
 
     public AnimateGeoItemRenderer() {
-        super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
     }
 
     public void setModel(M model) {
@@ -261,8 +260,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
     }
 
     @ParametersAreNonnullByDefault
-    @Override
-    public void renderByItem(ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, MultiBufferSource bufferSource,
+    public void renderByItem(ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, SubmitNodeCollector collector,
                              int light, int overlay) {
         if (ctx.firstPerson()) return;
         M model = getModel(stack);
@@ -272,7 +270,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
             poseStack.translate(0.5, 1.5f, 0.5);
             // 基岩版模型是上下颠倒的，需要翻转过来。
             poseStack.mulPose(Axis.ZP.rotationDegrees(180f));
-            model.render(poseStack, ctx, RenderTypes.entityCutout(
+            model.render(poseStack, ctx, collector, RenderTypes.entityCutout(
                     getTextureLocation(stack)
             ), light, overlay);
             poseStack.popPose();

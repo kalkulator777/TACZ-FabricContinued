@@ -11,7 +11,7 @@ import com.tacz.guns.client.resource.pojo.PackInfo;
 import com.tacz.guns.resource.index.CommonAmmoIndex;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.NonNullList;
@@ -85,7 +85,7 @@ public class AmmoItem extends Item implements AmmoItemDataAccessor, IItem {
 
     @Override
     @Environment(EnvType.CLIENT)
-    public BuiltinItemRendererRegistry.DynamicItemRenderer getCustomRenderer() {
+    public IDynamicItemRenderer getCustomRenderer() {
         return AmmoItemRenderer.INSTANCE.get();
     }
 

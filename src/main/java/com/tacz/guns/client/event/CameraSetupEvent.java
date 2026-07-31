@@ -28,7 +28,7 @@ import com.tacz.guns.util.math.MathUtil;
 import com.tacz.guns.util.math.SecondOrderDynamics;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.nbt.CompoundTag;
@@ -65,7 +65,7 @@ public class CameraSetupEvent {
         }
         ItemStack stack = KeepingItemRenderer.getRenderer().getCurrentItem();
         // 尝试调用物品的自定义相机动画
-        if (BuiltinItemRendererRegistry.INSTANCE.get(stack.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+        if (IDynamicItemRenderer.of(stack.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
             renderer.applyLevelCameraAnimation(event, stack, player);
         }
 
@@ -81,7 +81,7 @@ public class CameraSetupEvent {
         }
         ItemStack stack = KeepingItemRenderer.getRenderer().getCurrentItem();
         // 尝试调用物品的自定义相机动画
-        if (BuiltinItemRendererRegistry.INSTANCE.get(stack.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
+        if (IDynamicItemRenderer.of(stack.getItem()) instanceof AnimateGeoItemRenderer<?, ?> renderer) {
             renderer.applyItemInHandCameraAnimation(event, stack, player);
         }
     }

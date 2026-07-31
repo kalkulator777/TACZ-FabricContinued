@@ -2,7 +2,6 @@ package com.tacz.guns.client.renderer.item;
 
 import com.google.common.base.Suppliers;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAmmo;
@@ -10,14 +9,11 @@ import com.tacz.guns.client.model.BedrockAmmoModel;
 import com.tacz.guns.client.model.SlotModel;
 import com.tacz.guns.client.model.bedrock.BedrockPart;
 import com.tacz.guns.client.resource.pojo.TransformScale;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.geom.EntityModelSet;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -31,17 +27,10 @@ import java.util.function.Supplier;
 import static net.minecraft.world.item.ItemDisplayContext.GUI;
 
 
-public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements BuiltinItemRendererRegistry.DynamicItemRenderer {
+public class AmmoItemRenderer implements IDynamicItemRenderer {
     private static final SlotModel SLOT_AMMO_MODEL = new SlotModel();
 
-    public static final Supplier<AmmoItemRenderer> INSTANCE = Suppliers.memoize(() -> {
-        Minecraft client = Minecraft.getInstance();
-        return new AmmoItemRenderer(client.getBlockEntityRenderDispatcher(), client.getEntityModels());
-    });
-
-    public AmmoItemRenderer(BlockEntityRenderDispatcher pBlockEntityRenderDispatcher, EntityModelSet pEntityModelSet) {
-        super(pBlockEntityRenderDispatcher, pEntityModelSet);
-    }
+    public static final Supplier<AmmoItemRenderer> INSTANCE = Suppliers.memoize(AmmoItemRenderer::new);
 
     private static void applyPositioningNodeTransform(List<BedrockPart> nodePath, PoseStack poseStack, Vector3f scale) {
         if (nodePath == null) {
@@ -67,12 +56,7 @@ public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements
     }
 
     @Override
-    public void render(ItemStack itemStack, ItemDisplayContext itemDisplayContext, PoseStack poseStack, MultiBufferSource multiBufferSource, int light, int overlay) {
-        renderByItem(itemStack, itemDisplayContext, poseStack, multiBufferSource, light, overlay);
-    }
-
-    @Override
-    public void renderByItem(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull MultiBufferSource pBuffer, int pPackedLight, int pPackedOverlay) {
+    public void render(@Nonnull ItemStack stack, @Nonnull ItemDisplayContext transformType, @Nonnull PoseStack poseStack, @Nonnull SubmitNodeCollector collector, int pPackedLight, int pPackedOverlay) {
         if (!(stack.getItem() instanceof IAmmo iAmmo)) {
             return;
         }
@@ -86,8 +70,7 @@ public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements
             if (transformType == GUI || ammoModel == null || modelTexture == null) {
                 poseStack.translate(0.5, 1.5, 0.5);
                 poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(ammoIndex.getSlotTextureLocation()));
-                SLOT_AMMO_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+                SLOT_AMMO_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(ammoIndex.getSlotTextureLocation()), pPackedLight, pPackedOverlay);
                 return;
             }
             // 剩下的渲染
@@ -101,13 +84,12 @@ public class AmmoItemRenderer extends BlockEntityWithoutLevelRenderer implements
             applyScaleTransform(transformType, ammoIndex.getTransform().getScale(), poseStack);
             // 渲染子弹盒模型
             RenderType renderType = RenderTypes.entityCutout(modelTexture);
-            ammoModel.render(poseStack, transformType, renderType, pPackedLight, pPackedOverlay);
+            ammoModel.render(poseStack, transformType, collector, renderType, pPackedLight, pPackedOverlay);
         }, () -> {
             // 没有这个 ammoID，渲染个错误材质提醒别人
             poseStack.translate(0.5, 1.5, 0.5);
             poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-            VertexConsumer buffer = pBuffer.getBuffer(RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()));
-            SLOT_AMMO_MODEL.renderToBuffer(poseStack, buffer, pPackedLight, pPackedOverlay);
+            SLOT_AMMO_MODEL.submit(poseStack, collector, RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()), pPackedLight, pPackedOverlay);
         });
         poseStack.popPose();
     }

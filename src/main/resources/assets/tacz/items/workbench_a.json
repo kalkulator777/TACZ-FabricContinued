@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "tacz:item/workbench_a",
+    "model": {
+      "type": "tacz:dynamic"
+    }
+  }
+}

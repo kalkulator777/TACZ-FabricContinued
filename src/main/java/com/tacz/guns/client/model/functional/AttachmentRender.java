@@ -12,6 +12,7 @@ import com.tacz.guns.client.renderer.item.AttachmentItemRenderer;
 import com.tacz.guns.util.RenderDistance;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
@@ -31,6 +32,34 @@ public class AttachmentRender implements IFunctionalRenderer {
     public AttachmentRender(BedrockGunModel bedrockGunModel, AttachmentType type) {
         this.bedrockGunModel = bedrockGunModel;
         this.type = type;
+    }
+
+    /** 收集器版本，给非第一人称的物品渲染路径用。 */
+    public static void renderAttachment(ItemStack attachmentItem, ItemStack gunItem, PoseStack poseStack, ItemDisplayContext transformType, SubmitNodeCollector collector, int light, int overlay) {
+        poseStack.translate(0, -1.5, 0);
+        if (attachmentItem.getItem() instanceof IAttachment iAttachment) {
+            Identifier attachmentId = iAttachment.getAttachmentId(attachmentItem);
+            TimelessAPI.getClientAttachmentIndex(attachmentId).ifPresentOrElse(attachmentIndex -> {
+                BedrockAttachmentModel model = attachmentIndex.getAttachmentModel();
+                Identifier texture = attachmentIndex.getModelTexture();
+                // 这里是枪械里的配件渲染，没有模型材质就不渲染
+                if (model != null && texture != null) {
+                    // 调用低模
+                    Pair<BedrockAttachmentModel, Identifier> lodModel = attachmentIndex.getLodModel();
+                    // 有低模、在高模渲染范围外、不是第一人称
+                    if (lodModel != null && !RenderDistance.inRenderHighPolyModelDistance(poseStack) && !transformType.firstPerson()) {
+                        model = lodModel.getLeft();
+                        texture = lodModel.getRight();
+                    }
+                    RenderType renderType = RenderTypes.entityCutout(texture);
+                    model.render(attachmentItem, gunItem, poseStack, transformType, collector, renderType, texture, light, overlay);
+                }
+            }, () -> {
+                // 没有对应的 attachmentIndex，渲染黑紫材质以提醒
+                AttachmentItemRenderer.SLOT_ATTACHMENT_MODEL.submit(poseStack, collector,
+                        RenderTypes.entityTranslucent(MissingTextureAtlasSprite.getLocation()), light, overlay);
+            });
+        }
     }
 
     public static void renderAttachment(ItemStack attachmentItem, ItemStack gunItem, PoseStack poseStack, ItemDisplayContext transformType, int light, int overlay) {

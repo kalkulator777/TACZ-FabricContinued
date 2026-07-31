@@ -8,7 +8,7 @@ import com.tacz.guns.api.client.renderer.IFPGeoItemRenderer;
 import com.tacz.guns.client.animation.FirstPersonClock;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
+import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.player.LocalPlayer;
@@ -211,7 +211,7 @@ public final class FirstPersonRenderHandler {
         if (stack.isEmpty()) {
             return Optional.empty();
         }
-        return BuiltinItemRendererRegistry.INSTANCE.get(stack.getItem()) instanceof IFPGeoItemRenderer renderer
+        return IDynamicItemRenderer.of(stack.getItem()) instanceof IFPGeoItemRenderer renderer
                 ? Optional.of(renderer)
                 : Optional.empty();
     }

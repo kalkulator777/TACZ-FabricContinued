@@ -21,6 +21,7 @@ import com.tacz.guns.client.resource.pojo.model.BedrockModelPOJO;
 import com.tacz.guns.client.resource.pojo.model.BedrockVersion;
 import com.tacz.guns.util.RenderHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -243,11 +244,9 @@ public class BedrockGunModel extends BedrockAnimatedModel {
         textShowList.forEach((name, textShow) -> this.setFunctionalRenderer(name, bedrockPart -> new TextShowRender(this, textShow, currentGunItem)));
     }
 
-    public void render(PoseStack matrixStack, ItemStack gunItem, ItemDisplayContext transformType, RenderType renderType, int light, int overlay) {
-        IGun iGun = IGun.getIGunOrNull(gunItem);
-        if (iGun == null) {
-            return;
-        }
+
+    /** 更新配件物品的缓存，以供渲染使用。即时渲染和收集器渲染共用。 */
+    private void updateAttachmentCache(IGun iGun, ItemStack gunItem) {
         currentGunItem = gunItem;
         currentExtendMagLevel = 0;
         adapterToRender.clear();
@@ -279,6 +278,14 @@ public class BedrockGunModel extends BedrockAnimatedModel {
                 });
             }
         }
+    }
+
+    public void render(PoseStack matrixStack, ItemStack gunItem, ItemDisplayContext transformType, RenderType renderType, int light, int overlay) {
+        IGun iGun = IGun.getIGunOrNull(gunItem);
+        if (iGun == null) {
+            return;
+        }
+        updateAttachmentCache(iGun, gunItem);
         if (laserBeamPaths != null) {
             BeamRenderer.renderLaserBeam(gunItem, matrixStack, transformType, laserBeamPaths);
         }
@@ -311,6 +318,35 @@ public class BedrockGunModel extends BedrockAnimatedModel {
         super.render(matrixStack, transformType, renderType, light, overlay);
         RenderHelper.disableItemEntityStencilTest();
         StencilSupport.clear();
+    }
+
+    /**
+     * 走收集器的那条路，给物品渲染器用（第三人称、展示框、地上、GUI）。
+     * <p>
+     * 这里没有模板测试，也不需要：镜内不渲染枪体那一套只在第一人称有意义，
+     * 非第一人称时配件模型压根不往模板缓冲里写值，模板永远是清空后的 0，
+     * 上面那几个 stencilFunc 全是恒真的空转。
+     */
+    public void render(PoseStack matrixStack, ItemStack gunItem, ItemDisplayContext transformType,
+                       SubmitNodeCollector collector, RenderType renderType, int light, int overlay) {
+        IGun iGun = IGun.getIGunOrNull(gunItem);
+        if (iGun == null) {
+            return;
+        }
+        updateAttachmentCache(iGun, gunItem);
+        if (laserBeamPaths != null) {
+            BeamRenderer.renderLaserBeam(gunItem, matrixStack, transformType, laserBeamPaths);
+        }
+        ItemStack attachmentItem = currentAttachmentItem.get(AttachmentType.SCOPE);
+        if (scopePosPath != null && attachmentItem != null && !attachmentItem.isEmpty()) {
+            matrixStack.pushPose();
+            for (BedrockPart bedrockPart : scopePosPath) {
+                bedrockPart.translateAndRotateAndScale(matrixStack);
+            }
+            AttachmentRender.renderAttachment(attachmentItem, currentGunItem, matrixStack, transformType, collector, light, overlay);
+            matrixStack.popPose();
+        }
+        super.render(matrixStack, transformType, collector, renderType, light, overlay);
     }
 
     @Nullable

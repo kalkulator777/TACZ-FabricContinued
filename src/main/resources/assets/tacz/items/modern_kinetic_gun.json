@@ -1,0 +1,9 @@
+{
+  "model": {
+    "type": "minecraft:special",
+    "base": "tacz:item/modern_kinetic_gun",
+    "model": {
+      "type": "tacz:dynamic"
+    }
+  }
+}
