@@ -29,9 +29,17 @@ import org.jetbrains.annotations.Nullable;
 public abstract class AbstractGunSmithTableBlock extends BaseEntityBlock {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
-    public AbstractGunSmithTableBlock() {
-        super(Properties.of().sound(SoundType.WOOD).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY));
+    /**
+     * 1.21.2 起方块的 Properties 必须先带上注册 id 才能构造，而 id 只有注册的地方知道。
+     * 所以属性由外面传进来，默认的那份见 {@link #defaultProperties()}。
+     */
+    public AbstractGunSmithTableBlock(Properties properties) {
+        super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    public static Properties defaultProperties() {
+        return Properties.of().sound(SoundType.WOOD).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY);
     }
 
     @Override

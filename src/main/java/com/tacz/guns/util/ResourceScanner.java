@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.Strictness;
+import com.google.gson.stream.JsonReader;
 import com.google.gson.JsonParseException;
 import com.tacz.guns.GunMod;
 import net.minecraft.resources.FileToIdConverter;
@@ -39,7 +41,7 @@ public class ResourceScanner {
             Identifier resourcelocation1 = filetoidconverter.fileToId(resourcelocation);
 
             try (Reader reader = entry.getValue().openAsReader()) {
-                JsonElement jsonelement = GsonHelper.fromJson(pGson, reader, JsonElement.class);
+                JsonElement jsonelement = fromLenientJson(pGson, reader, JsonElement.class);
                 JsonElement jsonelement1 = output.put(resourcelocation1, jsonelement);
                 if (jsonelement1 != null) {
                     throw new IllegalStateException("Duplicate data file ignored with ID " + resourcelocation1);
@@ -81,7 +83,7 @@ public class ResourceScanner {
 
             for (Resource resource : entry.getValue()) {
                 try (Reader reader = resource.openAsReader()) {
-                    JsonElement jsonelement = GsonHelper.fromJson(pGson, reader, JsonElement.class);
+                    JsonElement jsonelement = fromLenientJson(pGson, reader, JsonElement.class);
                     List<JsonElement> list = output.computeIfAbsent(resourcelocation1, k -> Lists.newArrayList());
                     list.add(jsonelement);
                 } catch (IllegalArgumentException | IOException | JsonParseException jsonparseexception) {
@@ -90,5 +92,15 @@ public class ResourceScanner {
             }
         }
         return output;
+    }
+
+    /**
+     * 枪包的 JSON 里带注释，这一直是允许的。GsonHelper.fromJson 现在只做严格解析，
+     * 所以统一走这条宽松的路。
+     */
+    public static <T> T fromLenientJson(Gson gson, Reader reader, Class<T> clazz) {
+        JsonReader jsonReader = new JsonReader(reader);
+        jsonReader.setStrictness(Strictness.LENIENT);
+        return gson.fromJson(jsonReader, clazz);
     }
 }

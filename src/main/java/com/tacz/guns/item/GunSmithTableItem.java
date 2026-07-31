@@ -24,8 +24,8 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 
 public class GunSmithTableItem extends BlockItem implements BlockItemDataAccessor, IItem {
-    public GunSmithTableItem(Block block) {
-        super(block, (new Item.Properties()).stacksTo(1));
+    public GunSmithTableItem(Block block, Item.Properties properties) {
+        super(block, properties);
     }
 
     @Environment(EnvType.CLIENT)

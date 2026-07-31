@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 public class TargetBlock extends BaseEntityBlock {
-    public static final MapCodec<TargetBlock> CODEC = simpleCodec((properties) -> new TargetBlock());
+    public static final MapCodec<TargetBlock> CODEC = simpleCodec(TargetBlock::new);
     public static final IntegerProperty OUTPUT_POWER = BlockStateProperties.POWER;
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
@@ -53,8 +53,8 @@ public class TargetBlock extends BaseEntityBlock {
     public static final VoxelShape BOX_UPPER_X = Block.box(6, 0, 2, 10, 16, 14);
     public static final VoxelShape BOX_UPPER_Z = Block.box(2, 0, 6, 14, 16, 10);
 
-    public TargetBlock() {
-        super(Properties.of().sound(SoundType.WOOD).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY));
+    public TargetBlock(Properties properties) {
+        super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HALF, DoubleBlockHalf.LOWER).setValue(STAND, true).setValue(OUTPUT_POWER, 0));
     }
 

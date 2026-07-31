@@ -53,8 +53,8 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
     private static final int CREATIVE_INDEX = 6;
     private static final int ALL_TYPE_CREATIVE_INDEX = 8;
 
-    public AmmoBoxItem() {
-        super(new Properties().stacksTo(1));
+    public AmmoBoxItem(Properties properties) {
+        super(properties);
     }
 
     @Environment(EnvType.CLIENT)

@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
+import com.tacz.guns.util.ResourceScanner;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.slf4j.Marker;
@@ -30,7 +31,7 @@ public class PackInfoManager extends SimplePreparableReloadListener<Map<String, 
         for (String namespaces : manager.getNamespaces()) {
             manager.getResource(Identifier.fromNamespaceAndPath(namespaces, PACK_INFO_NAME)).ifPresent(rl -> {
                 try (Reader reader = rl.openAsReader()) {
-                    PackInfo packInfo = GsonHelper.fromJson(CommonAssetsManager.GSON, reader, PackInfo.class);
+                    PackInfo packInfo = ResourceScanner.fromLenientJson(CommonAssetsManager.GSON, reader, PackInfo.class);
                     PackInfo packInfo1 = output.put(namespaces, packInfo);
                     if (packInfo1 != null) {
                         throw new IllegalStateException("Duplicate data file ignored with namespace " + namespaces);

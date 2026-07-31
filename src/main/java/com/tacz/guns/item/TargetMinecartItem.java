@@ -16,8 +16,8 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.NotNull;
 
 public class TargetMinecartItem extends Item {
-    public TargetMinecartItem() {
-        super((new Item.Properties()).stacksTo(1));
+    public TargetMinecartItem(Item.Properties properties) {
+        super(properties);
     }
 
     @NotNull

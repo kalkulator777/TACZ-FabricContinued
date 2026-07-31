@@ -6,6 +6,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -20,10 +21,10 @@ public class BlockBehaviourMixin {
             method = "onExplosionHit",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/level/block/Block;wasExploded(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/Explosion;)V"
+                    target = "Lnet/minecraft/world/level/block/Block;wasExploded(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/Explosion;)V"
             )
     )
-    private void tacz$onBlockExploded(Block instance, Level level, BlockPos blockPos, Explosion explosion, Operation<Void> original, @Local(argsOnly = true) BlockState state) {
+    private void tacz$onBlockExploded(Block instance, ServerLevel level, BlockPos blockPos, Explosion explosion, Operation<Void> original, @Local(argsOnly = true) BlockState state) {
         if (state.getBlock() instanceof IBlockExtension block) {
             block.tacz$onBlockExploded(state, level, blockPos, explosion);
         } else {
@@ -31,8 +32,9 @@ public class BlockBehaviourMixin {
         }
     }
 
-    @WrapWithCondition(method = "onExplosionHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
-    private boolean tacz$dontJust2Air(Level level, BlockPos pos, BlockState airState, int flag, @Local(argsOnly = true) BlockState state) {
+    // onExplosionHit 的参数是 ServerLevel，所以字节码里这两个调用的接收者类型也是它，不再是 Level
+    @WrapWithCondition(method = "onExplosionHit", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;setBlock(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;I)Z"))
+    private boolean tacz$dontJust2Air(ServerLevel level, BlockPos pos, BlockState airState, int flag, @Local(argsOnly = true) BlockState state) {
         return !(state.getBlock() instanceof IBlockExtension);
     }
 }

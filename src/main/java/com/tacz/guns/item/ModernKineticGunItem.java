@@ -60,8 +60,8 @@ public class ModernKineticGunItem extends AbstractGunItem implements GunItemData
             amount, AttributeModifier.Operation.ADD_VALUE
     );
 
-    public ModernKineticGunItem() {
-        super(new Properties().stacksTo(1));
+    public ModernKineticGunItem(Properties properties) {
+        super(properties);
     }
 
     @Override

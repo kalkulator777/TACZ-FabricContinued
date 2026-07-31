@@ -29,12 +29,24 @@ public abstract class RecipeManagerMixin {
             if (obj.has("materials") && obj.has("type") && obj.get("type").getAsString().equals(ModRecipe.GUN_SMITH_TABLE_CRAFTING.toString())) {
                 JsonArray materials = obj.getAsJsonArray("materials");
                 materials.forEach(material -> {
-                    if (material.isJsonObject()) {
-                        JsonElement item = material.getAsJsonObject().get("item");
-                        if (item.isJsonObject() && item.getAsJsonObject().has("type")) {
-                            JsonObject itemObj = item.getAsJsonObject();
-                            itemObj.addProperty(CustomIngredientImpl.TYPE_KEY, itemObj.get("type").getAsString());
-                        }
+                    if (!material.isJsonObject()) {
+                        return;
+                    }
+                    JsonObject materialObj = material.getAsJsonObject();
+                    JsonElement item = materialObj.get("item");
+                    if (item == null || !item.isJsonObject()) {
+                        return;
+                    }
+                    JsonObject itemObj = item.getAsJsonObject();
+                    if (itemObj.has("type")) {
+                        itemObj.addProperty(CustomIngredientImpl.TYPE_KEY, itemObj.get("type").getAsString());
+                    } else if (itemObj.has("tag")) {
+                        // 1.21.2 之前标签材料写成 {"tag": "c:ingots/iron"}，现在 Ingredient 就是一个
+                        // HolderSet，标签写作 "#c:ingots/iron"。外面的枪包全是旧写法，在这里改写。
+                        materialObj.addProperty("item", "#" + itemObj.get("tag").getAsString());
+                    } else if (itemObj.has("item")) {
+                        // 同上，单个物品从 {"item": "minecraft:stick"} 变成直接写 id
+                        materialObj.addProperty("item", itemObj.get("item").getAsString());
                     }
                 });
             }

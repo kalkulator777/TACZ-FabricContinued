@@ -36,8 +36,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class AmmoItem extends Item implements AmmoItemDataAccessor, IItem {
-    public AmmoItem() {
-        super(new Properties().stacksTo(1));
+    public AmmoItem(Properties properties) {
+        super(properties);
     }
 
     /**

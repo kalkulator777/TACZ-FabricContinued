@@ -4,7 +4,10 @@ import cn.sh1rocu.tacz.api.event.AddReloadListenerEvent;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
+import net.minecraft.core.Registry;
+import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.server.RegistryLayer;
+import net.minecraft.server.ReloadableServerRegistries;
 import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -32,14 +35,15 @@ public abstract class ReloadableResourcesMixin {
     }
 
     @ModifyArg(method = "method_58296", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/packs/resources/SimpleReloadInstance;create(Lnet/minecraft/server/packs/resources/ResourceManager;Ljava/util/List;Ljava/util/concurrent/Executor;Ljava/util/concurrent/Executor;Ljava/util/concurrent/CompletableFuture;Z)Lnet/minecraft/server/packs/resources/ReloadInstance;"))
-    private static List<PreparableReloadListener> tacz$addReloadListener(List<PreparableReloadListener> original, @Local(argsOnly = true) LayeredRegistryAccess<RegistryLayer> registryAccess) {
+    private static List<PreparableReloadListener> tacz$addReloadListener(List<PreparableReloadListener> original, @Local(argsOnly = true) ReloadableServerRegistries.LoadResult loadResult) {
+        // 注册表访问不再作为参数传进这个 lambda，它现在装在 LoadResult 里
         ArrayList<PreparableReloadListener> listeners = new ArrayList<>(original);
-        listeners.addAll(AddReloadListenerEvent.gatherListeners(tacz$serverResources, registryAccess.compositeAccess()));
+        listeners.addAll(AddReloadListenerEvent.gatherListeners(tacz$serverResources, loadResult.layers().compositeAccess()));
         return listeners;
     }
 
     @Inject(method = "loadResources", at = @At(value = "TAIL"))
-    private static void tacz$finishedLoadResources(ResourceManager resourceManager, LayeredRegistryAccess<RegistryLayer> registries, FeatureFlagSet enabledFeatures, Commands.CommandSelection commandSelection, int functionCompilationLevel, Executor backgroundExecutor, Executor gameExecutor, CallbackInfoReturnable<CompletableFuture<ReloadableServerResources>> cir) {
+    private static void tacz$finishedLoadResources(ResourceManager resourceManager, LayeredRegistryAccess<RegistryLayer> registries, List<Registry.PendingTags<?>> pendingTags, FeatureFlagSet enabledFeatures, Commands.CommandSelection commandSelection, PermissionSet permissions, Executor backgroundExecutor, Executor gameExecutor, CallbackInfoReturnable<CompletableFuture<ReloadableServerResources>> cir) {
         tacz$serverResources = null;
     }
 }

@@ -26,11 +26,11 @@ import org.jetbrains.annotations.Nullable;
  * 双方块的枪械工作台，1x2x1
  */
 public class GunSmithTableBlockC extends AbstractGunSmithTableBlock {
-    public static final MapCodec<GunSmithTableBlockC> CODEC = simpleCodec((properties) -> new GunSmithTableBlockC());
+    public static final MapCodec<GunSmithTableBlockC> CODEC = simpleCodec(GunSmithTableBlockC::new);
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
 
-    public GunSmithTableBlockC() {
-        super();
+    public GunSmithTableBlockC(Properties properties) {
+        super(properties);
         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(HALF, DoubleBlockHalf.LOWER));
     }
 

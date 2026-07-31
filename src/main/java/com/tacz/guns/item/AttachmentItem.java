@@ -38,8 +38,8 @@ import com.tacz.guns.util.datafixer.AttachmentIdFix;
 import static com.tacz.guns.util.datafixer.AttachmentIdFix.updateAttachmentIdInTag;
 
 public class AttachmentItem extends Item implements AttachmentItemDataAccessor, IItem {
-    public AttachmentItem() {
-        super(new Properties().stacksTo(1));
+    public AttachmentItem(Properties properties) {
+        super(properties);
     }
 
     @Override

@@ -34,12 +34,12 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 public class StatueBlock extends BaseEntityBlock implements IBlockExtension {
-    public static final MapCodec<StatueBlock> CODEC = simpleCodec((properties) -> new StatueBlock());
+    public static final MapCodec<StatueBlock> CODEC = simpleCodec(StatueBlock::new);
     public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
-    public StatueBlock() {
-        super(Properties.of().sound(SoundType.STONE).strength(2.0F, 3.0F).noOcclusion().pushReaction(PushReaction.DESTROY));
+    public StatueBlock(Properties properties) {
+        super(properties);
         this.registerDefaultState(this.stateDefinition.any()
                 .setValue(HALF, DoubleBlockHalf.LOWER)
                 .setValue(FACING, Direction.NORTH)
