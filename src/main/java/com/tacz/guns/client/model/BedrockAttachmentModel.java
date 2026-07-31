@@ -4,7 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator;
 import com.tacz.guns.client.gl.ScopeRenderTypes;
-import com.tacz.guns.client.gl.ScopeDebug;
+import com.tacz.guns.client.gl.RenderDebug;
 import com.tacz.guns.client.gl.StencilSupport;
 import com.tacz.guns.client.model.bedrock.BedrockPart;
 import com.tacz.guns.client.model.bedrock.ModelRendererWrapper;
@@ -35,8 +35,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BedrockAttachmentModel extends BedrockAnimatedModel {
-    /** 只在 -Dtacz.scopeDebug=true 时用来给诊断输出限流，见 {@link ScopeDebug}。 */
-    private int tacz$scopeDebugTick = 0;
+    /** 只在 -Dtacz.renderDebug=true 时用来给诊断输出限流，见 {@link RenderDebug}。 */
+    private int tacz$renderDebugTick = 0;
 
     private static final String SCOPE_VIEW_NODE = "scope_view";
     private static final String SCOPE_BODY_NODE = "scope_body";
@@ -327,8 +327,8 @@ public class BedrockAttachmentModel extends BedrockAnimatedModel {
                 Vector3f ocularCenter = getBedrockPartCenter(matrixStack, ocularNodePaths.get(i));
                 float centerX = ocularCenter.x() * 16 * 90;
                 float centerY = ocularCenter.y() * 16 * 90;
-                if (ScopeDebug.ENABLED && tacz$scopeDebugTick++ % 60 == 0) {
-                    ScopeDebug.logCircle(i,
+                if (RenderDebug.ENABLED && tacz$renderDebugTick++ % 60 == 0) {
+                    RenderDebug.logCircle(i,
                             player == null ? -1F : IClientPlayerGunOperator.fromLocalPlayer(player)
                                     .getClientAimingProgress(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false)),
                             scopeViewRadiusModifier, rad, centerX, centerY,

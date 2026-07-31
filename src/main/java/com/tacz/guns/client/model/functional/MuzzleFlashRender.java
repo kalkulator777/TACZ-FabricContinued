@@ -45,6 +45,7 @@ public class MuzzleFlashRender implements IFunctionalRenderer {
     }
 
     public static void onShoot() {
+        com.tacz.guns.client.gl.RenderDebug.note("MuzzleFlashRender.onShoot");
         // 记录开火时间戳
         shootTimeStamp = System.currentTimeMillis();
         // 记录枪口火焰启动标记
@@ -62,7 +63,10 @@ public class MuzzleFlashRender implements IFunctionalRenderer {
             muzzleFlashNormal = new Matrix3f(poseStack.last().normal());
             muzzleFlashPose = new Matrix4f(poseStack.last().pose());
         }
-        bedrockModel.delegateRender((poseStack1, vertexConsumer1, transformType1, light, overlay) -> doRender(light, overlay, muzzleFlash, time));
+        bedrockModel.delegateRender((poseStack1, vertexConsumer1, transformType1, light, overlay) -> {
+            com.tacz.guns.client.gl.RenderDebug.log("muzzle flash: delegate ran");
+            doRender(light, overlay, muzzleFlash, time);
+        });
     }
 
     private static void doRender(int light, int overlay, MuzzleFlash muzzleFlash, long time) {
@@ -112,6 +116,11 @@ public class MuzzleFlashRender implements IFunctionalRenderer {
             return;
         }
         long time = System.currentTimeMillis() - shootTimeStamp;
+        /* 关心的是「开火之后最近的一帧，离开火过了多久」。50 毫秒的窗口在软件渲染下
+         * 很可能一帧都落不进去，所以这里要看真实数值，不是看有没有进来过。*/
+        if (time < 2000) {
+            com.tacz.guns.client.gl.RenderDebug.log("muzzle flash: {} ms since shot, window is {} ms", time, TIME_RANGE);
+        }
         if (time > TIME_RANGE) {
             return;
         }

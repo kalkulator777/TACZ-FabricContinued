@@ -106,7 +106,7 @@ public final class StencilSupport {
      * 帧缓冲查出来 stencilAttachment=0。DSA 不碰绑定状态，也就没有这个问题。
      */
     public static void attachStencilTo(int fbo, int depthTextureId) {
-        ScopeDebug.note("attachStencilTo fbo=" + fbo + " depthTexture=" + depthTextureId);
+        RenderDebug.note("attachStencilTo fbo=" + fbo + " depthTexture=" + depthTextureId);
         if (GL.getCapabilities().GL_ARB_direct_state_access) {
             ARBDirectStateAccess.glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, depthTextureId, 0);
             return;
@@ -123,7 +123,7 @@ public final class StencilSupport {
 
     public static void enableTest() {
         RenderSystem.assertOnRenderThread();
-        ScopeDebug.note("enableTest");
+        RenderDebug.note("enableTest");
         Minecraft.getInstance().getMainRenderTarget().tacz$enableStencil();
         GL11.glEnable(GL11.GL_STENCIL_TEST);
     }
@@ -167,8 +167,8 @@ public final class StencilSupport {
             GL11.glStencilMask(0xFF);
             GL11.glClearStencil(0);
             GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
-            ScopeDebug.dumpAttachmentOnChange();
-            ScopeDebug.noteTargetTextures(target);
+            RenderDebug.dumpAttachmentOnChange();
+            RenderDebug.noteTargetTextures(target);
         }
     }
 }

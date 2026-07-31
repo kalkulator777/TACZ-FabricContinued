@@ -85,6 +85,7 @@ public class FirstPersonRenderGunEvent {
     }
 
     public static void onGunFire(GunFireEvent event) {
+        com.tacz.guns.client.gl.RenderDebug.note("GunFireEvent side=" + event.getLogicalSide());
         if (event.getLogicalSide().isClient()) {
             LivingEntity shooter = event.getShooter();
             LocalPlayer player = Minecraft.getInstance().player;

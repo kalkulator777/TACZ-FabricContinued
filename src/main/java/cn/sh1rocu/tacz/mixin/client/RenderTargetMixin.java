@@ -53,7 +53,7 @@ public abstract class RenderTargetMixin implements RenderTargetStencil {
             GpuTexture texture = original.call(device, label, usage, format, width, height, depthOrLayers, mipLevels);
             if (texture instanceof GlTexture glTexture) {
                 StencilSupport.registerStencilTexture(glTexture.glId());
-                com.tacz.guns.client.gl.ScopeDebug.note("packed depth+stencil texture " + glTexture.glId());
+                com.tacz.guns.client.gl.RenderDebug.note("packed depth+stencil texture " + glTexture.glId());
             }
             return texture;
         } finally {
@@ -72,7 +72,7 @@ public abstract class RenderTargetMixin implements RenderTargetStencil {
     public void tacz$enableStencil() {
         if (!this.tacz$stencilEnabled) {
             this.tacz$stencilEnabled = true;
-            com.tacz.guns.client.gl.ScopeDebug.note("tacz$enableStencil -> resize " + this.width + "x" + this.height);
+            com.tacz.guns.client.gl.RenderDebug.note("tacz$enableStencil -> resize " + this.width + "x" + this.height);
             this.resize(this.width, this.height);
         }
     }

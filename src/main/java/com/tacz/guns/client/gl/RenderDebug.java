@@ -9,7 +9,7 @@ import org.lwjgl.opengl.GL30;
 import org.slf4j.Logger;
 
 /**
- * 瞄具模板遮罩的诊断输出，靠 {@code -Dtacz.scopeDebug=true} 打开，默认整个类什么都不做。
+ * 瞄具模板遮罩的诊断输出，靠 {@code -Dtacz.renderDebug=true} 打开，默认整个类什么都不做。
  * <p>
  * 存在的理由很具体：模板遮罩是这次移植里唯一一处既没法靠编译期发现问题、又没法靠看一眼
  * 截图断定原因的地方 —— 「圆没落在该落的位置」和「模板缓冲根本没挂上」在画面上长得很像。
@@ -23,8 +23,8 @@ import org.slf4j.Logger;
  * 等这个遮罩定下来之后，这个类可以直接删掉。
  */
 @Environment(EnvType.CLIENT)
-public final class ScopeDebug {
-    public static final boolean ENABLED = Boolean.getBoolean("tacz.scopeDebug");
+public final class RenderDebug {
+    public static final boolean ENABLED = Boolean.getBoolean("tacz.renderDebug");
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -32,7 +32,7 @@ public final class ScopeDebug {
     private static boolean drawPassPending = true;
     private static final java.util.Set<String> NOTED = new java.util.HashSet<>();
 
-    private ScopeDebug() {
+    private RenderDebug() {
     }
 
     /**
@@ -55,7 +55,7 @@ public final class ScopeDebug {
                 fbo, status == GL30.GL_FRAMEBUFFER_COMPLETE, attachment, bits, GL11.glIsEnabled(GL11.GL_STENCIL_TEST));
         if (!state.equals(lastAttachmentState)) {
             lastAttachmentState = state;
-            LOGGER.info("[tacz/scope] {}", state);
+            LOGGER.info("[tacz/render] {}", state);
         }
     }
 
@@ -70,14 +70,14 @@ public final class ScopeDebug {
                 StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
         int bits = attachment == 0 ? 0 : GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
                 StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE);
-        LOGGER.info("[tacz/scope] in draw pass: fbo={} stencilAttachment={} stencilBits={} stencilTest={}",
+        LOGGER.info("[tacz/render] in draw pass: fbo={} stencilAttachment={} stencilBits={} stencilTest={}",
                 fbo, attachment, bits, GL11.glIsEnabled(GL11.GL_STENCIL_TEST));
     }
 
     /** 同一条消息只打一次，用来记录「这条路走过了」这类一次性事实。 */
     public static void note(String message) {
         if (ENABLED && NOTED.add(message)) {
-            LOGGER.info("[tacz/scope] {}", message);
+            LOGGER.info("[tacz/render] {}", message);
         }
     }
 
@@ -96,12 +96,19 @@ public final class ScopeDebug {
         return texture instanceof com.mojang.blaze3d.opengl.GlTexture gl ? Integer.toString(gl.glId()) : String.valueOf(texture);
     }
 
+    /** 每次都打。给那些「发生了多少次、间隔多久」才有意义的观察用。 */
+    public static void log(String format, Object... args) {
+        if (ENABLED) {
+            LOGGER.info("[tacz/render] " + format, args);
+        }
+    }
+
     public static void logCircle(int ocular, float aimingProgress, float radiusModifier, float radius,
                                  float centerX, float centerY, int ocularCount, int divisionCount) {
         if (!ENABLED) {
             return;
         }
-        LOGGER.info("[tacz/scope] ocular {}/{} aiming={} radiusModifier={} radius={} center=({}, {}) divisions={}",
+        LOGGER.info("[tacz/render] ocular {}/{} aiming={} radiusModifier={} radius={} center=({}, {}) divisions={}",
                 ocular, ocularCount, aimingProgress, radiusModifier, radius, centerX, centerY, divisionCount);
     }
 }
