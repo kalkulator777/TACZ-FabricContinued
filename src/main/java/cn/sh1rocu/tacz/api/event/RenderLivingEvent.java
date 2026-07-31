@@ -5,7 +5,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -19,7 +19,7 @@ public abstract class RenderLivingEvent extends BaseEvent {
     private final LivingEntityRenderer<?, ?, ?> renderer;
     private final float partialTick;
     private final PoseStack poseStack;
-    private final MultiBufferSource multiBufferSource;
+    private final SubmitNodeCollector collector;
     private final int packedLight;
 
     public static final Event<PostCallback> POST = EventFactory.createArrayBacked(PostCallback.class, callbacks -> event -> {
@@ -33,12 +33,12 @@ public abstract class RenderLivingEvent extends BaseEvent {
     }
 
     protected RenderLivingEvent(LivingEntity entity, LivingEntityRenderer<?, ?, ?> renderer, float partialTick, PoseStack poseStack,
-                                MultiBufferSource multiBufferSource, int packedLight) {
+                                SubmitNodeCollector collector, int packedLight) {
         this.entity = entity;
         this.renderer = renderer;
         this.partialTick = partialTick;
         this.poseStack = poseStack;
-        this.multiBufferSource = multiBufferSource;
+        this.collector = collector;
         this.packedLight = packedLight;
     }
 
@@ -58,8 +58,8 @@ public abstract class RenderLivingEvent extends BaseEvent {
         return poseStack;
     }
 
-    public MultiBufferSource getMultiBufferSource() {
-        return multiBufferSource;
+    public SubmitNodeCollector getCollector() {
+        return collector;
     }
 
     public int getPackedLight() {
@@ -67,8 +67,8 @@ public abstract class RenderLivingEvent extends BaseEvent {
     }
 
     public static class Post extends RenderLivingEvent {
-        public Post(LivingEntity entity, LivingEntityRenderer<?, ?, ?> renderer, float partialTick, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight) {
-            super(entity, renderer, partialTick, poseStack, multiBufferSource, packedLight);
+        public Post(LivingEntity entity, LivingEntityRenderer<?, ?, ?> renderer, float partialTick, PoseStack poseStack, SubmitNodeCollector collector, int packedLight) {
+            super(entity, renderer, partialTick, poseStack, collector, packedLight);
         }
     }
 }

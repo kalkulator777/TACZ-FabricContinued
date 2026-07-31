@@ -1,6 +1,7 @@
 package com.tacz.guns.client.event;
 
 import cn.sh1rocu.tacz.api.event.RenderLivingEvent;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.tacz.guns.config.client.RenderConfig;
 import com.tacz.guns.config.util.HeadShotAABBConfigRead;
@@ -36,8 +37,13 @@ public class RenderHeadShotAABB {
             // 扩张 0.01，避免和原版显示重合
             aabb = new AABB(-width / 2, eyeHeight - 0.25, -width / 2, width / 2, eyeHeight + 0.25, width / 2).inflate(0.01);
         }
-        // renderLineBox 没了。ShapeRenderer.renderShape 收的是 VoxelShape 和一个打包好的颜色
-        VertexConsumer buffer = event.getMultiBufferSource().getBuffer(RenderTypes.lines());
-        ShapeRenderer.renderShape(event.getPoseStack(), buffer, Shapes.create(aabb), 0.0, 0.0, 0.0, 0xFFFFFF00, 1.0F);
+        // renderLineBox 没了。ShapeRenderer.renderShape 收的是 VoxelShape 和一个打包好的颜色，
+        // 而几何体也不再是自己往缓冲里画，得交给收集器
+        AABB box = aabb;
+        event.getCollector().submitCustomGeometry(event.getPoseStack(), RenderTypes.lines(), (pose, buffer) -> {
+            PoseStack local = new PoseStack();
+            local.last().set(pose);
+            ShapeRenderer.renderShape(local, buffer, Shapes.create(box), 0.0, 0.0, 0.0, 0xFFFFFF00, 1.0F);
+        });
     }
 }
