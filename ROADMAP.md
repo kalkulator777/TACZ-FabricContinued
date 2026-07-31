@@ -277,7 +277,7 @@ Nothing on the dependency list now blocks the version bump.
 
 **In progress.** The tree does not compile, which is expected and is why phases 0
 and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 253 now**, and what is left is
+in distinct compile errors: **4756 at the bump, 134 now**, and what is left is
 almost entirely client rendering.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
@@ -333,11 +333,29 @@ almost entirely client rendering.
         (`RenderSetup`).
 
         The scope stencil mask — §8's first risk — is done and described below.
-        The laser beam and the bullet hole particle are done. What is left of this
-        cluster is the GUI, where the 3D item preview needs a picture-in-picture
-        renderer rather than a model-view matrix.
+        So are the laser beam, the bullet hole particle, the tooltips and the HUD.
       - **Item rendering** without `BuiltinItemRendererRegistry` or
-        `BlockEntityWithoutLevelRenderer`.
+        `BlockEntityWithoutLevelRenderer`. Done. An item's appearance comes from
+        `assets/<ns>/items/<id>.json` now, and custom rendering is declared as
+        `minecraft:special` naming a registered `SpecialModelRenderer`. There is
+        one such type, `tacz:dynamic`, which draws nothing and forwards to
+        whatever renderer the item names — the same indirection as the old
+        registry, moved into the model JSON. The registry's other job, looking a
+        renderer up from an item, never needed a registry and now goes through
+        `IDynamicItemRenderer.of(item)`.
+
+        `BedrockGunModel` and `BedrockAttachmentModel` each grew a collector
+        overload for the non-first-person case. The stencil work stays immediate:
+        it needs its draws in order, which a collector cannot promise, and outside
+        first person there is nothing in the stencil buffer to test against anyway.
+      - **The GUI** is two-dimensional now — `GuiGraphics.pose()` is a
+        `Matrix3x2fStack`. Anything that wanted a 3D transform has to become a
+        picture-in-picture element: content drawn to an offscreen texture, then
+        blitted. The gun smith table's rotating preview is done that way, via
+        Fabric's `SpecialGuiElementRegistry`.
+
+        Colour is no longer ambient state either: `setShaderColor` and `setColor`
+        are gone, and tints are an argument to `blit`.
       - 2D `GuiGraphics`, HUD on `HudElementRegistry`, and the widgets — the only
         genuinely mechanical part of the four.
 - [ ] Mixins last — they only validate in a running game. `KeyboardHandler.keyPress`
@@ -367,7 +385,17 @@ three separate pieces rather than ported call for call.
 None of it can be checked without a GPU. It compiles and the algorithm is
 unchanged, but **every scope needs looking at in game before this is trusted** —
 and the first thing to check is that the framebuffer is still complete.
-- [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
+- [ ] Resources: blockstate format, recipe ingredient form. The item definition
+      JSON is written for the items that have models; what is left is `ammo_box`,
+      which needs two things at once — its model `overrides` become a
+      `minecraft:select` over a registered item model property, and its colour
+      provider becomes an `ItemTintSource`, because item tinting is part of the
+      model now. Both are marked in `ClientSetupEvent`.
+- [ ] Recipes on the client. `RecipeManager` is not reachable from the client
+      level any more and a `RecipeHolder` is keyed by `ResourceKey<Recipe<?>>`
+      rather than an `Identifier` — which the craft packet carries, so this is a
+      protocol change as well as a client one. It blocks the gun smith table
+      screen and both recipe viewer integrations.
 - [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
 - [ ] Re-check the Iris buffer flush against the Iris release for the target.
 
