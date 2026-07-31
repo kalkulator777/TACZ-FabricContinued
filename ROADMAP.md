@@ -277,7 +277,7 @@ Nothing on the dependency list now blocks the version bump.
 
 **In progress.** The tree does not compile, which is expected and is why phases 0
 and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 451 now**, and what is left is
+in distinct compile errors: **4756 at the bump, 361 now**, and what is left is
 almost entirely client rendering.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
@@ -310,11 +310,19 @@ almost entirely client rendering.
 - [x] **Recipes, ingredients, items, reload listeners, Cardinal Components.**
 - [ ] Client: this is all that is left, and it is not a sweep. Three of the four
       pieces are redesigns rather than renames:
-      - **Rendering is submit-based now.** `BlockEntityRenderer` and the entity
-        renderers no longer draw; they fill a render state and hand geometry to a
-        `SubmitNodeCollector`. Every renderer in the mod — gun models, attachments,
-        block entities, the bullet, the target minecart — is written against the old
-        draw-directly shape.
+      - **Rendering is submit-based now.** Renderers no longer draw; they fill a
+        render state and hand geometry to a `SubmitNodeCollector`. The block
+        entities and the two entity renderers are done, and `BedrockModel` — what
+        actually draws every gun, attachment and block in this mod — has the
+        collector-based path next to the immediate one the rest of the tree still
+        uses. What is left is the item renderers, which are tangled with the item
+        model rework below.
+
+        Two rules came out of that work and apply to everything still to convert:
+        the entity or block entity may only be read during extraction, and the
+        model instance is shared, so posing it has to happen inside the deferred
+        geometry callback — posing before submitting means the second gun in view
+        overwrites the first one's animation and both draw the same.
       - **GPU state moved into `RenderPipeline`.** `GlStateManager` is gone and
         `RenderSystem` no longer has `enableBlend`, `depthMask`, `stencilFunc` or
         any of it. This is 114 of the remaining errors and it is where the scope
