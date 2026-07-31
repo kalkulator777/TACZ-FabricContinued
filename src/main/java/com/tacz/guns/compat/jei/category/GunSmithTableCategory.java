@@ -66,8 +66,10 @@ public class GunSmithTableCategory implements IRecipeCategory<GunSmithTableRecip
     private List<ItemStack> getInput(List<GunSmithTableIngredient> inputs, int index) {
         if (index < inputs.size()) {
             GunSmithTableIngredient ingredient = inputs.get(index);
-            ItemStack[] items = ingredient.getIngredient().getItems();
-            return Arrays.stream(items).map(stack -> stack.copyWithCount(ingredient.getCount())).toList();
+            // Ingredient 现在给的是物品持有者的流，不再是拼好的 ItemStack[]
+            return ingredient.getIngredient().items()
+                    .map(holder -> new ItemStack(holder, ingredient.getCount()))
+                    .toList();
         }
         return Collections.singletonList(ItemStack.EMPTY);
     }
@@ -77,10 +79,17 @@ public class GunSmithTableCategory implements IRecipeCategory<GunSmithTableRecip
         return title;
     }
 
+    /**
+     * getBackground 没了，分类现在直接报自己的宽高。原来那张空白 drawable 就是尺寸的来源。
+     */
     @Override
-    @SuppressWarnings("removal")
-    public IDrawable getBackground() {
-        return bgDraw;
+    public int getWidth() {
+        return 160;
+    }
+
+    @Override
+    public int getHeight() {
+        return 40;
     }
 
     @Override

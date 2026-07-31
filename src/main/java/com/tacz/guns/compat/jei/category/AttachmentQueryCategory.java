@@ -81,10 +81,17 @@ public class AttachmentQueryCategory implements IRecipeCategory<AttachmentQueryE
         return TITLE;
     }
 
+    /**
+     * getBackground 没了，分类现在直接报自己的宽高。原来那张空白 drawable 就是尺寸的来源。
+     */
     @Override
-    @SuppressWarnings("removal")
-    public IDrawable getBackground() {
-        return bgDraw;
+    public int getWidth() {
+        return 160;
+    }
+
+    @Override
+    public int getHeight() {
+        return 145;
     }
 
     @Override
