@@ -39,10 +39,9 @@ public class PlayerModelMixin<T extends LivingEntity> extends HumanoidModel<T> {
         // 当第一人称渲染是，ageInTicks 正好是 0
         ItemStack currentItem = KeepingItemRenderer.getRenderer().getCurrentItem();
         if (ageInTicks == 0F && IGun.getIGunOrNull(currentItem) != null) {
+            // 袖子现在是手臂的子部件，跟着手臂走，不用再单独拷一次
             tacz$resetAll(this.rightArm);
             tacz$resetAll(this.leftArm);
-            this.rightSleeve.copyFrom(this.rightArm);
-            this.leftSleeve.copyFrom(this.leftArm);
         }
     }
 

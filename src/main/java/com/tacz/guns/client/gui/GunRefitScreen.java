@@ -112,7 +112,7 @@ public class GunRefitScreen extends Screen {
     }
 
     @Override
-    protected void renderBlurredBackground(float partialTick) {
+    protected void renderBlurredBackground(GuiGraphics guiGraphics) {
 
     }
 
@@ -125,9 +125,9 @@ public class GunRefitScreen extends Screen {
         }
 
         ((ScreenAccessor) this).tacz$getRenderables().stream().filter(w -> w instanceof IComponentTooltip).forEach(w -> ((IComponentTooltip) w)
-                .renderTooltip(component -> graphics.renderComponentTooltip(font, component, mouseX, mouseY)));
+                .renderTooltip(component -> graphics.setComponentTooltipForNextFrame(font, component, mouseX, mouseY)));
         ((ScreenAccessor) this).tacz$getRenderables().stream().filter(w -> w instanceof IStackTooltip).forEach(w -> ((IStackTooltip) w)
-                .renderTooltip(stack -> graphics.renderTooltip(font, stack, mouseX, mouseY)));
+                .renderTooltip(stack -> graphics.setTooltipForNextFrame(font, stack, mouseX, mouseY)));
     }
 
     @Override
@@ -253,7 +253,7 @@ public class GunRefitScreen extends Screen {
                             ClientMessageUnloadAttachment message = new ClientMessageUnloadAttachment(inventory.getSelectedSlot(), RefitTransform.getCurrentTransformType());
                             ClientPlayNetworking.send(message);
                         } else {
-                            player.sendSystemMessage(Component.translatable("gui.tacz.gun_refit.unload.no_space"));
+                            player.displayClientMessage(Component.translatable("gui.tacz.gun_refit.unload.no_space"), false);
                         }
                     }
                 });

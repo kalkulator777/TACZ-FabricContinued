@@ -28,7 +28,7 @@ public abstract class MouseHandlerMixin {
 
     @Inject(method = "onPress", at = @At("TAIL"))
     private void tacz$onMouseButtonPost(long windowPointer, int button, int action, int modifiers, CallbackInfo ci) {
-        if (windowPointer == this.minecraft.getWindow().getWindow()) {
+        if (windowPointer == this.minecraft.getWindow().handle()) {
             InputEvent.MouseButton.Post event = new InputEvent.MouseButton.Post(button, action, modifiers);
             InputEvent.MouseButton.Post.EVENT.invoker().onMousePost(event);
         }

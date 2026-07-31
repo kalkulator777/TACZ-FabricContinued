@@ -3,6 +3,7 @@ package com.tacz.guns.client.gui.compat;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.MultiLineLabel;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
@@ -40,7 +41,8 @@ public class ClothConfigScreen extends Screen {
     @Override
     public void render(@NotNull GuiGraphics gui, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderBackground(gui, pMouseX, pMouseY, pPartialTick);
-        this.message.renderCentered(gui, this.width / 2, 80);
+        // renderCentered 没了；多行文本现在通过 ActiveTextCollector 逐行走
+        this.message.visitLines(TextAlignment.CENTER, this.width / 2, 80, 9, gui.textRenderer());
         super.render(gui, pMouseX, pMouseY, pPartialTick);
     }
 

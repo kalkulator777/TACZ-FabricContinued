@@ -13,6 +13,8 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.ClickEvent;
+
+import java.net.URI;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
@@ -42,11 +44,12 @@ public class ConfigKey {
                 return;
             }
             if (!FabricLoader.getInstance().isModLoaded(CompatRegistry.CLOTH_CONFIG)) {
-                ClickEvent clickEvent = new ClickEvent(ClickEvent.Action.OPEN_URL, ClothConfigScreen.CLOTH_CONFIG_URL);
-                HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("gui.tacz.cloth_config_warning.download"));
+                // ClickEvent 和 HoverEvent 变成了密封接口加一组记录，动作不再是枚举参数
+                ClickEvent clickEvent = new ClickEvent.OpenUrl(URI.create(ClothConfigScreen.CLOTH_CONFIG_URL));
+                HoverEvent hoverEvent = new HoverEvent.ShowText(Component.translatable("gui.tacz.cloth_config_warning.download"));
                 MutableComponent component = Component.translatable("gui.tacz.cloth_config_warning.tips").withStyle(style ->
                         style.applyFormat(ChatFormatting.BLUE).applyFormat(ChatFormatting.UNDERLINE).withClickEvent(clickEvent).withHoverEvent(hoverEvent));
-                player.sendSystemMessage(component);
+                player.displayClientMessage(component, false);
             } else {
                 CompatRegistry.checkModLoad(CompatRegistry.CLOTH_CONFIG, () -> Minecraft.getInstance().setScreen(MenuIntegration.getConfigScreen(null)));
             }

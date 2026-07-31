@@ -17,17 +17,17 @@ public class PlayerEnterWorld {
     public static void onPlayerEnterWorld(ServerPlayer player) {
         File[] files = PackConvertor.FOLDER.toFile().listFiles();
         if (files != null && files.length > 0) {
-            player.sendSystemMessage(pre(Component.translatable("message.tacz.convert_from_legacy.intro")));
-            player.sendSystemMessage(pre(Component.translatable("message.tacz.convert_from_legacy.intro2")));
+            player.displayClientMessage(pre(Component.translatable("message.tacz.convert_from_legacy.intro")), false);
+            player.displayClientMessage(pre(Component.translatable("message.tacz.convert_from_legacy.intro2")), false);
             Component component = Component.translatable("message.tacz.convert_from_legacy")
                     .append(Component.translatable("message.tacz.convert_from_legacy.button")
                             .withStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)
-                                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tacz convert"))
-                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("message.tacz.convert_from_legacy.hover"))
+                                    .withClickEvent(new ClickEvent.RunCommand("/tacz convert"))
+                                    .withHoverEvent(new HoverEvent.ShowText(Component.translatable("message.tacz.convert_from_legacy.hover"))
                                     )));
-            player.sendSystemMessage(pre(component));
-            player.sendSystemMessage(pre(Component.translatable("message.tacz.convert_from_legacy.hint")));
-            player.sendSystemMessage(pre(Component.translatable("message.tacz.convert_from_legacy.hide")));
+            player.displayClientMessage(pre(component), false);
+            player.displayClientMessage(pre(Component.translatable("message.tacz.convert_from_legacy.hint")), false);
+            player.displayClientMessage(pre(Component.translatable("message.tacz.convert_from_legacy.hide")), false);
         }
     }
 

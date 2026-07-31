@@ -2,10 +2,10 @@ package com.tacz.guns.client.gui.components.smith;
 
 import net.minecraft.client.renderer.RenderPipelines;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.tacz.guns.GunMod;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -43,12 +43,14 @@ public class ResultButton extends Button {
         Minecraft mc = Minecraft.getInstance();
         gui.renderItem(stack, this.getX() + 1, this.getY());
 
+        // 静态的 renderScrollingString 没了，滚动文本现在由 ActiveTextCollector 负责
         Component hoverName = this.stack.getHoverName();
-        renderScrollingString(gui, mc.font, hoverName, this.getX() + 20, this.getY() + 4, this.getX() + 92, this.getY() + 13, 0xFFFFFF);
+        gui.textRendererForWidget(this, GuiGraphics.HoveredTextEffects.NONE)
+                .acceptScrollingWithDefaultCenter(hoverName, this.getX() + 20, this.getX() + 92, this.getY() + 4, this.getY() + 13);
     }
 
     @Override
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         this.isSelected = true;
         this.onPress.onPress(this);
     }

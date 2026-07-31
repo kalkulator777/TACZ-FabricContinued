@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
 
 @Environment(EnvType.CLIENT)
-public abstract class RenderLivingEvent<T extends LivingEntity, M extends EntityModel<T>> extends BaseEvent {
+public abstract class RenderLivingEvent<T extends LivingEntity, M extends EntityModel<?>> extends BaseEvent {
     private final LivingEntity entity;
     private final LivingEntityRenderer<T, M> renderer;
     private final float partialTick;
@@ -63,7 +63,7 @@ public abstract class RenderLivingEvent<T extends LivingEntity, M extends Entity
         return packedLight;
     }
 
-    public static class Post<T extends LivingEntity, M extends EntityModel<T>> extends RenderLivingEvent<T, M> {
+    public static class Post<T extends LivingEntity, M extends EntityModel<?>> extends RenderLivingEvent<T, M> {
         public Post(LivingEntity entity, LivingEntityRenderer<T, M> renderer, float partialTick, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight) {
             super(entity, renderer, partialTick, poseStack, multiBufferSource, packedLight);
         }
