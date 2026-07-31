@@ -358,14 +358,26 @@ public class GunAnimationStateContext extends ItemAnimationStateContext {
     }
 
     /**
-     * 走过的距离，按帧内进度插值。
+     * 走过的距离，按帧内进度插值。走路和奔跑动画的播放进度就是按这个量算的
+     * （见 lua 里的 {@code setAnimationProgress(track, getWalkDist() % 2.0 / 2.0)}），
+     * 所以它的刻度必须和 1.21.1 的 {@code Entity.walkDist} 一样，否则动画整体走快或走慢。
      * <p>
-     * 以前是手算的 {@code walkDist + (walkDist - walkDistO) * partialTicks}，两个字段
-     * 在 1.21.9 都没了；{@link WalkAnimationState#position(float)} 算的就是这个东西，
-     * 原版自己的肢体摆动也是从它来的。
+     * walkDist 和 walkDistO 在 1.21.9 都没了。接替的是 {@link Entity#moveDist}：不在
+     * 可攀爬方块上时它每 tick 加的同样是 {@code 水平位移 * 0.6}，和原来的 walkDist 逐位相同，
+     * 而且原版的脚步声也是数它，走路动画因此还能和脚步声对上拍。
+     * <p>
+     * moveDistO 没有对应字段，用本 tick 的水平位移把上一 tick 的值反推回来即可：
+     * xo/zo 是本 tick 开始时的坐标，moveDist 里加的正是这段位移。
+     * <p>
+     * 不要改用 {@link WalkAnimationState#position(float)}：它每 tick 加的是
+     * {@code min(位移 * 4, 1)}，走路时比 walkDist 快 6.7 倍，跑步时还会被那个 1 顶住，
+     * 动画会既过快又和脚步声脱拍。
      */
-    private float walkDistOf(net.minecraft.world.entity.Entity entity) {
-        return entity instanceof LivingEntity livingEntity ? livingEntity.walkAnimation.position(partialTicks) : 0f;
+    private float walkDistOf(Entity entity) {
+        double dx = entity.getX() - entity.xo;
+        double dz = entity.getZ() - entity.zo;
+        float thisTick = (float) (Math.sqrt(dx * dx + dz * dz) * 0.6);
+        return entity.moveDist - thisTick * (1 - partialTicks);
     }
 
     /**

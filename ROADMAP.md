@@ -646,35 +646,57 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 ---
 
-#### Open after the first play test on real hardware
+#### From the first play test on real hardware
 
 Two reports from someone running the built jar at a normal frame rate. Both are
-in the class this environment cannot see — llvmpipe gives about 12 fps here, and
-both symptoms need a smooth frame rate to show at all. Neither is diagnosed yet;
-what follows is the lead, not the answer.
+in the class this environment cannot see — llvmpipe gives about 12 fps here. One
+is found and fixed; the other is still open, and both of the leads written down
+for it turned out to be wrong.
 
-- **The first-person animation runs too fast when walking.**
-  `FirstPersonRenderHandler.tickAnimation` runs once per frame and advances the
-  animation by `getGameTimeDeltaPartialTick(true)`. That is the position inside
-  the current tick, a number in 0..1 — not a per-frame delta. Consumed as a step
-  it makes animation speed scale with frame rate: slow at 12 fps, roughly 1.5x
-  at 60, worse above that. Fits the report and fits why it looks fine here.
-  `getGameTimeDeltaTicks()` is the delta and sits next to it.
+- **The first-person animation ran too fast when walking. Found, fixed.**
+  Not a frame-rate problem at all, and not in `tickAnimation` — the `tick(float)`
+  it calls has an empty body. Animation progress runs on `System.nanoTime`
+  throughout and never depended on frame rate.
 
-  What stops this being a diagnosis: the interface declares
-  `void tick(float partialTick)`, so the receiver may be treating it correctly
-  as a position and the fault may be elsewhere. Read the state machine in
-  `GunItemRendererWrapper` before changing the call.
+  The walk and run animations do not play at their own speed: the lua sets their
+  progress from distance travelled, `getWalkDist() % 2.0 / 2.0`, so that the gun
+  bobs in step with the footsteps. `GunAnimationStateContext.getWalkDist` was
+  ported onto `walkAnimation.position()`, which is not the same quantity as the
+  `Entity.walkDist` it replaced. Both were read out of the bytecode:
 
-- **The scope reticle thins out while the breathing animation plays.**
-  One real divergence from 1.21.1 found so far, though it does not obviously
-  cause thinning: the old code drew the reticle with the model's own `RenderType`
-  and only turned the depth *test* off, leaving depth writes on;
-  `ScopeRenderTypes.NO_DEPTH_TEST_PIPELINE` turns off both. The likelier cause is
-  alpha cutout against mipmapping — thin lines lose coverage as the scope drifts
-  sub-pixel, alpha drops under the 0.1 threshold and parts of the line are
-  discarded, which is exactly a "thins out while it moves" symptom. Compare that
-  pipeline against vanilla `entityCutout` before touching anything.
+  | | per tick |
+  |---|---|
+  | 1.21.1 `Entity.walkDist` | `horizontalDistance * 0.6` |
+  | 1.21.11 `WalkAnimationState.position` | `min(horizontalDistance * 4, 1)` |
+
+  6.7x too fast at walking speed, and clamped — so it also drifts out of step
+  with the footstep sounds when sprinting. Now on `Entity.moveDist`, which off a
+  climbable block adds exactly `horizontalDistance * 0.6` and is the same counter
+  vanilla triggers step sounds from. There is no `moveDistO`, so the previous
+  tick's value is reconstructed from `xo`/`zo` to keep the sub-tick interpolation
+  the animation needs at high frame rates.
+
+- **The scope reticle thins out while the breathing animation plays. Open.**
+  Both leads recorded here earlier are now disproven, by comparing the ported
+  pipelines against vanilla's in the bytecode rather than reasoning about them:
+
+  - Vanilla `ENTITY_CUTOUT` is `ENTITY_SNIPPET` + `ALPHA_CUTOUT 0.1` + `Sampler1`.
+    `ScopeRenderTypes.NO_DEPTH_TEST_PIPELINE` is the same three plus the depth
+    state, so the cutout threshold is not a divergence. The extra `depthWrite`
+    it turns off is a real difference from 1.21.1, but it can only affect what
+    is drawn *after* the reticle, not the reticle's own coverage.
+  - Mipmapping is not a divergence either: nothing in the mod registers textures
+    itself, so pack textures load through vanilla exactly as they did before.
+  - And that pipeline is only used by `renderDivisionOnly`, the red-dot path. A
+    scope with an eyepiece goes through `renderOcularAndDivision`, which draws
+    the reticle with the caller's plain `RenderTypes.entityCutout` — the same
+    call 1.21.1 made.
+
+  So the remaining suspects are the stencil mask, not the reticle's own
+  rasterisation: the circle in `drawStencilCircle` is positioned from
+  `getBedrockPartCenter`, and the breathing animation moves that centre every
+  frame. Worth measuring before anything else: which of the two paths the scope
+  in question takes, and whether the thinning tracks the circle's edge.
 
 #### Diagnostics and dev affordances that exist now
 
