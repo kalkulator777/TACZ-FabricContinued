@@ -277,8 +277,9 @@ Nothing on the dependency list now blocks the version bump.
 
 **In progress.** The tree does not compile, which is expected and is why phases 0
 and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 134 now**, and what is left is
-almost entirely client rendering.
+in distinct compile errors: **4756 at the bump, 35 now**, and what is left is
+no longer vanilla at all: eight in mixins whose targets moved, twenty-seven in the
+recipe-viewer and shader-mod integrations.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
       the one that keeps remapping to intermediary — Gradle 9.5.1, loader 0.19.3,
@@ -308,8 +309,8 @@ almost entirely client rendering.
 - [x] **Minecarts** — and the `IMinecart` shim and its two mixins are gone with
       them, because `isRideable()` is an overridable method now.
 - [x] **Recipes, ingredients, items, reload listeners, Cardinal Components.**
-- [ ] Client: this is all that is left, and it is not a sweep. Three of the four
-      pieces are redesigns rather than renames:
+- [x] **Client rendering.** Done, in the sense that it compiles. Three of the four
+      pieces were redesigns rather than renames:
       - **Rendering is submit-based now.** Renderers no longer draw; they fill a
         render state and hand geometry to a `SubmitNodeCollector`. The block
         entities and the two entity renderers are done, and `BedrockModel` — what
@@ -358,8 +359,14 @@ almost entirely client rendering.
         are gone, and tints are an argument to `blit`.
       - 2D `GuiGraphics`, HUD on `HudElementRegistry`, and the widgets — the only
         genuinely mechanical part of the four.
-- [ ] Mixins last — they only validate in a running game. `KeyboardHandler.keyPress`
-      and `MouseHandler.onPress` have already changed shape underneath them.
+- [ ] Mixins last — they only validate in a running game, and eight of the
+      remaining errors are here. `KeyboardHandler.keyPress` and
+      `MouseHandler.onPress` changed shape; `Level` and `Player` gained
+      constructor parameters. Two more compile but are already known wrong and
+      marked in place: `PlayerModelMixin` and `ItemInHandLayerMixin` both target
+      1.21.1 methods that took a `LivingEntity`, and the model and the layer now
+      work from a render state — the entity reads behind them have to move into
+      extraction.
 
 **The scope stencil mask.** Nothing in vanilla touches the stencil buffer any
 more — not `RenderSystem`, not `RenderPipeline` — so it had to be rebuilt from
@@ -391,13 +398,17 @@ and the first thing to check is that the framebuffer is still complete.
       `minecraft:select` over a registered item model property, and its colour
       provider becomes an `ItemTintSource`, because item tinting is part of the
       model now. Both are marked in `ClientSetupEvent`.
-- [ ] Recipes on the client. `RecipeManager` is not reachable from the client
-      level any more and a `RecipeHolder` is keyed by `ResourceKey<Recipe<?>>`
-      rather than an `Identifier` — which the craft packet carries, so this is a
-      protocol change as well as a client one. It blocks the gun smith table
-      screen and both recipe viewer integrations.
-- [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
-- [ ] Re-check the Iris buffer flush against the Iris release for the target.
+- [x] **Recipes on the client.** Since 1.21.2 the client is not sent recipe data
+      at all — `RecipeAccess` carries only what the recipe book needs. Fabric's
+      `RecipeSynchronization` sends them back for one serializer, and
+      `ClientRecipes` wraps the lookup. A `RecipeHolder` is keyed by
+      `ResourceKey<Recipe<?>>` now; the craft packet still carries a plain
+      `Identifier` and the server rebuilds the key, so the protocol is unchanged.
+- [ ] The integrations, twenty-seven errors and the other half of what is left.
+      Each is waiting on that mod's own 1.21.11 API rather than on vanilla:
+      JEI's subtype and category interfaces, REI's `Display.getSerializer`,
+      Shoulder Surfing's 5.x `register`, Iris's `batchedentityrendering` internals,
+      ImmediatelyFast's api package, and Controllable's `TickEvents`.
 
 Three behaviour changes went in rather than being deferred, because vanilla made
 them and there was no way to keep the old shape:
