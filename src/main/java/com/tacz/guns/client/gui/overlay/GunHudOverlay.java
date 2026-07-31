@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.overlay;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.GunMod;
@@ -169,7 +171,7 @@ public class GunHudOverlay implements LayeredDraw.Layer {
             }
         }
         // 渲染枪械图标
-        graphics.blit(hudTexture, width - 117, height - 44, 0, 0, 39, 13, 39, 13);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, hudTexture, width - 117, height - 44, 0, 0, 39, 13, 39, 13);
 
         // 渲染开火模式图标
         FireMode fireMode = IGun.getMainHandFireMode(player);
@@ -179,7 +181,7 @@ public class GunHudOverlay implements LayeredDraw.Layer {
             default -> SEMI;
         };
         RenderSystem.setShaderColor(1, 1, 1, 1);
-        graphics.blit(fireModeTexture, (int) (width - 68.5 + mc.font.width(currentAmmoCountText) * 1.5), height - 38, 0, 0, 10, 10, 10, 10);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, fireModeTexture, (int) (width - 68.5 + mc.font.width(currentAmmoCountText) * 1.5), height - 38, 0, 0, 10, 10, 10, 10);
     }
 
     private static void handleCacheCount(LocalPlayer player, ItemStack stack, GunData gunData, IGun iGun, boolean useInventoryAmmo) {

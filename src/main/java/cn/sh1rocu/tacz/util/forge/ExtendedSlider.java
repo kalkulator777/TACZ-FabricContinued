@@ -209,8 +209,8 @@ public class ExtendedSlider extends AbstractSliderButton {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.enableDepthTest();
-        guiGraphics.blitSprite(((AbstractSliderButtonAccessor) this).tacz$getSprite(), this.getX(), this.getY(), this.getWidth(), this.getHeight());
-        guiGraphics.blitSprite(((AbstractSliderButtonAccessor) this).tacz$getHandleSprite(), this.getX() + (int) (this.value * (double) (this.width - 8)), this.getY(), 8, this.getHeight());
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, ((AbstractSliderButtonAccessor) this).tacz$getSprite(), this.getX(), this.getY(), this.getWidth(), this.getHeight());
+        guiGraphics.blitSprite(RenderPipelines.GUI_TEXTURED, ((AbstractSliderButtonAccessor) this).tacz$getHandleSprite(), this.getX() + (int) (this.value * (double) (this.width - 8)), this.getY(), 8, this.getHeight());
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         int i = this.active ? 16777215 : 10526880;
         this.renderScrollingString(guiGraphics, minecraft.font, 2, i | Mth.ceil(this.alpha * 255.0F) << 24);

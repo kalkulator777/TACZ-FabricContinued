@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.toast;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphics;
@@ -31,7 +33,7 @@ public class GunLevelUpToast implements Toast {
 //        RenderSystem.setShaderTexture(0, TEXTURE);
 //        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 //
-//        toastComponent.blit(gui, 0, 0, 0, 0, this.width(), this.height());
+//        toastComponent.blit(RenderPipelines.GUI_TEXTURED, gui, 0, 0, 0, 0, this.width(), this.height(), 256, 256);
 //
 //        List<FormattedCharSequence> list = null;
 //        if (this.subTitle != null) {

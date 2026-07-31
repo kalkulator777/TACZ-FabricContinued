@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.components.refit;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.tacz.guns.client.gui.GunRefitScreen;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,20 +32,16 @@ public class InventoryAttachmentSlot extends Button implements IStackTooltip {
     }
 
     @Override
-    public void renderWidget(@Nonnull GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
-        RenderSystem.disableDepthTest();
-        RenderSystem.enableBlend();
+    protected void renderContents(@Nonnull GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
 
         int x = getX(), y = getY();
         if (isHoveredOrFocused()) {
-            graphics.blit(GunRefitScreen.SLOT_TEXTURE, x, y, 0, 0, width, height, 18, 18);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, GunRefitScreen.SLOT_TEXTURE, x, y, 0, 0, width, height, 18, 18);
         } else {
-            graphics.blit(GunRefitScreen.SLOT_TEXTURE, x + 1, y + 1, 1, 1, width - 2, height - 2, 18, 18);
+            graphics.blit(RenderPipelines.GUI_TEXTURED, GunRefitScreen.SLOT_TEXTURE, x + 1, y + 1, 1, 1, width - 2, height - 2, 18, 18);
         }
         graphics.renderItem(inventory.getItem(slotIndex), x + 1, y + 1);
 
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
     }
 
     public int getSlotIndex() {

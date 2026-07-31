@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import cn.sh1rocu.tacz.mixin.accessor.ScreenAccessor;
 import cn.sh1rocu.tacz.util.forge.ImageButton;
 import com.google.common.collect.Lists;
@@ -701,8 +703,8 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
 
     @Override
     protected void renderBg(@NotNull GuiGraphics gui, float partialTick, int mouseX, int mouseY) {
-        gui.blit(SIDE, leftPos, topPos, 0, 0, 134, 187);
-        gui.blit(TEXTURE, leftPos + 136, topPos + 27, 0, 0, 208, 160);
+        gui.blit(RenderPipelines.GUI_TEXTURED, SIDE, leftPos, topPos, 0, 0, 134, 187, 256, 256);
+        gui.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, leftPos + 136, topPos + 27, 0, 0, 208, 160, 256, 256);
     }
 
     @Override

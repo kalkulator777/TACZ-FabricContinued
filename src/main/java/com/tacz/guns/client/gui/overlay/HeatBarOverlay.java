@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.overlay;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
@@ -85,7 +87,7 @@ public class HeatBarOverlay implements LayeredDraw.Layer {
                 pGraphics.setColor(1, 1, 0.1f, 1);
             }
         }
-        pGraphics.blit(HEATBASE, w / 2 - 64, h / 2 - 44, 0, 0, 128, 128, 128, 128);
+        pGraphics.blit(RenderPipelines.GUI_TEXTURED, HEATBASE, w / 2 - 64, h / 2 - 44, 0, 0, 128, 128, 128, 128);
         pGraphics.setColor(1, 1, 1, 1);
 
         Font font = Minecraft.getInstance().fontFilterFishy;

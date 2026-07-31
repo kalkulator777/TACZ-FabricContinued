@@ -1,5 +1,7 @@
 package cn.sh1rocu.tacz.util.forge;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -22,7 +24,7 @@ public class ImageButton extends Button {
     }
 
     @Override
-    public void renderWidget(@NotNull GuiGraphics gui, int pMouseX, int pMouseY, float pPartialTick) {
+    protected void renderContents(@NotNull GuiGraphics gui, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderTexture(gui, this.resourceLocation, this.getX(), this.getY(), this.xTexStart, this.yTexStart, this.yDiffTex, this.width, this.height, 256, 256);
     }
 
@@ -34,7 +36,6 @@ public class ImageButton extends Button {
             i = pVOffset + pTextureDifference;
         }
 
-        RenderSystem.enableDepthTest();
-        pGuiGraphics.blit(pTexture, pX, pY, (float) pUOffset, (float) i, pWidth, pHeight, pTextureWidth, pTextureHeight);
+        pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, pTexture, pX, pY, (float) pUOffset, (float) i, pWidth, pHeight, pTextureWidth, pTextureHeight);
     }
 }

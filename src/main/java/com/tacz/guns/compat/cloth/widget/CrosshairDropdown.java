@@ -1,5 +1,7 @@
 package com.tacz.guns.compat.cloth.widget;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.tacz.guns.client.renderer.crosshair.CrosshairType;
 import me.shedaniel.clothconfig2.gui.entries.DropdownBoxEntry;
 import net.minecraft.client.Minecraft;
@@ -28,7 +30,7 @@ public class CrosshairDropdown {
                 this.textFieldWidget.render(graphics, mouseX, mouseY, delta);
 
                 Identifier location = CrosshairType.getTextureLocation(this.value);
-                graphics.blit(location, x + width - 18, y + 2, 0, 0, 16, 16, 16, 16);
+                graphics.blit(RenderPipelines.GUI_TEXTURED, location, x + width - 18, y + 2, 0, 0, 16, 16, 16, 16);
             }
         };
     }
@@ -54,7 +56,7 @@ public class CrosshairDropdown {
                         graphics.drawString(Minecraft.getInstance().font, text, (int) (x + 6 + 18), (int) (y + 6), color, false);
 
                         Identifier location = CrosshairType.getTextureLocation(this.r);
-                        graphics.blit(location, x + 4, y + 2, 0, 0, 16, 16, 16, 16);
+                        graphics.blit(RenderPipelines.GUI_TEXTURED, location, x + 4, y + 2, 0, 0, 16, 16, 16, 16);
                     }
                 };
             }

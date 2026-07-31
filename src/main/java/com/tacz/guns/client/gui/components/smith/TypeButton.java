@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.components.smith;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.tacz.guns.GunMod;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,14 +22,13 @@ public class TypeButton extends Button {
     }
 
     @Override
-    protected void renderWidget(@NotNull GuiGraphics gui, int pMouseX, int pMouseY, float pPartialTick) {
-        RenderSystem.enableDepthTest();
+    protected void renderContents(@NotNull GuiGraphics gui, int pMouseX, int pMouseY, float pPartialTick) {
 
         int vOffset = isHoveredOrFocused() ? 204 + this.height : 204;
         if (isSelected) {
-            gui.blit(TEXTURE, this.getX(), this.getY(), 0, vOffset, this.width, this.height, 256, 256);
+            gui.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.getX(), this.getY(), 0, vOffset, this.width, this.height, 256, 256);
         } else {
-            gui.blit(TEXTURE, this.getX(), this.getY(), 26, vOffset, this.width, this.height, 256, 256);
+            gui.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, this.getX(), this.getY(), 26, vOffset, this.width, this.height, 256, 256);
         }
 
         gui.renderItem(this.stack, this.getX() + 4, this.getY() + 5);

@@ -1,5 +1,7 @@
 package com.tacz.guns.client.gui.components;
 
+import net.minecraft.client.renderer.RenderPipelines;
+
 import com.google.common.collect.ImmutableList;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.tacz.guns.client.gui.GunSmithTableScreen;
@@ -121,7 +123,7 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
     }
 
     @Override
-    public void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+    protected void renderContents(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         this.renderListBackground(pGuiGraphics);
         pGuiGraphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x80000000);
         int i = this.getScrollbarPosition();
@@ -145,7 +147,6 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
         }
         this.renderDecorations(pGuiGraphics, pMouseX, pMouseY);
 
-        RenderSystem.disableBlend();
     }
 
     public int getRowLeft() {
@@ -229,12 +230,10 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
 
         }
 
-        public void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
+        protected void renderContents(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
             Minecraft minecraft = Minecraft.getInstance();
-            RenderSystem.enableDepthTest();
             Font font = minecraft.font;
             pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, this.alpha);
-            RenderSystem.enableBlend();
             Identifier texture;
             if (this.isFocused()) {
                 if (this.selected) {
@@ -249,7 +248,7 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
                     texture = CHECKBOX;
                 }
             }
-            pGuiGraphics.blit(texture, this.getX(), this.getY(), 0.0F, 0.0F, 10, 10, 10, 10);
+            pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, this.getX(), this.getY(), 0.0F, 0.0F, 10, 10, 10, 10);
             pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
             if (this.showLabel) {
                 pGuiGraphics.drawString(font, this.getMessage(), this.getX() + 24, this.getY() + (this.height - 8) / 2, 14737632 | Mth.ceil(this.alpha * 255.0F) << 24);
