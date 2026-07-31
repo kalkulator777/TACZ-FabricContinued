@@ -1,6 +1,5 @@
 package com.tacz.guns.client.particle;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.config.client.RenderConfig;
 import com.tacz.guns.init.ModBlocks;
@@ -11,17 +10,18 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.ParticleRenderType;
-import net.minecraft.client.particle.TextureSheetParticle;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.state.QuadParticleRenderState;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.world.level.Level;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -33,7 +33,7 @@ import org.joml.Vector3f;
 /**
  * Author: Forked from MrCrayfish, continued by Timeless devs
  */
-public class BulletHoleParticle extends TextureSheetParticle {
+public class BulletHoleParticle extends SingleQuadParticle {
     private final Direction direction;
     private final BlockPos pos;
     private int uOffset;
@@ -41,8 +41,9 @@ public class BulletHoleParticle extends TextureSheetParticle {
     private float textureDensity;
 
     public BulletHoleParticle(ClientLevel world, double x, double y, double z, Direction direction, BlockPos pos, String ammoId, String gunId, String gunDisplayId) {
-        super(world, x, y, z);
-        this.setSprite(this.getSprite(pos));
+        super(world, x, y, z, getSprite(pos));
+        // uv 偏移要用 random，super 的构造里还拿不到，所以在这里再走一次 setSprite
+        this.setSprite(this.sprite);
         this.direction = direction;
         this.pos = pos;
         this.lifetime = this.getLifetimeFromConfig(world);
@@ -89,15 +90,10 @@ public class BulletHoleParticle extends TextureSheetParticle {
         this.textureDensity = (sprite.getU1() - sprite.getU0()) / 16.0F;
     }
 
-    private TextureAtlasSprite getSprite(BlockPos pos) {
+    private static TextureAtlasSprite getSprite(BlockPos pos) {
         Minecraft minecraft = Minecraft.getInstance();
-        Level world = minecraft.level;
-        if (world != null) {
-            BlockState state = world.getBlockState(pos);
-            // return Minecraft.getInstance().getBlockRenderer().getBlockModelShaper().getTexture(state, world, pos);
-            return Minecraft.getInstance().getBlockRenderer().getBlockModelShaper().getParticleIcon(state);
-        }
-        return Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(MissingTextureAtlasSprite.getLocation());
+        BlockState state = minecraft.level != null ? minecraft.level.getBlockState(pos) : Blocks.AIR.defaultBlockState();
+        return minecraft.getBlockRenderer().getBlockModelShaper().getParticleIcon(state);
     }
 
     @Override
@@ -128,34 +124,28 @@ public class BulletHoleParticle extends TextureSheetParticle {
         }
     }
 
+    /**
+     * 1.21.9 起粒子不再自己往顶点缓冲里画，而是把一份「四边形状态」交出去，统一提交。
+     * QuadParticleRenderState 只收「位置 + 四元数 + 边长 + uv + 颜色 + 亮度」，
+     * 它拼出来的四边形躺在 XY 平面（角点 (±1, ±1, 0)），而旧代码那份躺在 XZ 平面
+     * （角点 (±1, 0.01, ±1)），Direction.getRotation() 也是照 XZ 那份写的。
+     * 所以这里先绕 X 轴转 -90°，把 XY 掰成 XZ，再套 direction 的旋转。
+     * <p>
+     * 防 z-fight 的那 0.01 没法塞进四元数，改成沿法线把整个粒子挪出去 —— 数学上和旧代码等价。
+     * uv 也跟着 XY→XZ 的翻转对调过，保证贴图朝向不变。
+     */
     @Override
-    public void render(VertexConsumer buffer, Camera renderInfo, float partialTicks) {
-        Vec3 view = renderInfo.getPosition();
-        float particleX = (float) (Mth.lerp(partialTicks, this.xo, this.x) - view.x());
-        float particleY = (float) (Mth.lerp(partialTicks, this.yo, this.y) - view.y());
-        float particleZ = (float) (Mth.lerp(partialTicks, this.zo, this.z) - view.z());
-        Quaternionf quaternion = this.direction.getRotation();
-        Vector3f[] points = new Vector3f[]{
-                // Y 值稍微大一点点，防止 z-fight
-                new Vector3f(-1.0F, 0.01F, -1.0F),
-                new Vector3f(-1.0F, 0.01F, 1.0F),
-                new Vector3f(1.0F, 0.01F, 1.0F),
-                new Vector3f(1.0F, 0.01F, -1.0F)
-        };
+    public void extract(QuadParticleRenderState renderState, Camera camera, float partialTicks) {
+        Vec3 view = camera.position();
         float scale = this.getQuadSize(partialTicks);
 
-        for (int i = 0; i < 4; ++i) {
-            Vector3f vector3f = points[i];
-            vector3f.rotate(quaternion);
-            vector3f.mul(scale);
-            vector3f.add(particleX, particleY, particleZ);
-        }
+        Quaternionf rotation = this.direction.getRotation();
+        Vector3f offset = new Vector3f(0.0F, 0.01F, 0.0F).rotate(rotation).mul(scale);
+        Quaternionf quadRotation = new Quaternionf(rotation).rotateX((float) (-Math.PI / 2));
 
-        // UV 坐标
-        float u0 = this.getU0();
-        float u1 = this.getU1();
-        float v0 = this.getV0();
-        float v1 = this.getV1();
+        float particleX = (float) (Mth.lerp(partialTicks, this.xo, this.x) - view.x()) + offset.x();
+        float particleY = (float) (Mth.lerp(partialTicks, this.yo, this.y) - view.y()) + offset.y();
+        float particleZ = (float) (Mth.lerp(partialTicks, this.zo, this.z) - view.z()) + offset.z();
 
         // 0 - 30 tick 内，从 15 亮度到 0 亮度
         int light = Math.max(15 - this.age / 2, 0);
@@ -172,15 +162,19 @@ public class BulletHoleParticle extends TextureSheetParticle {
         float fade = 1.0f - (float) (Math.max(this.age - threshold, 0) / (this.lifetime - threshold));
         float alphaFade = this.alpha * fade;
 
-        buffer.addVertex(points[0].x(), points[0].y(), points[0].z()).setUv(u1, v1).setColor(red, green, blue, alphaFade).setLight(lightColor);
-        buffer.addVertex(points[1].x(), points[1].y(), points[1].z()).setUv(u1, v0).setColor(red, green, blue, alphaFade).setLight(lightColor);
-        buffer.addVertex(points[2].x(), points[2].y(), points[2].z()).setUv(u0, v0).setColor(red, green, blue, alphaFade).setLight(lightColor);
-        buffer.addVertex(points[3].x(), points[3].y(), points[3].z()).setUv(u0, v1).setColor(red, green, blue, alphaFade).setLight(lightColor);
+        renderState.add(this.getLayer(),
+                particleX, particleY, particleZ,
+                quadRotation.x, quadRotation.y, quadRotation.z, quadRotation.w,
+                scale,
+                this.getU1(), this.getU0(), this.getV1(), this.getV0(),
+                ARGB.colorFromFloat(alphaFade, red, green, blue), lightColor);
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.TERRAIN_SHEET;
+    public SingleQuadParticle.Layer getLayer() {
+        return this.sprite.atlasLocation().equals(TextureAtlas.LOCATION_BLOCKS)
+                ? SingleQuadParticle.Layer.TERRAIN
+                : SingleQuadParticle.Layer.ITEMS;
     }
 
     private boolean shouldRemove() {
@@ -208,9 +202,8 @@ public class BulletHoleParticle extends TextureSheetParticle {
         }
 
         @Override
-        public BulletHoleParticle createParticle(@NotNull BulletHoleOption option, @NotNull ClientLevel world, double x, double y, double z, double pXSpeed, double pYSpeed, double pZSpeed) {
-            BulletHoleParticle particle = new BulletHoleParticle(world, x, y, z, option.getDirection(), option.getPos(), option.getAmmoId(), option.getGunId(), option.getGunDisplayId());
-            return particle;
+        public BulletHoleParticle createParticle(@NotNull BulletHoleOption option, @NotNull ClientLevel world, double x, double y, double z, double pXSpeed, double pYSpeed, double pZSpeed, @NotNull RandomSource random) {
+            return new BulletHoleParticle(world, x, y, z, option.getDirection(), option.getPos(), option.getAmmoId(), option.getGunId(), option.getGunDisplayId());
         }
     }
 }
