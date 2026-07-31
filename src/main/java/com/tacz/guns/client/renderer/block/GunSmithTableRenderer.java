@@ -8,22 +8,27 @@ import com.tacz.guns.api.item.IBlock;
 import com.tacz.guns.block.AbstractGunSmithTableBlock;
 import com.tacz.guns.block.entity.GunSmithTableBlockEntity;
 import com.tacz.guns.client.model.bedrock.BedrockModel;
+import com.tacz.guns.client.renderer.block.state.GunSmithTableRenderState;
 import com.tacz.guns.client.resource.index.ClientBlockIndex;
 import com.tacz.guns.config.client.RenderConfig;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-public class GunSmithTableRenderer implements BlockEntityRenderer<GunSmithTableBlockEntity> {
+public class GunSmithTableRenderer implements BlockEntityRenderer<GunSmithTableBlockEntity, GunSmithTableRenderState> {
     public GunSmithTableRenderer(BlockEntityRendererProvider.Context context) {
     }
 
@@ -47,34 +52,52 @@ public class GunSmithTableRenderer implements BlockEntityRenderer<GunSmithTableB
     }
 
     @Override
-    public void render(GunSmithTableBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {
+    public GunSmithTableRenderState createRenderState() {
+        return new GunSmithTableRenderState();
+    }
+
+    @Override
+    public void extractRenderState(GunSmithTableBlockEntity blockEntity, GunSmithTableRenderState state, float partialTick,
+                                   Vec3 cameraPos, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
+        BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumblingOverlay);
+        state.model = null;
+        state.renderType = null;
+
+        BlockState blockState = blockEntity.getBlockState();
+        if (!(blockState.getBlock() instanceof AbstractGunSmithTableBlock block) || !block.isRoot(blockState)) {
+            // 多方块工作台只由主方块画整个模型
+            return;
+        }
         getIndex(blockEntity).ifPresent(index -> {
             BedrockModel model = index.getModel();
-            Identifier texture = index.getTexture();
             if (model == null) {
                 return;
             }
-            BlockState blockState = blockEntity.getBlockState();
-            if (blockState.getBlock() instanceof AbstractGunSmithTableBlock block) {
-                if (!block.isRoot(blockState)) {
-                    return;
-                }
-                Direction facing = blockState.getValue(AbstractGunSmithTableBlock.FACING);
-                poseStack.pushPose();
-                poseStack.translate(0.5, 1.5, 0.5);
-                poseStack.mulPose(Axis.ZN.rotationDegrees(180));
-                poseStack.mulPose(Axis.YN.rotationDegrees(block.parseRotation(facing)));
-                RenderType renderType = RenderConfig.BLOCK_ENTITY_TRANSLUCENT.get() ?
-                        RenderTypes.entityTranslucent(texture) :
-                        RenderTypes.entityCutout(texture);
-                model.render(poseStack, ItemDisplayContext.NONE, renderType, combinedLightIn, combinedOverlayIn);
-                poseStack.popPose();
-            }
+            Identifier texture = index.getTexture();
+            Direction facing = blockState.getValue(AbstractGunSmithTableBlock.FACING);
+            state.model = model;
+            state.rotationDegrees = block.parseRotation(facing);
+            state.renderType = RenderConfig.BLOCK_ENTITY_TRANSLUCENT.get() ?
+                    RenderTypes.entityTranslucent(texture) :
+                    RenderTypes.entityCutout(texture);
         });
     }
 
     @Override
-    public boolean shouldRenderOffScreen(GunSmithTableBlockEntity blockEntity) {
+    public void submit(GunSmithTableRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+        if (state.model == null || state.renderType == null) {
+            return;
+        }
+        poseStack.pushPose();
+        poseStack.translate(0.5, 1.5, 0.5);
+        poseStack.mulPose(Axis.ZN.rotationDegrees(180));
+        poseStack.mulPose(Axis.YN.rotationDegrees(state.rotationDegrees));
+        state.model.render(poseStack, ItemDisplayContext.NONE, collector, state.renderType, state.lightCoords, OverlayTexture.NO_OVERLAY);
+        poseStack.popPose();
+    }
+
+    @Override
+    public boolean shouldRenderOffScreen() {
         return true;
     }
 }

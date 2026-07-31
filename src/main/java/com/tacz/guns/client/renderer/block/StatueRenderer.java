@@ -5,29 +5,33 @@ import com.mojang.math.Axis;
 import com.tacz.guns.block.TargetBlock;
 import com.tacz.guns.block.entity.StatueBlockEntity;
 import com.tacz.guns.client.model.bedrock.BedrockModel;
+import com.tacz.guns.client.renderer.block.state.StatueRenderState;
 import com.tacz.guns.client.resource.InternalAssetLoader;
 import com.tacz.guns.config.client.RenderConfig;
-import net.minecraft.util.Util;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.world.item.ItemDisplayContext;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-public class StatueRenderer implements BlockEntityRenderer<StatueBlockEntity> {
+public class StatueRenderer implements BlockEntityRenderer<StatueBlockEntity, StatueRenderState> {
+    private final ItemModelResolver itemModelResolver;
+
     public StatueRenderer(BlockEntityRendererProvider.Context context) {
+        this.itemModelResolver = context.itemModelResolver();
     }
 
     public static Optional<BedrockModel> getModel() {
@@ -35,47 +39,44 @@ public class StatueRenderer implements BlockEntityRenderer<StatueBlockEntity> {
     }
 
     @Override
-    public void render(StatueBlockEntity blockEntity, float partialTick, PoseStack poseStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {
-        getModel().ifPresent(model -> {
-            Level level = blockEntity.getLevel();
-            if (level == null) {
-                return;
-            }
+    public StatueRenderState createRenderState() {
+        return new StatueRenderState();
+    }
 
+    @Override
+    public void extractRenderState(StatueBlockEntity blockEntity, StatueRenderState state, float partialTick,
+                                   Vec3 cameraPos, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay) {
+        BlockEntityRenderer.super.extractRenderState(blockEntity, state, partialTick, cameraPos, crumblingOverlay);
+        state.facing = blockEntity.getBlockState().getValue(TargetBlock.FACING);
+        state.bobOffset = Math.sin(Util.getMillis() / 500.0) * 0.1;
+
+        Level level = blockEntity.getLevel();
+        this.itemModelResolver.updateForTopItem(state.gunItem, blockEntity.getGunItem(), ItemDisplayContext.FIXED,
+                level, null, (int) blockEntity.getBlockPos().asLong());
+    }
+
+    @Override
+    public void submit(StatueRenderState state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
+        getModel().ifPresent(model -> {
             poseStack.pushPose();
             {
-                BlockState blockState = blockEntity.getBlockState();
-                Direction facing = blockState.getValue(TargetBlock.FACING);
-
                 poseStack.translate(0.5, 1.5, 0.5);
-
-                poseStack.mulPose(Axis.YN.rotationDegrees((facing.get2DDataValue() + 2) % 4 * 90));
+                poseStack.mulPose(Axis.YN.rotationDegrees((state.facing.get2DDataValue() + 2) % 4 * 90));
                 poseStack.mulPose(Axis.ZN.rotationDegrees(180));
 
                 RenderType renderType = RenderConfig.BLOCK_ENTITY_TRANSLUCENT.get() ?
                         RenderTypes.entityTranslucent(getTextureLocation()) :
                         RenderTypes.entityCutout(getTextureLocation());
-                model.render(poseStack, ItemDisplayContext.NONE, renderType, combinedLightIn, combinedOverlayIn);
+                model.render(poseStack, ItemDisplayContext.NONE, collector, renderType, state.lightCoords, OverlayTexture.NO_OVERLAY);
 
-                poseStack.scale(0.5f, 0.5f, 0.5f);
-                poseStack.translate(0, -0.875, -1.2);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(180));
-
-                double offset = Math.sin(Util.getMillis() / 500.0) * 0.1;
-                poseStack.translate(0, offset, 0);
-
-                ItemStack stack = blockEntity.getGunItem();
-
-                Minecraft.getInstance().getItemRenderer().renderStatic(
-                        stack,
-                        ItemDisplayContext.FIXED,
-                        LightTexture.pack(15, 15),
-                        OverlayTexture.NO_OVERLAY,
-                        poseStack,
-                        bufferIn,
-                        level,
-                        0
-                );
+                if (!state.gunItem.isEmpty()) {
+                    poseStack.scale(0.5f, 0.5f, 0.5f);
+                    poseStack.translate(0, -0.875, -1.2);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(180));
+                    poseStack.translate(0, state.bobOffset, 0);
+                    // 展示的枪一直是满亮度的，和以前一样
+                    state.gunItem.submit(poseStack, collector, LightTexture.pack(15, 15), OverlayTexture.NO_OVERLAY, 0);
+                }
             }
             poseStack.popPose();
         });
@@ -91,12 +92,12 @@ public class StatueRenderer implements BlockEntityRenderer<StatueBlockEntity> {
     }
 
     @Override
-    public boolean shouldRenderOffScreen(StatueBlockEntity blockEntity) {
+    public boolean shouldRenderOffScreen() {
         return true;
     }
 
     @Override
-    public boolean shouldRender(StatueBlockEntity pBlockEntity, Vec3 pCameraPos) {
-        return Vec3.atCenterOf(pBlockEntity.getBlockPos().above()).closerThan(pCameraPos, this.getViewDistance());
+    public boolean shouldRender(StatueBlockEntity blockEntity, Vec3 cameraPos) {
+        return Vec3.atCenterOf(blockEntity.getBlockPos().above()).closerThan(cameraPos, this.getViewDistance());
     }
 }

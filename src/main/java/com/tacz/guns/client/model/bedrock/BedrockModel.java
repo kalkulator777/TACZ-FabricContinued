@@ -7,6 +7,7 @@ import com.tacz.guns.client.resource.pojo.model.*;
 import com.tacz.guns.compat.iris.IrisCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.phys.Vec2;
@@ -348,6 +349,55 @@ public class BedrockModel {
         return indexBones.get(name);
     }
 
+    /**
+     * 把这个模型交给渲染批次。
+     * <p>
+     * 1.21.9 起渲染分成了两步：先收集，再统一提交，渲染器自己不再直接往缓冲里画。所以这里
+     * 不再自取 buffer、也不再手动 endBatch —— 顺序由收集器负责，Iris 的那次冲刷也就不需要了。
+     * <p>
+     * 回调是延后执行的，所以要渲染的部件和附加渲染器都先取一份快照：等回调真正跑的时候，
+     * 这个模型可能已经被下一帧改过了。
+     */
+    public void render(PoseStack matrixStack, ItemDisplayContext transformType, SubmitNodeCollector collector,
+                       RenderType renderType, int light, int overlay) {
+        render(matrixStack, transformType, collector, renderType, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F, null);
+    }
+
+    public void render(PoseStack matrixStack, ItemDisplayContext transformType, SubmitNodeCollector collector,
+                       RenderType renderType, int light, int overlay, @Nullable Runnable poseModel) {
+        render(matrixStack, transformType, collector, renderType, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F, poseModel);
+    }
+
+    /**
+     * @param poseModel 摆放骨骼的动作，在真正画之前执行。模型实例是共享的，而回调是延后跑的，
+     *                  所以任何一份「这一个方块/这一个玩家的姿势」都必须在这里做，不能在提交前做 ——
+     *                  否则同一帧里的第二次提交会把第一次的姿势覆盖掉。
+     */
+    public void render(PoseStack matrixStack, ItemDisplayContext transformType, SubmitNodeCollector collector,
+                       RenderType renderType, int light, int overlay,
+                       float red, float green, float blue, float alpha, @Nullable Runnable poseModel) {
+        List<BedrockPart> parts = List.copyOf(shouldRender);
+        List<IFunctionalRenderer> delegates = delegateRenderers;
+        delegateRenderers = new ArrayList<>();
+        collector.submitCustomGeometry(matrixStack, renderType, (pose, builder) -> {
+            if (poseModel != null) {
+                poseModel.run();
+            }
+            PoseStack local = new PoseStack();
+            local.last().set(pose);
+            for (BedrockPart part : parts) {
+                part.render(local, transformType, builder, light, overlay, red, green, blue, alpha);
+            }
+            for (IFunctionalRenderer renderer : delegates) {
+                renderer.render(local, builder, transformType, light, overlay);
+            }
+        });
+    }
+
+    /**
+     * 旧的即时渲染路径，自己取 buffer 自己冲刷。还没有搬到收集器上的调用方在用它，
+     * 全部搬完之后这两个重载就可以删掉。
+     */
     public void render(PoseStack matrixStack, ItemDisplayContext transformType, RenderType renderType, int light, int overlay) {
         render(matrixStack, transformType, renderType, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
     }
