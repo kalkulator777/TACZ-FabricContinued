@@ -275,11 +275,12 @@ Nothing on the dependency list now blocks the version bump.
 
 #### Phase 2 — port to 1.21.11 and release
 
-**In progress.** The tree does not compile, which is expected and is why phases 0
-and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 35 now**, and what is left is
-no longer vanilla at all: eight in mixins whose targets moved, twenty-seven in the
-recipe-viewer and shader-mod integrations.
+**The tree compiles and the jar builds** — `remapJar`, the access widener check and
+all of it. That took **4756 distinct compile errors** down to zero, which is why
+phases 0 and 1 emptied everything they could out of this one first.
+
+Compiling is not running. Nothing here has been in front of a GPU, and the mixin
+remapper has already named the places where it will not: see below.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
       the one that keeps remapping to intermediary — Gradle 9.5.1, loader 0.19.3,
@@ -359,14 +360,27 @@ recipe-viewer and shader-mod integrations.
         are gone, and tints are an argument to `blit`.
       - 2D `GuiGraphics`, HUD on `HudElementRegistry`, and the widgets — the only
         genuinely mechanical part of the four.
-- [ ] Mixins last — they only validate in a running game, and eight of the
-      remaining errors are here. `KeyboardHandler.keyPress` and
-      `MouseHandler.onPress` changed shape; `Level` and `Player` gained
-      constructor parameters. Two more compile but are already known wrong and
-      marked in place: `PlayerModelMixin` and `ItemInHandLayerMixin` both target
-      1.21.1 methods that took a `LivingEntity`, and the model and the layer now
-      work from a render state — the entity reads behind them have to move into
-      extraction.
+- [ ] **Mixins.** The keyboard and mouse handlers are retargeted onto the record
+      forms. What is left is the set the remapper reports on every build — a free,
+      exact inventory, because a target it cannot find is a target that moved:
+
+      | Mixin target | What happened |
+      |---|---|
+      | `Minecraft.timer` | renamed |
+      | `ItemInHandLayer.render(…, LivingEntity, …)` | `submit(…, S, …)`, takes a render state |
+      | `ItemInHandLayer.renderArmWithItem(…)` ×2 | `submitArmWithItem(…)` |
+      | `HumanoidModel.setupAnim(LivingEntity, …)` | `setupAnim(S)` |
+      | `PlayerModel.setupAnim(LivingEntity, …)` | `setupAnim(S)` |
+      | `LivingEntityRenderer.render(LivingEntity, …)` | render state |
+      | `AbstractButton.onClick(DD)` | `onClick(MouseButtonEvent, boolean)` |
+      | `RecipeManager.apply(Map, ResourceManager, ProfilerFiller)` | reload contract changed |
+
+      Five of those are the same problem: the renderer, the layer and the model all
+      work from a render state now and cannot see the entity. The reads behind them
+      — is the main hand holding a gun, what is in the offhand and the hotbar — have
+      to move into extraction and ride along in the state. That is the last piece of
+      the extract-and-submit conversion, and the only one that could not be done by
+      following compile errors.
 
 **The scope stencil mask.** Nothing in vanilla touches the stencil buffer any
 more — not `RenderSystem`, not `RenderPipeline` — so it had to be rebuilt from
@@ -404,11 +418,16 @@ and the first thing to check is that the framebuffer is still complete.
       `ClientRecipes` wraps the lookup. A `RecipeHolder` is keyed by
       `ResourceKey<Recipe<?>>` now; the craft packet still carries a plain
       `Identifier` and the server rebuilds the key, so the protocol is unchanged.
-- [ ] The integrations, twenty-seven errors and the other half of what is left.
-      Each is waiting on that mod's own 1.21.11 API rather than on vanilla:
-      JEI's subtype and category interfaces, REI's `Display.getSerializer`,
-      Shoulder Surfing's 5.x `register`, Iris's `batchedentityrendering` internals,
-      ImmediatelyFast's api package, and Controllable's `TickEvents`.
+- [x] **The integrations.** JEI's subtype and category interfaces, REI's
+      `Display.getSerializer`, Shoulder Surfing's 5.x event bus and Framework's
+      renamed events were all real API moves and are ported.
+
+      Two were deleted instead, and for the same reason: they existed to work around
+      a mod doing its own draw batching, and both mods stopped, because vanilla's
+      submit pipeline does that now. ImmediatelyFast dropped `hud_batching` and its
+      whole public api package. Iris dropped `batchedentityrendering` — which takes
+      §8's standing liability with it, the one integration point with no `api.v0`
+      equivalent that had to be re-checked on every Iris release.
 
 Three behaviour changes went in rather than being deferred, because vanilla made
 them and there was no way to keep the old shape:
@@ -502,9 +521,6 @@ What follows is what is still open. Everything already fixed is in the
 - A static handoff field leaks the reloadable server resources permanently.
 - The loot table id cache is a static strong-reference map that is never cleared, and
   it re-scans the registry on every roll for a table it failed to resolve.
-- One Iris integration point still calls an internal symbol rather than the stable
-  `api.v0`: flushing `FullyBufferedMultiBufferSource`, which has no API equivalent. It
-  has to be re-checked on every Iris update.
 
 **The gun pack sync packet**
 
@@ -536,8 +552,8 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt, unverified** — see phase 2 | high; changes how every optical scope looks | it compiles and the algorithm is unchanged; needs a GPU to confirm the framebuffer is complete and the mask lands where it used to |
-| Every renderer has to move to extract-and-submit | certain | high; it is most of the client port | do the block entities first — they are the smallest of the four renderers |
-| `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
+| Every renderer has to move to extract-and-submit | **done except the mixins** | high; it is most of the client port | the five render-state mixins are the tail — see phase 2 |
+| `SpecialModelRenderer` does not cover what the mod needs from item rendering | **resolved** — one `tacz:dynamic` type forwards to the mod's own renderers | high | — |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
 | No Parchment | high | low | accept |
 | Addons break at the storage migration | high | medium | deprecated delegating facade for a release |
