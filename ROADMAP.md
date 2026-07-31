@@ -646,6 +646,57 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 ---
 
+#### Open after the first play test on real hardware
+
+Two reports from someone running the built jar at a normal frame rate. Both are
+in the class this environment cannot see — llvmpipe gives about 12 fps here, and
+both symptoms need a smooth frame rate to show at all. Neither is diagnosed yet;
+what follows is the lead, not the answer.
+
+- **The first-person animation runs too fast when walking.**
+  `FirstPersonRenderHandler.tickAnimation` runs once per frame and advances the
+  animation by `getGameTimeDeltaPartialTick(true)`. That is the position inside
+  the current tick, a number in 0..1 — not a per-frame delta. Consumed as a step
+  it makes animation speed scale with frame rate: slow at 12 fps, roughly 1.5x
+  at 60, worse above that. Fits the report and fits why it looks fine here.
+  `getGameTimeDeltaTicks()` is the delta and sits next to it.
+
+  What stops this being a diagnosis: the interface declares
+  `void tick(float partialTick)`, so the receiver may be treating it correctly
+  as a position and the fault may be elsewhere. Read the state machine in
+  `GunItemRendererWrapper` before changing the call.
+
+- **The scope reticle thins out while the breathing animation plays.**
+  One real divergence from 1.21.1 found so far, though it does not obviously
+  cause thinning: the old code drew the reticle with the model's own `RenderType`
+  and only turned the depth *test* off, leaving depth writes on;
+  `ScopeRenderTypes.NO_DEPTH_TEST_PIPELINE` turns off both. The likelier cause is
+  alpha cutout against mipmapping — thin lines lose coverage as the scope drifts
+  sub-pixel, alpha drops under the 0.1 threshold and parts of the line are
+  discarded, which is exactly a "thins out while it moves" symptom. Compare that
+  pipeline against vanilla `entityCutout` before touching anything.
+
+#### Diagnostics and dev affordances that exist now
+
+- `-Dtacz.renderDebug=true` — `RenderDebug`, off and free otherwise. Framebuffer
+  and stencil attachment state, scope circle geometry, one-shot notes.
+- `-Dtacz.muzzleFlashMs=<ms>` — widens the 50 ms muzzle flash window, honoured
+  only with the diagnostic on. Needed because a frame here is longer than the
+  window; see the muzzle flash note above.
+- `-PquickPlay=<save>` on `runClient` — straight into a save, no menu.
+- `-PclientProps=a=1,b=2` — passes system properties to the client JVM.
+
+#### A caution that cost most of a day
+
+Four rendering "defects" were called from screenshots this session. One was real.
+The scope mask was misread three times in a row from the same picture before a
+three-point state dump found the actual cause; the muzzle flash and the bullet
+holes were not broken at all; the table preview was called blank, then called
+fine, and was in fact upside down — which only became visible after cropping the
+panel out and raising the brightness. At 854x480 under software rendering, the
+absence of an effect is close to no evidence, and small detail is unreadable by
+eye. Dump state, or crop and magnify. Do not name a cause from a screenshot.
+
 ### 8. Risks
 
 | Risk | Likelihood | Impact | Mitigation |
