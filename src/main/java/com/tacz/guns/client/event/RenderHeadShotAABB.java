@@ -7,7 +7,8 @@ import com.tacz.guns.config.util.HeadShotAABBConfigRead;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -34,7 +35,8 @@ public class RenderHeadShotAABB {
             // 扩张 0.01，避免和原版显示重合
             aabb = new AABB(-width / 2, eyeHeight - 0.25, -width / 2, width / 2, eyeHeight + 0.25, width / 2).inflate(0.01);
         }
+        // renderLineBox 没了。ShapeRenderer.renderShape 收的是 VoxelShape 和一个打包好的颜色
         VertexConsumer buffer = event.getMultiBufferSource().getBuffer(RenderTypes.lines());
-        LevelRenderer.renderLineBox(event.getPoseStack(), buffer, aabb, 1.0F, 1.0F, 0.0F, 1.0F);
+        ShapeRenderer.renderShape(event.getPoseStack(), buffer, Shapes.create(aabb), 0.0, 0.0, 0.0, 0xFFFFFF00, 1.0F);
     }
 }

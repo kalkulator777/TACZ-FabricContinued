@@ -98,7 +98,10 @@ public abstract class MinecraftMixin {
         eventRef.set(inputEvent);
         if (inputEvent.isCanceled()) {
             if (inputEvent.shouldSwingHand()) {
-                this.particleEngine.crack(blockPos, blockHitResult.getDirection());
+                // ParticleEngine.crack 没了，方块碎屑现在归客户端世界管
+                if (this.level != null) {
+                    this.level.addDestroyBlockEffect(blockPos, this.level.getBlockState(blockPos));
+                }
                 this.player.swing(InteractionHand.MAIN_HAND);
             }
             ci.cancel();

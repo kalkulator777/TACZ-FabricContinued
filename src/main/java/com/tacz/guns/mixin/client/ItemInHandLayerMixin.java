@@ -24,7 +24,11 @@ public class ItemInHandLayerMixin {
     private void render(PoseStack matrixStack, MultiBufferSource buffer, int packedLight, LivingEntity livingEntity, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float pNetHeadYaw, float pHeadPitch, CallbackInfo ci) {
         MuzzleFlashRender.isSelf = false;
         ShellRender.isSelf = false;
-        HumanoidOffhandRender.renderGun(livingEntity, matrixStack, buffer, packedLight);
+        // TODO: 这个混入还指着 1.21.1 的 ItemInHandLayer.render。现在它是
+        //  submit(PoseStack, SubmitNodeCollector, int, S, float, float)，而且拿到的是渲染状态
+        //  不是实体 —— 副手/快捷栏那份枪的数据得先提取进渲染状态。留给混入那一轮。
+        HumanoidOffhandRender.renderGun(livingEntity, matrixStack,
+                Minecraft.getInstance().gameRenderer.getFeatureRenderDispatcher().getSubmitNodeStorage(), packedLight);
     }
 
     @Inject(method = "renderArmWithItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At(value = "HEAD"), cancellable = true)
