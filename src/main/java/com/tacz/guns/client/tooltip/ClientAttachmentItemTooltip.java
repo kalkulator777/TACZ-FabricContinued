@@ -76,8 +76,8 @@ public class ClientAttachmentItemTooltip implements ClientTooltipComponent {
     }
 
     @Override
-    public int getHeight() {
-        if (!Screen.hasShiftDown()) {
+    public int getHeight(Font font) {
+        if (!Minecraft.getInstance().hasShiftDown()) {
             return components.size() * 10 + 28;
         }
         return (showGuns.size() - 1) / 16 * 18 + 50 + components.size() * 10;
@@ -90,7 +90,7 @@ public class ClientAttachmentItemTooltip implements ClientTooltipComponent {
             width[0] = Math.max(width[0], font.width(packInfo) + 4);
         }
         components.forEach(c -> width[0] = Math.max(width[0], font.width(c)));
-        if (!Screen.hasShiftDown()) {
+        if (!Minecraft.getInstance().hasShiftDown()) {
             return Math.max(width[0], font.width(tips) + 4);
         } else {
             width[0] = Math.max(width[0], font.width(support) + 4);
@@ -102,27 +102,27 @@ public class ClientAttachmentItemTooltip implements ClientTooltipComponent {
     }
 
     @Override
-    public void renderText(Font font, int pX, int pY, Matrix4f matrix4f, MultiBufferSource.BufferSource bufferSource) {
+    public void renderText(GuiGraphics guiGraphics, Font font, int pX, int pY) {
         int yOffset = pY;
         for (Component component : this.components) {
-            font.drawInBatch(component, pX, yOffset, 0xffaa00, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            guiGraphics.drawString(font, component, pX, yOffset, 0xFFffaa00, false);
             yOffset += 10;
         }
-        if (!Screen.hasShiftDown()) {
-            font.drawInBatch(tips, pX, pY + 5 + this.components.size() * 10, 0x9e9e9e, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+        if (!Minecraft.getInstance().hasShiftDown()) {
+            guiGraphics.drawString(font, tips, pX, pY + 5 + this.components.size() * 10, 0xFF9e9e9e, false);
             yOffset += 10;
         } else {
             yOffset += (showGuns.size() - 1) / 16 * 18 + 32;
         }
         // 枪包名
         if (packInfo != null) {
-            font.drawInBatch(this.packInfo, pX, yOffset + 8, 0xffffff, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            guiGraphics.drawString(font, this.packInfo, pX, yOffset + 8, 0xFFffffff, false);
         }
     }
 
     @Override
-    public void renderImage(Font font, int mouseX, int mouseY, GuiGraphics gui) {
-        if (!Screen.hasShiftDown()) {
+    public void renderImage(Font font, int mouseX, int mouseY, int width, int height, GuiGraphics gui) {
+        if (!Minecraft.getInstance().hasShiftDown()) {
             return;
         }
         int minY = components.size() * 10 + 3;

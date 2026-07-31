@@ -1,6 +1,6 @@
 package com.tacz.guns.client.init;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.tacz.guns.GunMod;
 import com.tacz.guns.api.client.other.ThirdPersonManager;
 import com.tacz.guns.client.gui.overlay.GunHudOverlay;
 import com.tacz.guns.client.gui.overlay.HeatBarOverlay;
@@ -27,13 +27,12 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.TooltipComponentCallback;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.item.ItemProperties;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 
 @Environment(EnvType.CLIENT)
@@ -89,23 +88,25 @@ public class ClientSetupEvent {
     }
 
     public static void registerGuiOverlays() {
-        // 注册 HUD
-        HudRenderCallback.EVENT.register(GunHudOverlay.INSTANCE::render);
-        HudRenderCallback.EVENT.register(HeatBarOverlay.INSTANCE::render);
-        HudRenderCallback.EVENT.register(InteractKeyTextOverlay.INSTANCE::render);
-        HudRenderCallback.EVENT.register(KillAmountOverlay.INSTANCE::render);
+        // 注册 HUD。HudRenderCallback 换成了 HudElementRegistry，每一层有自己的 id，
+        // 别的模组可以照着它插进来或者替换掉
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "gun_hud"), GunHudOverlay.INSTANCE);
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "heat_bar"), HeatBarOverlay.INSTANCE);
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "interact_key_text"), InteractKeyTextOverlay.INSTANCE);
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "kill_amount"), KillAmountOverlay.INSTANCE);
     }
 
     public static void onClientSetup(Minecraft minecraft) {
         // 注册自己的的硬编码第三人称动画
         ThirdPersonManager.registerDefault();
 
-        // 注册颜色
-        ColorProviderRegistry.ITEM.register(AmmoBoxItem::getColor, ModItems.AMMO_BOX);
+        // TODO: 弹药盒的染色。物品的 ColorProviderRegistry 没了 —— 1.21.4 之后物品染色是
+        //  模型里的 tints，要注册一个 ItemTintSource 再在 items/ammo_box.json 里引用。
+        //  和上面那条变种一起做。
 
-        // 注册变种
-        // noinspection deprecation
-        ItemProperties.register(ModItems.AMMO_BOX, AmmoBoxItem.PROPERTY_NAME, AmmoBoxItem::getStatue);
+        // TODO: 弹药盒的变种。ItemProperties 和模型里的 overrides 一起没了，1.21.4 之后
+        //  要改成 items/ammo_box.json 里的 minecraft:select 加一个注册过的物品模型属性。
+        //  和 ammo_box 的模型迁移一起做。
 
         // 初始化自己的枪包下载器
 //       ClientGunPackDownloadManager.init();
@@ -122,7 +123,8 @@ public class ClientSetupEvent {
         ZoomifyCompat.init();
         ImmediatelyFastCompat.init();
 
-        RenderSystem.recordRenderCall(() -> minecraft.getMainRenderTarget().tacz$enableStencil());
+        // 模板缓冲不在这里开了：recordRenderCall 没了，而且 StencilSupport 用到的时候
+        // 自己会开，第一支瞄具渲染时才付这个代价
     }
 
     public static void onClientResourceReload() {

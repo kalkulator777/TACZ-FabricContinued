@@ -2,7 +2,6 @@ package com.tacz.guns.client.gui.overlay;
 
 import net.minecraft.client.renderer.RenderPipelines;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator;
@@ -16,7 +15,8 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import org.joml.Matrix3x2fStack;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.text.DecimalFormat;
 
-public class HeatBarOverlay implements LayeredDraw.Layer {
+public class HeatBarOverlay implements HudElement {
     private static final Identifier HEATBASE = Identifier.fromNamespaceAndPath(GunMod.MOD_ID, "textures/hud/heat_base.png");
     private static final DecimalFormat HEAT_FORMAT_PERCENT = new DecimalFormat("0.0%");
     private static float heatScale = 0.25f;
@@ -56,9 +56,9 @@ public class HeatBarOverlay implements LayeredDraw.Layer {
             return;
         }
 
-        PoseStack poseStack = graphics.pose();
+        Matrix3x2fStack poseStack = graphics.pose();
         if (gunData.getHeatData() != null && iGun.hasHeatData(stack)) {
-            poseStack.pushPose();
+            poseStack.pushMatrix();
             GunHeatData heatData = gunData.getHeatData();
             float percent = iGun.getHeatAmount(stack) / heatData.getHeatMax();
 
@@ -67,12 +67,12 @@ public class HeatBarOverlay implements LayeredDraw.Layer {
             if (heatScale < scaleValue) heatScale += 0.05f;
             if (heatScale > scaleValue) heatScale -= 0.025f;
             if (heatScale > scaleValue - 0.03 && heatScale < scaleValue + 0.055) heatScale = scaleValue;
-            poseStack.scale(heatScale, heatScale, 1);
+            poseStack.scale(heatScale, heatScale);
 
             boolean locked = iGun.isOverheatLocked(stack);
             int tickCount = mc.gui.getGuiTicks();
             renderOverheat(percent, graphics, (int) (width / heatScale), (int) (height / heatScale), locked, tickCount);
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
     }
 
@@ -80,15 +80,12 @@ public class HeatBarOverlay implements LayeredDraw.Layer {
                                       boolean locked, int tickCount) {
         int barColor = getHeatColor(heatPercentage, locked, tickCount);
         pGraphics.fill(w / 2 - 30, h / 2 + 30, w / 2 - 30 + (int) (heatPercentage * 60), h / 2 + 34, barColor);
+        // setColor 没了，染色现在是 blit 的最后一个参数
+        int baseTint = -1;
         if (locked) {
-            if (tickCount % 20 < 10) {
-                pGraphics.setColor(1, 0.1f, 0.1f, 1);
-            } else {
-                pGraphics.setColor(1, 1, 0.1f, 1);
-            }
+            baseTint = tickCount % 20 < 10 ? 0xFFFF1A1A : 0xFFFFFF1A;
         }
-        pGraphics.blit(RenderPipelines.GUI_TEXTURED, HEATBASE, w / 2 - 64, h / 2 - 44, 0, 0, 128, 128, 128, 128);
-        pGraphics.setColor(1, 1, 1, 1);
+        pGraphics.blit(RenderPipelines.GUI_TEXTURED, HEATBASE, w / 2 - 64, h / 2 - 44, 0, 0, 128, 128, 128, 128, baseTint);
 
         Font font = Minecraft.getInstance().fontFilterFishy;
         String percentString = locked ? "!OVERHEAT!" : HEAT_FORMAT_PERCENT.format(heatPercentage);

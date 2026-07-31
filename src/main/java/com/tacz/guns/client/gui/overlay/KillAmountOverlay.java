@@ -1,20 +1,19 @@
 package com.tacz.guns.client.gui.overlay;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.api.client.gameplay.IClientPlayerGunOperator;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.config.client.RenderConfig;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import org.joml.Matrix3x2fStack;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-public class KillAmountOverlay implements LayeredDraw.Layer {
+public class KillAmountOverlay implements HudElement {
     private static long killTimestamp = -1L;
     private static int killAmount = 0;
 
@@ -60,18 +59,15 @@ public class KillAmountOverlay implements LayeredDraw.Layer {
         }
         int color = Mth.hsvToRgb(hue, 0.75f, 1) + (alpha << 24);
 
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
 
-        PoseStack poseStack = graphics.pose();
+        Matrix3x2fStack poseStack = graphics.pose();
 
-        poseStack.pushPose();
+        poseStack.pushMatrix();
         {
-            poseStack.scale(0.5f, 0.5f, 1);
+            poseStack.scale(0.5f, 0.5f);
             graphics.drawString(mc.font, text, (int) (width - fontWith / 2.0f), (height - 45) * 2 - 1, color);
         }
-        poseStack.popPose();
-        RenderSystem.disableBlend();
+        poseStack.popMatrix();
     }
 
     public static void markTimestamp() {
