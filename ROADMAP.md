@@ -403,9 +403,55 @@ three separate pieces rather than ported call for call.
   texture: a `RenderType` cannot be asked what it draws with, so the variants have
   to be keyed on the identifier from the call site.
 
-None of it can be checked without a GPU. It compiles and the algorithm is
-unchanged, but **every scope needs looking at in game before this is trusted** —
-and the first thing to check is that the framebuffer is still complete.
+It has now been looked at in game (llvmpipe, 1280×720), and the result splits in
+two.
+
+- The framebuffer is fine. Aiming an ACOG, the circular pass does cut a hole in
+  the mask — it could not do that if the stencil attachment were missing or the
+  raw GL state were being reset between passes, so all three pieces above are
+  doing their job.
+- The mask lands in the wrong place. Aiming through an optical scope paints the
+  whole screen black and shows the world in a *ring around* the tube, with the
+  scope body and black where the magnified view should be. Iron sights aim
+  correctly, and an unscoped gun renders correctly in first person, third person
+  and the inventory, so nothing outside `renderScope`/`renderOcularAndDivision`
+  is implicated.
+
+The next thing to look at is the circle itself: `drawStencilCircle` applies the
+pose to the vertices on the CPU *and* hands `RenderSystem.getModelViewMatrix()`
+to `DynamicTransforms`, where vanilla's own `SkyRenderer` passes the pose as the
+transform and leaves the vertices alone. If those two conventions do not compose
+the way the old `BufferUploader.drawWithShader` path did, the circle ends up at
+the wrong size and offset — which is exactly the symptom.
+**What running the client actually found.** The remapper's inventory above only
+covers targets whose *name* moved. Six more mixins compiled and remapped clean
+and still failed, because what moved was the injection point or the callback
+type, and Mixin only finds that out when it applies — which for a screen class is
+whenever that screen first opens, not at startup. Loading every `@Mixin` target
+in one go turns that into a single run instead of one launch per screen, and it
+is worth doing again after the 26.1 bump.
+
+| Mixin | What moved |
+|---|---|
+| `Minecraft.pickBlock` | rewritten around `MultiPlayerGameMode.handlePickItemFrom*`; the `Abilities.instabuild` read the injection hung on is gone |
+| `Minecraft.startUseItem` | `InteractionResult.shouldSwing()` → `Success.swingSource() == CLIENT` |
+| `SoundEngine.play` | returns `PlayResult`, so the callback is a `CallbackInfoReturnable` |
+| `ItemInHandRenderer.renderHandsWithItems` / `renderArmWithItem` | take a `SubmitNodeCollector`, not a `MultiBufferSource` |
+| `GameRenderer.getFov` | returns `float`, not `double` |
+| `CreateWorldScreen.openFresh` | only forwards now; the `PackRepository` is built in `openCreateWorldScreen` |
+
+That last one was worth more than it looks: `SelectWorldScreen` links against
+`CreateWorldScreen`, so a mixin that fails there takes the world list down with
+it — the singleplayer screen renders as an empty panel and `--quickPlaySingleplayer`
+hangs on "Loading Minecraft" with nothing in the log.
+
+Verified in game on 1.21.11: the title screen and world list, loading a world,
+the first-person gun with the player's arm, the third-person gun on the player
+model, the HUD, the creative inventory and REI alongside it, item tooltips, chat
+and commands, and iron-sight aiming. Known wrong: the scope mask above, and
+`ammo_box`, which renders as the missing-texture model exactly as the resource
+TODO below predicts.
+
 - [ ] Resources: blockstate format, recipe ingredient form. The item definition
       JSON is written for the items that have models; what is left is `ammo_box`,
       which needs two things at once — its model `overrides` become a
@@ -551,7 +597,7 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt, unverified** — see phase 2 | high; changes how every optical scope looks | it compiles and the algorithm is unchanged; needs a GPU to confirm the framebuffer is complete and the mask lands where it used to |
+| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt; buffer works, mask is wrong** — see phase 2 | high; changes how every optical scope looks | the stencil buffer itself is confirmed live in game (the inverted circle does cut a hole, which it could not if the attachment were missing); what is wrong is where the mask lands — aiming through an optical scope paints the screen black with the world showing in a ring *around* the tube instead of through it. Iron sights aim correctly, so only the scope path is affected |
 | Every renderer has to move to extract-and-submit | **done except the mixins** | high; it is most of the client port | the five render-state mixins are the tail — see phase 2 |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | **resolved** — one `tacz:dynamic` type forwards to the mod's own renderers | high | — |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |

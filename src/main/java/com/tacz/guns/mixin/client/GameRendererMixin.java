@@ -75,7 +75,7 @@ public abstract class GameRendererMixin {
      * 至于为什么不直接对 renderItemInHand 这个方法 mixin ，是因为安装了 Optifine 之后，这个方法的内容被大幅度修改了。
      */
     @Inject(method = "getFov", at = @At("HEAD"))
-    public void switchRenderType(Camera pActiveRenderInfo, float pPartialTicks, boolean pUseFOVSetting, CallbackInfoReturnable<Double> cir) {
+    public void switchRenderType(Camera pActiveRenderInfo, float pPartialTicks, boolean pUseFOVSetting, CallbackInfoReturnable<Float> cir) {
         this.tacz$useFovSetting = pUseFOVSetting;
     }
 
@@ -84,11 +84,12 @@ public abstract class GameRendererMixin {
      * SimpleBedrockModel, which patched the same method from its own mixin.
      */
     @ModifyReturnValue(method = "getFov", at = @At(value = "RETURN", ordinal = 1))
-    private double tacz$computeFov(double original, @Local(argsOnly = true) Camera camera,
-                                   @Local(argsOnly = true) float partialTicks,
-                                   @Local(argsOnly = true) boolean useConfigured) {
+    // getFov 现在返回 float；事件本身仍按上游那样用 double，只在这个边界上转一次
+    private float tacz$computeFov(float original, @Local(argsOnly = true) Camera camera,
+                                  @Local(argsOnly = true) float partialTicks,
+                                  @Local(argsOnly = true) boolean useConfigured) {
         ViewportEvent.ComputeFov event = new ViewportEvent.ComputeFov((GameRenderer) (Object) this, camera, partialTicks, original, useConfigured);
         ViewportEvent.FOV.invoker().post(event);
-        return event.getFOV();
+        return (float) event.getFOV();
     }
 }

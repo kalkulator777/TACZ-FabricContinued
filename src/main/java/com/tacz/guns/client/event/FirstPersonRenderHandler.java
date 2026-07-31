@@ -165,7 +165,7 @@ public final class FirstPersonRenderHandler {
                 stack,
                 ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
                 event.getPoseStack(),
-                event.getMultiBufferSource(),
+                event.getCollector(),
                 event.getPackedLight(),
                 event.getPartialTick()
         );

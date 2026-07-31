@@ -6,7 +6,7 @@ import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
@@ -22,7 +22,7 @@ public class RenderHandEvent extends BaseEvent implements ICancellableEvent {
     private final InteractionHand hand;
     private final ItemStack stack;
     private final PoseStack poseStack;
-    private final MultiBufferSource multiBufferSource;
+    private final SubmitNodeCollector collector;
     private final float partialTick;
     private final float pitch;
     private final float swingProgress;
@@ -36,13 +36,13 @@ public class RenderHandEvent extends BaseEvent implements ICancellableEvent {
     });
 
     public RenderHandEvent(AbstractClientPlayer player, InteractionHand hand, ItemStack stack, PoseStack poseStack,
-                           MultiBufferSource multiBufferSource, float partialTick, float pitch, float swingProgress,
+                           SubmitNodeCollector collector, float partialTick, float pitch, float swingProgress,
                            float equipProgress, int packedLight) {
         this.player = player;
         this.hand = hand;
         this.stack = stack;
         this.poseStack = poseStack;
-        this.multiBufferSource = multiBufferSource;
+        this.collector = collector;
         this.partialTick = partialTick;
         this.pitch = pitch;
         this.swingProgress = swingProgress;
@@ -66,8 +66,8 @@ public class RenderHandEvent extends BaseEvent implements ICancellableEvent {
         return this.poseStack;
     }
 
-    public MultiBufferSource getMultiBufferSource() {
-        return this.multiBufferSource;
+    public SubmitNodeCollector getCollector() {
+        return this.collector;
     }
 
     public float getPartialTick() {

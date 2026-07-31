@@ -4,7 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -48,5 +48,5 @@ public interface IFPGeoItemRenderer {
     }
 
     void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext context, PoseStack poseStack,
-                           MultiBufferSource bufferSource, int packedLight, float partialTick);
+                           SubmitNodeCollector collector, int packedLight, float partialTick);
 }

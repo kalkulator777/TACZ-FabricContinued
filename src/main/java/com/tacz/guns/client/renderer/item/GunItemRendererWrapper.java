@@ -166,7 +166,7 @@ public class GunItemRendererWrapper extends AnimateGeoItemRenderer<BedrockGunMod
     }
 
     @Override
-    public void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, MultiBufferSource bufferSource,
+    public void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, SubmitNodeCollector collector,
                                   int light, float partialTick) {
         if (!(stack.getItem() instanceof IGun)) {
             return;

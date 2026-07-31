@@ -24,6 +24,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -147,12 +148,21 @@ public abstract class MinecraftMixin {
         }
     }
 
-    @ModifyExpressionValue(method = "startUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/InteractionResult;shouldSwing()Z"))
-    private boolean tacz$onlySwingHandIfNeeded(boolean original, @Share("inputEvent") LocalRef<InputEvent.InteractionKeyMappingTriggered> inputEvent) {
-        return original && (inputEvent.get() == null || inputEvent.get().shouldSwingHand());
+    /* InteractionResult.shouldSwing() 没了，判断改成 result instanceof Success 且
+     * swingSource() == CLIENT。把 swingSource 换成 SERVER，整个 if 分支（挥手 + itemUsed）
+     * 就会一起跳过，和旧版把 shouldSwing 改成 false 的效果完全一样。*/
+    @ModifyExpressionValue(method = "startUseItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/InteractionResult$Success;swingSource()Lnet/minecraft/world/InteractionResult$SwingSource;"))
+    private InteractionResult.SwingSource tacz$onlySwingHandIfNeeded(InteractionResult.SwingSource original, @Share("inputEvent") LocalRef<InputEvent.InteractionKeyMappingTriggered> inputEvent) {
+        if (inputEvent.get() != null && !inputEvent.get().shouldSwingHand()) {
+            return InteractionResult.SwingSource.SERVER;
+        }
+        return original;
     }
 
-    @Inject(method = "pickBlock", at = @At(value = "FIELD", target = "Lnet/minecraft/world/entity/player/Abilities;instabuild:Z", ordinal = 0), cancellable = true)
+    /* pickBlock 被整个重写了：取物品的逻辑挪进了 MultiPlayerGameMode.handlePickItemFrom*，
+     * 方法体里再也没有 Abilities.instabuild 这个字段访问。改挂在 hasControlDown 上，
+     * 位置就是原来那个 MISS 提前返回之后的第一行，语义与旧注入点一致。*/
+    @Inject(method = "pickBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;hasControlDown()Z"), cancellable = true)
     private void tacz$callInteractionPickInput(CallbackInfo ci) {
         if (tacz$onClickInput(2, this.options.keyPickItem, InteractionHand.MAIN_HAND).isCanceled())
             ci.cancel();

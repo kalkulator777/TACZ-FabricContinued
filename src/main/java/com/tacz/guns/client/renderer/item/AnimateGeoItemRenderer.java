@@ -216,7 +216,7 @@ public abstract class AnimateGeoItemRenderer<M extends BedrockAnimatedModel, CTX
     /**
      * 渲染第一人称，暂时只用于玩家，入口参见 {@link com.tacz.guns.client.event.FirstPersonRenderHandler}
      */
-    public void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, MultiBufferSource bufferSource,
+    public void renderFirstPerson(LocalPlayer player, ItemStack stack, ItemDisplayContext ctx, PoseStack poseStack, SubmitNodeCollector collector,
                                   int light, float partialTick) {
         M model = getModel(stack);
         if (model != null) {
