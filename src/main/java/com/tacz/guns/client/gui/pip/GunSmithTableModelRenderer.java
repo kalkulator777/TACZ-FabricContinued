@@ -32,6 +32,13 @@ public class GunSmithTableModelRenderer extends PictureInPictureRenderer<GunSmit
         RenderDistance.markGuiRenderTimestamp();
         mc.gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
 
+        /* PictureInPictureRenderer.prepare 交过来的是 scale(s, s, -s) —— Y 没有翻，而离屏纹理的
+         * 正交投影和 GUI 一样是 Y 向下，物品模型是 Y 向上。旧代码在 RenderSystem 的 modelview 上
+         * 写的正是 scale(1, -1, 1)。少了这一下，枪是倒着的，而且因为模型自身的原点偏移也跟着反了，
+         * 整个沉到面板下边缘之外 —— 放大截图之后一眼可见。
+         * 原版自己的物品 PiP 在这里连 X 一起翻，那是物品在 GUI 里额外镜像的老约定，这个预览没有。*/
+        poseStack.scale(1.0F, -1.0F, 1.0F);
+
         poseStack.mulPose(Axis.XP.rotationDegrees(state.pitch()));
         poseStack.mulPose(Axis.YP.rotationDegrees(state.rotation()));
 

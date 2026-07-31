@@ -468,8 +468,15 @@ the first-person gun with the player's arm, the third-person gun on the player
 model, the HUD including the ammo counter, the creative inventory and REI
 alongside it, item tooltips, chat and commands, iron-sight aiming, firing (the
 counter decrements and the target dies), the gun smith table block with its full
-model, and that table's screen — recipe list, tooltips, and the rotating preview,
-which does render, small and dark against a grey panel.
+model, and that table's screen — recipe list and tooltips.
+
+The table's rotating preview is the one place where "it renders, it is just small
+and dark" turned out to be wrong on a second look. Cropped out of the screenshot
+and brightened, the gun is upside down and pushed most of the way below the
+panel. `PictureInPictureRenderer.prepare` hands over `scale(s, s, -s)` — Y is not
+flipped — while the offscreen target's projection is Y-down like the GUI and the
+model is Y-up; 1.21.1 wrote `scale(1, -1, 1)` on the modelview for exactly this.
+That flip is back. Confirming it on screen is still outstanding.
 
 The muzzle flash is not broken either, and the way that was established is worth
 recording because the same trap is waiting for every short-lived effect in this
