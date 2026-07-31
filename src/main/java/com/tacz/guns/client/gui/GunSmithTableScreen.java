@@ -7,9 +7,6 @@ import cn.sh1rocu.tacz.util.forge.ImageButton;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.tacz.guns.GunMod;
@@ -41,6 +38,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import com.tacz.guns.client.gui.pip.GunSmithTableModelRenderState;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
@@ -62,7 +60,6 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
-import org.joml.Matrix4fStack;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -514,7 +511,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         graphics.drawString(font, Component.translatable("gui.tacz.gun_smith_table.ingredient"), leftPos + 254, topPos + 50, 0x555555, false);
         drawModCenteredString(graphics, font, Component.translatable("gui.tacz.gun_smith_table.craft"), leftPos + 312, topPos + 167, 0xFFFFFF);
         if (!this.filterEnabled && this.selectedRecipe != null) {
-            this.renderLeftModel(this.selectedRecipe.value());
+            this.renderLeftModel(graphics, this.selectedRecipe.value());
             this.renderPackInfo(graphics, this.selectedRecipe);
             graphics.drawString(font, Component.translatable("gui.tacz.gun_smith_table.count", this.selectedRecipe.value().getResult().getResult().getCount()), leftPos + 254, topPos + 140, 0x555555, false);
         }
@@ -645,56 +642,26 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private void renderLeftModel(GunSmithTableRecipe recipe) {
-        // 先标记一下，渲染高模
-        RenderDistance.markGuiRenderTimestamp();
-
+    /**
+     * 左边那个转着的成品预览。
+     * <p>
+     * 旧写法是推 RenderSystem 的 modelview 矩阵，开个剪裁，直接 renderStatic 画进界面。
+     * 这些现在一个都没有了：GUI 的变换只剩二维，全局 GPU 状态搬进了管线，物品渲染要走收集器。
+     * 换成 picture-in-picture —— 内容画进离屏纹理再贴回来，剪裁和缩放由那套机制自己管。
+     */
+    private void renderLeftModel(GuiGraphics graphics, GunSmithTableRecipe recipe) {
         float rotationPeriod = 8f;
-        int xPos = leftPos + 60;
-        int yPos = topPos + 50;
         int startX = leftPos + 3;
         int startY = topPos + 16;
         int width = 128;
         int height = 99;
         float rotPitch = 15;
-
-        Window window = Minecraft.getInstance().getWindow();
-        double windowGuiScale = window.getGuiScale();
-        int scissorX = (int) (startX * windowGuiScale);
-        int scissorY = (int) (window.getHeight() - ((startY + height) * windowGuiScale));
-        int scissorW = (int) (width * windowGuiScale);
-        int scissorH = (int) (height * windowGuiScale);
-        RenderSystem.enableScissor(scissorX, scissorY, scissorW, scissorH);
-
-        Minecraft.getInstance().getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS).setFilter(false, false);
-        RenderSystem.setShaderTexture(0, TextureAtlas.LOCATION_BLOCKS);
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        Matrix4fStack posestack = RenderSystem.getModelViewStack();
-        posestack.pushMatrix();
-        posestack.translate(xPos, yPos, 200);
-        posestack.translate(8.0F, 8.0F, 0.0F);
-        posestack.scale(1.0F, -1.0F, 1.0F);
-        posestack.scale(scale, scale, scale);
         float rot = (System.currentTimeMillis() % (int) (rotationPeriod * 1000)) * (360f / (rotationPeriod * 1000));
-        posestack.mul(Axis.XP.rotationDegrees(rotPitch).get(new Matrix4f()));
-        posestack.mul(Axis.YP.rotationDegrees(rot).get(new Matrix4f()));
-        RenderSystem.applyModelViewMatrix();
-        PoseStack tmpPose = new PoseStack();
-        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-        Lighting.setupForFlatItems();
 
-        Minecraft.getInstance().getItemRenderer().renderStatic(recipe.getOutput(), ItemDisplayContext.FIXED, 0xf000f0, OverlayTexture.NO_OVERLAY, tmpPose, bufferSource, null, 0);
-
-        bufferSource.endBatch();
-        RenderSystem.enableDepthTest();
-        Lighting.setupFor3DItems();
-        posestack.popMatrix();
-        RenderSystem.applyModelViewMatrix();
-
-        RenderSystem.disableScissor();
+        graphics.guiRenderState.submitPicturesInPictureState(new GunSmithTableModelRenderState(
+                recipe.getOutput(), rot, rotPitch,
+                startX, startY, startX + width, startY + height,
+                scale, graphics.scissorStack.peek()));
     }
 
     @Override

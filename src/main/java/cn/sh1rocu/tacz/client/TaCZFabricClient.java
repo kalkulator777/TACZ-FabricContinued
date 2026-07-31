@@ -31,7 +31,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import com.tacz.guns.client.gui.pip.GunSmithTableModelRenderer;
 import com.tacz.guns.client.renderer.item.TaczSpecialItemRenderer;
+import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class TaCZFabricClient implements ClientModInitializer {
@@ -45,6 +47,7 @@ public class TaCZFabricClient implements ClientModInitializer {
         ModEntitiesRender.registerEntityRenderers();
         ParticleFactories.registerParticles();
         TaczSpecialItemRenderer.register();
+        SpecialGuiElementRegistry.register(ctx -> new GunSmithTableModelRenderer(ctx.vertexConsumers()));
         subscribeEvents();
     }
 
