@@ -557,6 +557,39 @@ them and there was no way to keep the old shape:
 - [ ] Whatever API churn the 26.1 drop brings.
 - [ ] Prototype the riskiest rendering work early rather than at the end.
 
+##### Another port of the same ancestor already exists on 26.1.2 / 26.2
+
+[q14433686-arch/TaCZ_Refabricated_Unofficial](https://github.com/q14433686-arch/TaCZ_Refabricated_Unofficial)
+forks the same `Sh1roCu/TACZ-Refabricated` 1.21.1 Fabric branch this tree does,
+and went straight to 26.1.2 and 26.2 without the intermediate step. Beta 1, GPL-3.0
+like us, so borrowing from it is legal with attribution. Read from the GitHub web
+pages only — it cannot be cloned into this session, so what follows is from its
+README, file listing and one file, not from building it.
+
+Worth knowing before phase 4 starts:
+
+- **Its scope is an offscreen mask texture, not the stencil buffer.** A whole
+  `client/render/scope` package: `ScopeMaskTarget`, `ScopeMaskGeometry`,
+  `ScopeMaskTextureHandle`, plus separate etched and illuminated reticle renderers.
+  The ocular geometry is drawn to a dedicated `TextureTarget` as a black-and-white
+  mask, and the mask is sampled where we test the stencil. That sidesteps the whole
+  problem §7 records about scopes under Iris — a deferred shader pipeline owns the
+  framebuffer, and a stencil attachment we hang off vanilla's depth texture is not
+  guaranteed to survive it. It is the better design for 26.x and should be
+  considered before porting `StencilSupport` forward.
+- **It gave up on picture-in-picture**: "secondary world rendering (PIP) remains
+  disabled due to deep 26.2 rendering/RenderTarget coupling". That is the gun smith
+  table preview, which works in this tree. So this is not a strictly better port to
+  switch to — it is ahead on the scope and behind on the preview.
+- **Its history is not usable as a source of patches.** Roughly 40 commits in two
+  days, a large share of them literally "Add files via upload" — whole files pushed
+  through the web UI, with build logs and gun pack archives committed and then
+  deleted again. There are no reviewable diffs to cherry-pick; anything taken from
+  it has to be read and re-derived.
+
+The honest read: keep this tree, and treat that repo as a second opinion on the
+26.x rendering questions rather than as a base or an upstream.
+
 ---
 
 ### 7. Known work items
