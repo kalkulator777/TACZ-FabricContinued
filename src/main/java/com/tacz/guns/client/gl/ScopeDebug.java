@@ -29,6 +29,7 @@ public final class ScopeDebug {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static String lastAttachmentState = null;
+    private static boolean drawPassPending = true;
     private static final java.util.Set<String> NOTED = new java.util.HashSet<>();
 
     private ScopeDebug() {
@@ -56,6 +57,21 @@ public final class ScopeDebug {
             lastAttachmentState = state;
             LOGGER.info("[tacz/scope] {}", state);
         }
+    }
+
+    /** 和 {@link #dumpAttachmentOnChange()} 一样，但只打一次，且注明是在绘制通道里问的。 */
+    public static void dumpAttachmentInDrawPass() {
+        if (!ENABLED || !drawPassPending) {
+            return;
+        }
+        drawPassPending = false;
+        int fbo = GlStateManager.getFrameBuffer(StencilSupport.GL_DRAW_FRAMEBUFFER);
+        int attachment = GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
+                StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+        int bits = attachment == 0 ? 0 : GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
+                StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE);
+        LOGGER.info("[tacz/scope] in draw pass: fbo={} stencilAttachment={} stencilBits={} stencilTest={}",
+                fbo, attachment, bits, GL11.glIsEnabled(GL11.GL_STENCIL_TEST));
     }
 
     /** 同一条消息只打一次，用来记录「这条路走过了」这类一次性事实。 */

@@ -70,12 +70,24 @@ public final class StencilSupport {
         return allocatingPackedDepthStencil;
     }
 
+    /** 已经补挂过模板附件的 FBO。FBO 的 id 同样会被回收，所以纹理集合一变就得清空。 */
+    private static final IntSet PATCHED_FBOS = new IntOpenHashSet();
+
     public static void registerStencilTexture(int glId) {
         STENCIL_TEXTURES.add(glId);
+        PATCHED_FBOS.clear();
     }
 
     public static void forgetStencilTexture(int glId) {
         STENCIL_TEXTURES.remove(glId);
+        PATCHED_FBOS.clear();
+    }
+
+    /** 第一次见到这个 FBO 时把模板面补挂上去，之后直接跳过。 */
+    public static void ensureStencilAttached(int fbo, int depthTextureId) {
+        if (PATCHED_FBOS.add(fbo)) {
+            attachStencilTo(fbo, depthTextureId);
+        }
     }
 
     public static boolean isStencilTexture(int glId) {

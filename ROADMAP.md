@@ -404,35 +404,43 @@ three separate pieces rather than ported call for call.
   to be keyed on the identifier from the call site.
 
 It has now been measured in game (llvmpipe, 854×480) rather than guessed at from
-a screenshot, and the guess was wrong. Looking at an ACOG produces a black
-rectangle with a round hole in it, which reads like a stencil mask that is merely
-mispositioned. It is not. `-Dtacz.scopeDebug=true` reports, on the framebuffer
-the render passes are actually bound to:
+a screenshot, and it works: aiming an ACOG shows the world through the lens with
+the reticle over it.
+
+Getting there took three wrong answers, all of the same kind — reading a cause
+off a picture. Looking at a scope produced a black rectangle with a round hole in
+it, which looks exactly like a mask that landed in the wrong place. It was not
+that. `-Dtacz.scopeDebug=true` said:
 
     fbo=3 complete=true stencilAttachment=0 stencilBits=0 stencilTest=true
 
-No stencil attachment means every `glStencilFunc` passes and every write is
-discarded. The "hole" is not a hole cut by the circle pass — at rest the trace
-also says `radius=0.0`, so that pass draws nothing at all. It is the transparent
-lens area of the ocular's own texture, showing through a mask that is being drawn
-completely unclipped.
+No stencil attachment at all, so every test passed and every write was dropped
+and the ocular mask drew unclipped over the screen. The "hole" was never cut by
+anything — at rest the same trace reports `radius=0.0`, so that pass draws
+nothing. It was the transparent lens area of the ocular's own texture.
 
-The packed depth+stencil texture is created (`packed depth+stencil texture 1`)
-and it is attached (`attachStencilTo fbo=29 depthTexture=1`). The attachment
-simply lands on a different framebuffer than the one being drawn to. The first
-suspect was `GlStateManager._glBindFramebuffer` skipping a bind it considered
-redundant, which would have sent the attachment to whatever was really bound;
-`attachStencilTo` now goes through `glNamedFramebufferTexture`, the same
-direct-state-access call vanilla uses for colour and depth, so binding is out of
-the picture — and the reading did not change. So the mismatch is upstream of the
-attach: the FBO our hook sees from `GlTexture.createFbo` is not the FBO
-`createRenderPass` resolves for the main target's colour and depth textures. The
-next measurement is which textures each of those two is actually keyed on.
+The texture was created and it was attached; it landed on a framebuffer nobody
+was drawing to. Two more wrong guesses followed — that `_glBindFramebuffer` was
+skipping a bind it thought redundant, and that the encoder binds lazily so the
+probe was reading someone else's framebuffer. Neither moved the reading.
 
-A second, independent problem is visible in the same trace: the circle's centre
-comes out at wildly different places between runs for the same gun at rest
-(`center=(-335.7, -544.9)` in one, `(225.0, 103.5)` in the next). That will need
-its own look once the mask has something to mask against.
+The actual cause: **`GlTexture` and `GlTextureView` each carry their own
+`getFbo` / `createFbo` / `fboCache`, and the render pass uses the view's.**
+`GlCommandEncoder.createRenderPass` goes through `GlTextureView.getFbo`;
+`GlTexture.getFbo` only serves blits and copies. The hook was on `GlTexture`, so
+the stencil was being attached to a framebuffer that never got drawn to, every
+single time.
+
+There is a second trap next to it, which is why the hook is on `getFbo` and not
+`createFbo`: the cache is keyed by the depth texture's *GL id*, and GL recycles
+ids. When the depth texture is rebuilt as `DEPTH32F_STENCIL8` the new texture
+usually gets the same id, so `getFbo` returns the framebuffer it already had and
+`createFbo` never runs again. Vanilla does not care — a framebuffer attachment
+refers to the texture id, so it silently points at the new texture — but the
+stencil face would never be attached. Hooking the lookup instead of the creation
+covers both, and `StencilSupport` remembers which framebuffers it has already
+patched so it is one set lookup per pass.
+
 **What running the client actually found.** The remapper's inventory above only
 covers targets whose *name* moved. Six more mixins compiled and remapped clean
 and still failed, because what moved was the injection point or the callback
@@ -612,7 +620,7 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt; measured broken** — see phase 2 | high; changes how every optical scope looks | measured in game: the framebuffer the render passes actually use reports `stencilAttachment=0`, so every stencil test passes and every write is dropped, and the black ocular mask draws unclipped. The packed depth+stencil texture *is* created and *is* attached — to a different FBO than the one in use. That mismatch is the open question |
+| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **resolved** — rebuilt and confirmed in game | high; changes how every optical scope looks | aiming an ACOG now shows the world through the lens with the reticle over it, and the trace reports `stencilAttachment=1 stencilBits=8` on the framebuffer being drawn to |
 | Every renderer has to move to extract-and-submit | **done except the mixins** | high; it is most of the client port | the five render-state mixins are the tail — see phase 2 |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | **resolved** — one `tacz:dynamic` type forwards to the mod's own renderers | high | — |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |

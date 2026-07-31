@@ -37,6 +37,7 @@
     "client.CreateWorldScreenMixin",
     "client.GlDeviceMixin",
     "client.GlTextureMixin",
+    "client.GlTextureViewMixin",
     "client.GuiMixin",
     "client.KeyboardHandlerMixin",
     "client.LivingEntityRendererMixin",

@@ -138,6 +138,11 @@ public final class ScopeRenderTypes {
                     pass.setUniform("DynamicTransforms", transforms);
                     pass.setVertexBuffer(0, vertexBuffer);
                     pass.draw(0, mesh.drawState().vertexCount());
+                    /* 问帧缓冲要放在 draw 之后。放在 setPipeline 之后问过一次，答案是 fbo=3 且
+                     * 没有模板附件 —— 但那一次的 createFbo 记录是在这之后才打出来的，也就是说
+                     * 当时编码器还没绑我们这对纹理，问到的是上一个通道留下的帧缓冲。绘制命令
+                     * 发出去之后，绑定一定已经生效。*/
+                    ScopeDebug.dumpAttachmentInDrawPass();
                 }
             }
         }
