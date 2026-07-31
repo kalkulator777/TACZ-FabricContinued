@@ -3,57 +3,80 @@ package cn.sh1rocu.tacz.mixin.client;
 import cn.sh1rocu.tacz.api.mixin.RenderTargetStencil;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.blaze3d.textures.GpuTexture;
+import com.mojang.blaze3d.textures.TextureFormat;
+import com.tacz.guns.client.gl.StencilSupport;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.nio.IntBuffer;
+import java.util.function.Supplier;
 
+/**
+ * 1.21.5 之后 RenderTarget 不再自己拼 FBO，深度缓冲变成了一张 GpuTexture，格式写死是 DEPTH32，
+ * 没有模板位。瞄具的模板遮罩需要模板缓冲，所以这里在开启模板时把深度纹理换成 DEPTH32F_STENCIL8。
+ * 真正改格式的地方在 GlDeviceMixin，把纹理挂到 GL_STENCIL_ATTACHMENT 上的地方在 GlTextureMixin。
+ */
 @Mixin(value = RenderTarget.class, priority = 2000)
 public abstract class RenderTargetMixin implements RenderTargetStencil {
     @Shadow
-    public abstract void resize(int width, int height, boolean getError);
+    public int width;
+    @Shadow
+    public int height;
+    @Shadow
+    protected @Nullable GpuTexture depthTexture;
 
     @Shadow
-    public int viewWidth;
-    @Shadow
-    public int viewHeight;
+    public abstract void resize(int width, int height);
+
     @Unique
-    private boolean stencilEnabled = false;
+    private boolean tacz$stencilEnabled = false;
 
-    @WrapOperation(method = "createBuffers", at = @At(remap = false, value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_texImage2D(IIIIIIIILjava/nio/IntBuffer;)V", ordinal = 0))
-    private void initFbo_texImage2D(int target, int level, int internalFormat, int width, int height, int border, int format, int type, IntBuffer pixels, Operation<Void> original) {
-        if (!this.stencilEnabled) {
-            original.call(target, level, internalFormat, width, height, border, format, type, pixels);
-        } else {
-            GlStateManager._texImage2D(target, level, 36013, width, height, border, 34041, 36269, pixels);
+    @WrapOperation(method = "createBuffers", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/systems/GpuDevice;createTexture(Ljava/util/function/Supplier;ILcom/mojang/blaze3d/textures/TextureFormat;IIII)Lcom/mojang/blaze3d/textures/GpuTexture;"))
+    private GpuTexture tacz$depthWithStencil(GpuDevice device, Supplier<String> label, int usage, TextureFormat format,
+                                             int width, int height, int depthOrLayers, int mipLevels,
+                                             Operation<GpuTexture> original) {
+        // 只碰深度纹理，颜色纹理照常。不用 ordinal 判断，是因为 useDepth 为假时深度那次调用根本不存在。
+        if (!this.tacz$stencilEnabled || !format.hasDepthAspect()) {
+            return original.call(device, label, usage, format, width, height, depthOrLayers, mipLevels);
+        }
+        StencilSupport.beginPackedDepthStencil();
+        try {
+            GpuTexture texture = original.call(device, label, usage, format, width, height, depthOrLayers, mipLevels);
+            if (texture instanceof GlTexture glTexture) {
+                StencilSupport.registerStencilTexture(glTexture.glId());
+            }
+            return texture;
+        } finally {
+            StencilSupport.endPackedDepthStencil();
         }
     }
 
-    @WrapOperation(method = "createBuffers", at = @At(remap = false, value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;_glFramebufferTexture2D(IIIII)V", ordinal = 1))
-    private void initFbo_glFramebufferTexture2D(int target, int attachment, int textureTarget, int texture, int level, Operation<Void> original) {
-        if (!stencilEnabled) {
-            original.call(target, attachment, textureTarget, texture, level);
-        } else {
-            GlStateManager._glFramebufferTexture2D(target, attachment, textureTarget, texture, level);
-            GlStateManager._glFramebufferTexture2D(target, 36128, textureTarget, texture, level);
+    @Inject(method = "destroyBuffers", at = @At("HEAD"))
+    private void tacz$forgetStencilTexture(CallbackInfo ci) {
+        if (this.depthTexture instanceof GlTexture glTexture) {
+            StencilSupport.forgetStencilTexture(glTexture.glId());
         }
     }
 
     @Override
     public void tacz$enableStencil() {
-        if (!stencilEnabled) {
-            stencilEnabled = true;
-            resize(this.viewWidth, this.viewHeight, Minecraft.ON_OSX);
+        if (!this.tacz$stencilEnabled) {
+            this.tacz$stencilEnabled = true;
+            this.resize(this.width, this.height);
         }
     }
 
     @Override
     public boolean tacz$isStencilEnabled() {
-        return stencilEnabled;
+        return this.tacz$stencilEnabled;
     }
 }

@@ -10,6 +10,7 @@ import com.tacz.guns.api.client.animation.ObjectAnimationChannel;
 import com.tacz.guns.api.item.IAttachment;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.attachment.AttachmentType;
+import com.tacz.guns.client.gl.StencilSupport;
 import com.tacz.guns.client.model.bedrock.BedrockPart;
 import com.tacz.guns.client.model.bedrock.ModelRendererWrapper;
 import com.tacz.guns.client.model.functional.*;
@@ -298,19 +299,18 @@ public class BedrockGunModel extends BedrockAnimatedModel {
                 attachmentIndex.ifPresent(index -> {
                     if (index.isScope() && index.isSight()) { // 组合镜
                         RenderHelper.enableItemEntityStencilTest();
-                        RenderSystem.stencilFunc(GL11.GL_GREATER, 127, 0xFF);
+                        StencilSupport.func(GL11.GL_GREATER, 127, 0xFF);
                     } else if (index.isScope()) { // 长筒镜
                         RenderHelper.enableItemEntityStencilTest();
-                        RenderSystem.stencilFunc(GL11.GL_EQUAL, 0, 0xFF);
+                        StencilSupport.func(GL11.GL_EQUAL, 0, 0xFF);
                     }
                 });
             }
         }
-        RenderSystem.stencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        StencilSupport.op(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
         super.render(matrixStack, transformType, renderType, light, overlay);
         RenderHelper.disableItemEntityStencilTest();
-        RenderSystem.clearStencil(0);
-        RenderSystem.clear(GL11.GL_STENCIL_BUFFER_BIT, Minecraft.ON_OSX);
+        StencilSupport.clear();
     }
 
     @Nullable

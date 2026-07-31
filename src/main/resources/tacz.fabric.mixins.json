@@ -35,6 +35,8 @@
     "client.ClientLevelMixin",
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
+    "client.GlDeviceMixin",
+    "client.GlTextureMixin",
     "client.GuiMixin",
     "client.KeyboardHandlerMixin",
     "client.LivingEntityRendererMixin",
