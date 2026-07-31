@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.main.GameConfig;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.player.LocalPlayer;
@@ -54,6 +55,10 @@ public abstract class MinecraftMixin {
     @Shadow
     @Nullable
     public LocalPlayer player;
+
+    @Shadow
+    @Nullable
+    public ClientLevel level;
 
     @Shadow
     @Final

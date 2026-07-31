@@ -13,8 +13,8 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(AbstractClientPlayer.class)
 public abstract class AbstractPlayerMixin extends Player {
-    public AbstractPlayerMixin(Level level, BlockPos pos, float yRot, GameProfile gameProfile) {
-        super(level, pos, yRot, gameProfile);
+    public AbstractPlayerMixin(Level level, GameProfile gameProfile) {
+        super(level, gameProfile);
     }
 
     @WrapOperation(method = "getFieldOfViewModifier", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/Mth;lerp(FFF)F"))
