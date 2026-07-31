@@ -6,7 +6,6 @@ import cn.sh1rocu.tacz.mixin.accessor.ScreenAccessor;
 import cn.sh1rocu.tacz.util.forge.ImageButton;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.tacz.guns.GunMod;
@@ -39,7 +38,10 @@ import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import com.tacz.guns.client.gui.pip.GunSmithTableModelRenderState;
+import com.tacz.guns.client.resource.ClientRecipes;
+import net.minecraft.core.Holder;
 import net.minecraft.client.gui.GuiGraphics;
+import org.joml.Matrix3x2fStack;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -124,12 +126,11 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         List<Pair<Identifier, Identifier>> recipeIds = Lists.newArrayList();
 
         if (Minecraft.getInstance().level != null) {
-            RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
-            List<RecipeHolder<GunSmithTableRecipe>> recipeList = recipeManager.getAllRecipesFor(ModRecipe.GUN_SMITH_TABLE_CRAFTING);
+            Collection<RecipeHolder<GunSmithTableRecipe>> recipeList = ClientRecipes.getAll();
             Set<String> namespaces = filterList != null ? filterList.namespaceList() : null;
             for (RecipeHolder<GunSmithTableRecipe> holder : recipeList) {
                 GunSmithTableRecipe recipe = holder.value();
-                Identifier id = holder.id();
+                Identifier id = holder.id().identifier();
                 if (namespaces != null && !namespaces.contains(id.getNamespace())) {
                     continue;
                 }
@@ -251,17 +252,9 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         this.indexPage = indexPage;
     }
 
-    @SuppressWarnings("unchecked")
     @Nullable
     private RecipeHolder<GunSmithTableRecipe> getSelectedRecipe(Identifier recipeId) {
-        if (Minecraft.getInstance().level != null) {
-            RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
-            RecipeHolder<?> holder = recipeManager.byKey(recipeId).orElse(null);
-            if (holder != null && holder.value() instanceof GunSmithTableRecipe) {
-                return (RecipeHolder<GunSmithTableRecipe>) holder;
-            }
-        }
-        return null;
+        return ClientRecipes.get(recipeId);
     }
 
     private void getPlayerIngredientCount(RecipeHolder<GunSmithTableRecipe> holder) {
@@ -344,7 +337,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                         return;
                     }
                 }
-                ClientPlayNetworking.send(new ClientMessageCraft(this.selectedRecipe.id(), this.menu.containerId));
+                ClientPlayNetworking.send(new ClientMessageCraft(this.selectedRecipe.id().identifier(), this.menu.containerId));
             }
         }));
     }
@@ -520,7 +513,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         }
 
         ((ScreenAccessor) this).tacz$getRenderables().stream().filter(w -> w instanceof ResultButton)
-                .forEach(w -> ((ResultButton) w).renderTooltips(stack -> graphics.renderTooltip(font, stack, mouseX, mouseY)));
+                .forEach(w -> ((ResultButton) w).renderTooltips(stack -> graphics.setTooltipForNextFrame(font, stack, mouseX, mouseY)));
     }
 
     private void renderPackInfo(GuiGraphics gui, RecipeHolder<GunSmithTableRecipe> holder) {
@@ -538,16 +531,16 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
         }
 
         PackInfo packInfo = ClientAssetsManager.INSTANCE.getPackInfo(id);
-        PoseStack poseStack = gui.pose();
+        Matrix3x2fStack poseStack = gui.pose();
         if (packInfo != null) {
-            poseStack.pushPose();
-            poseStack.scale(0.75f, 0.75f, 1);
+            poseStack.pushMatrix();
+            poseStack.scale(0.75f, 0.75f);
             Component nameText = Component.translatable(packInfo.getName());
             gui.drawString(font, nameText, (int) ((leftPos + 6) / 0.75f), (int) ((topPos + 122) / 0.75f), ChatFormatting.DARK_GRAY.getColor(), false);
-            poseStack.popPose();
+            poseStack.popMatrix();
 
-            poseStack.pushPose();
-            poseStack.scale(0.5f, 0.5f, 1);
+            poseStack.pushMatrix();
+            poseStack.scale(0.5f, 0.5f);
 
             int offsetX = (leftPos + 6) * 2;
             int offsetY = (topPos + 123) * 2;
@@ -584,9 +577,9 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                             .append(Component.literal(packInfo.getDate()).withStyle(ChatFormatting.DARK_GRAY)),
                     offsetX, offsetY, ChatFormatting.DARK_GRAY.getColor(), false);
 
-            poseStack.popPose();
+            poseStack.popMatrix();
         } else {
-            Identifier recipeId = holder.id();
+            Identifier recipeId = holder.id().identifier();
             gui.drawString(font, Component.translatable("gui.tacz.gun_smith_table.error").withStyle(ChatFormatting.DARK_RED), leftPos + 6, topPos + 122, 0xAF0000, false);
             gui.drawString(font, Component.translatable("gui.tacz.gun_smith_table.error.id", recipeId.toString()).withStyle(ChatFormatting.DARK_RED), leftPos + 6, topPos + 134, 0xFFFFFF, false);
             PackInfo errorPackInfo = ClientAssetsManager.INSTANCE.getPackInfo(id);
@@ -613,17 +606,20 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                 GunSmithTableIngredient smithTableIngredient = inputs.get(index);
                 Ingredient ingredient = smithTableIngredient.getIngredient();
 
-                ItemStack[] items = ingredient.getItems();
-                int itemIndex = ((int) (System.currentTimeMillis() / 1_000)) % items.length;
-                ItemStack item = items[itemIndex];
+                List<Holder<Item>> items = ingredient.items().toList();
+                if (items.isEmpty()) {
+                    continue;
+                }
+                int itemIndex = ((int) (System.currentTimeMillis() / 1_000)) % items.size();
+                ItemStack item = new ItemStack(items.get(itemIndex));
 
                 gui.renderFakeItem(item, offsetX, offsetY);
 
-                PoseStack poseStack = gui.pose();
-                poseStack.pushPose();
+                Matrix3x2fStack poseStack = gui.pose();
+                poseStack.pushMatrix();
 
-                poseStack.translate(0, 0, 200);
-                poseStack.scale(0.5f, 0.5f, 1);
+                poseStack.translate(0, 0);
+                poseStack.scale(0.5f, 0.5f);
                 int count = smithTableIngredient.getCount();
                 if (Minecraft.getInstance().player != null && Minecraft.getInstance().player.isCreative()) {
                     gui.drawString(font, String.format("%d/∞", count), (offsetX + 17) * 2, (offsetY + 10) * 2, 0xFFFFFF, false);
@@ -637,7 +633,7 @@ public class GunSmithTableScreen extends AbstractContainerScreen<GunSmithTableMe
                 }
 
 
-                poseStack.popPose();
+                poseStack.popMatrix();
             }
         }
     }

@@ -2,6 +2,7 @@ package com.tacz.guns.compat.jei;
 
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
+import com.tacz.guns.client.resource.ClientRecipes;
 import com.tacz.guns.api.item.builder.BlockItemBuilder;
 import com.tacz.guns.api.item.gun.GunItemManager;
 import com.tacz.guns.compat.jei.category.AttachmentQueryCategory;
@@ -24,7 +25,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -55,12 +55,11 @@ public class GunModPlugin implements IModPlugin {
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         if (Minecraft.getInstance().level == null) return;
-        RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
-        List<RecipeHolder<GunSmithTableRecipe>> recipes = recipeManager.getAllRecipesFor(ModRecipe.GUN_SMITH_TABLE_CRAFTING);
+        List<RecipeHolder<GunSmithTableRecipe>> recipes = List.copyOf(ClientRecipes.getAll());
 
         for (var entry : recipeTypeMap.entrySet()) {
             TimelessAPI.getCommonBlockIndex(entry.getKey()).ifPresent(blockIndex -> {
-                List<GunSmithTableRecipe> recipeList = blockIndex.getFilter().filter(recipes, RecipeHolder::id).stream().map(RecipeHolder::value).collect(Collectors.toList());
+                List<GunSmithTableRecipe> recipeList = blockIndex.getFilter().filter(recipes, holder -> holder.id().identifier()).stream().map(RecipeHolder::value).collect(Collectors.toList());
                 recipeList.removeIf(recipe -> blockIndex.getData().getTabs().stream().noneMatch(tab -> Objects.equals(tab.id(), recipe.getResult().getGroup())));
                 registration.addRecipes(entry.getValue(), recipeList);
             });

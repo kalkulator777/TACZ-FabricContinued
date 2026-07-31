@@ -7,6 +7,7 @@ import cn.sh1rocu.tacz.compat.rei.display.GunSmithTableDisplay;
 import cn.sh1rocu.tacz.compat.rei.entry.AttachmentQueryEntry;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
+import com.tacz.guns.client.resource.ClientRecipes;
 import com.tacz.guns.api.item.builder.BlockItemBuilder;
 import com.tacz.guns.crafting.GunSmithTableRecipe;
 import com.tacz.guns.init.ModRecipe;
@@ -20,7 +21,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeManager;
 
 import java.util.HashMap;
 import java.util.List;
@@ -51,12 +51,11 @@ public class REIClientPlugin implements me.shedaniel.rei.api.client.plugins.REIC
     @Override
     public void registerDisplays(DisplayRegistry registry) {
         if (Minecraft.getInstance().level == null) return;
-        RecipeManager recipeManager = Minecraft.getInstance().level.getRecipeManager();
-        List<RecipeHolder<GunSmithTableRecipe>> recipes = recipeManager.getAllRecipesFor(ModRecipe.GUN_SMITH_TABLE_CRAFTING);
+        List<RecipeHolder<GunSmithTableRecipe>> recipes = List.copyOf(ClientRecipes.getAll());
 
         for (var entry : displays.entrySet()) {
             TimelessAPI.getCommonBlockIndex(entry.getKey()).ifPresent(blockIndex -> {
-                List<GunSmithTableRecipe> recipeList = blockIndex.getFilter().filter(recipes, RecipeHolder::id).stream().map(RecipeHolder::value).collect(Collectors.toList());
+                List<GunSmithTableRecipe> recipeList = blockIndex.getFilter().filter(recipes, holder -> holder.id().identifier()).stream().map(RecipeHolder::value).collect(Collectors.toList());
                 recipeList.removeIf(recipe -> blockIndex.getData().getTabs().stream().noneMatch(tab -> Objects.equals(tab.id(), recipe.getResult().getGroup())));
                 recipeList.forEach(recipe -> registry.add(new GunSmithTableDisplay(recipe, entry)));
             });

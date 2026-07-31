@@ -3,6 +3,7 @@ package com.tacz.guns.init;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.crafting.GunSmithTableRecipe;
 import com.tacz.guns.crafting.GunSmithTableSerializer;
+import net.fabricmc.fabric.api.recipe.v1.sync.RecipeSynchronization;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -13,7 +14,9 @@ import net.minecraft.world.item.crafting.RecipeType;
 
 public class ModRecipe {
     public static void init() {
-
+        // 1.21.2 起客户端不再收到完整的配方数据 —— RecipeAccess 只给配方书要的那点东西，
+        // 而工作台界面需要把所有配方列出来。Fabric 的这个开关把配方按序列化器同步回客户端。
+        RecipeSynchronization.synchronizeRecipeSerializer(GUN_SMITH_TABLE_RECIPE_SERIALIZER);
     }
 
     public static RecipeSerializer<GunSmithTableRecipe> GUN_SMITH_TABLE_RECIPE_SERIALIZER = registerSerializer("gun_smith_table_crafting", new GunSmithTableSerializer());
