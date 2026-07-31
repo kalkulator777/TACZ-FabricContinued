@@ -57,13 +57,11 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
         super(properties);
     }
 
-    @Environment(EnvType.CLIENT)
-    public static int getColor(ItemStack stack, int tintIndex) {
-        return tintIndex > 0 ? -1 : DyedItemColor.getOrDefault(stack, 0xff727d6b);
-    }
+    /* getColor 没有了对应的调用方：物品染色在 1.21.4 之后是模型定义里的 tints，
+     * items/ammo_box.json 用原版的 minecraft:dye 直接读 DyedItemColor，默认色写在那儿。 */
 
     @Environment(EnvType.CLIENT)
-    public static float getStatue(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity, int seed) {
+    public static float getStatue(ItemStack stack) {
         int openStatue = OPEN;
         int ammoLevel = IRON_LEVEL;
         if (stack.getItem() instanceof IAmmoBox iAmmoBox) {

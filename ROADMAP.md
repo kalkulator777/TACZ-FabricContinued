@@ -403,26 +403,36 @@ three separate pieces rather than ported call for call.
   texture: a `RenderType` cannot be asked what it draws with, so the variants have
   to be keyed on the identifier from the call site.
 
-It has now been looked at in game (llvmpipe, 1280×720), and the result splits in
-two.
+It has now been measured in game (llvmpipe, 854×480) rather than guessed at from
+a screenshot, and the guess was wrong. Looking at an ACOG produces a black
+rectangle with a round hole in it, which reads like a stencil mask that is merely
+mispositioned. It is not. `-Dtacz.scopeDebug=true` reports, on the framebuffer
+the render passes are actually bound to:
 
-- The framebuffer is fine. Aiming an ACOG, the circular pass does cut a hole in
-  the mask — it could not do that if the stencil attachment were missing or the
-  raw GL state were being reset between passes, so all three pieces above are
-  doing their job.
-- The mask lands in the wrong place. Aiming through an optical scope paints the
-  whole screen black and shows the world in a *ring around* the tube, with the
-  scope body and black where the magnified view should be. Iron sights aim
-  correctly, and an unscoped gun renders correctly in first person, third person
-  and the inventory, so nothing outside `renderScope`/`renderOcularAndDivision`
-  is implicated.
+    fbo=3 complete=true stencilAttachment=0 stencilBits=0 stencilTest=true
 
-The next thing to look at is the circle itself: `drawStencilCircle` applies the
-pose to the vertices on the CPU *and* hands `RenderSystem.getModelViewMatrix()`
-to `DynamicTransforms`, where vanilla's own `SkyRenderer` passes the pose as the
-transform and leaves the vertices alone. If those two conventions do not compose
-the way the old `BufferUploader.drawWithShader` path did, the circle ends up at
-the wrong size and offset — which is exactly the symptom.
+No stencil attachment means every `glStencilFunc` passes and every write is
+discarded. The "hole" is not a hole cut by the circle pass — at rest the trace
+also says `radius=0.0`, so that pass draws nothing at all. It is the transparent
+lens area of the ocular's own texture, showing through a mask that is being drawn
+completely unclipped.
+
+The packed depth+stencil texture is created (`packed depth+stencil texture 1`)
+and it is attached (`attachStencilTo fbo=29 depthTexture=1`). The attachment
+simply lands on a different framebuffer than the one being drawn to. The first
+suspect was `GlStateManager._glBindFramebuffer` skipping a bind it considered
+redundant, which would have sent the attachment to whatever was really bound;
+`attachStencilTo` now goes through `glNamedFramebufferTexture`, the same
+direct-state-access call vanilla uses for colour and depth, so binding is out of
+the picture — and the reading did not change. So the mismatch is upstream of the
+attach: the FBO our hook sees from `GlTexture.createFbo` is not the FBO
+`createRenderPass` resolves for the main target's colour and depth textures. The
+next measurement is which textures each of those two is actually keyed on.
+
+A second, independent problem is visible in the same trace: the circle's centre
+comes out at wildly different places between runs for the same gun at rest
+(`center=(-335.7, -544.9)` in one, `(225.0, 103.5)` in the next). That will need
+its own look once the mask has something to mask against.
 **What running the client actually found.** The remapper's inventory above only
 covers targets whose *name* moved. Six more mixins compiled and remapped clean
 and still failed, because what moved was the injection point or the callback
@@ -447,10 +457,15 @@ hangs on "Loading Minecraft" with nothing in the log.
 
 Verified in game on 1.21.11: the title screen and world list, loading a world,
 the first-person gun with the player's arm, the third-person gun on the player
-model, the HUD, the creative inventory and REI alongside it, item tooltips, chat
-and commands, and iron-sight aiming. Known wrong: the scope mask above, and
-`ammo_box`, which renders as the missing-texture model exactly as the resource
-TODO below predicts.
+model, the HUD including the ammo counter, the creative inventory and REI
+alongside it, item tooltips, chat and commands, iron-sight aiming, firing (the
+counter decrements and the target dies), the gun smith table block with its full
+model, and that table's screen — recipe list, tooltips, and the rotating preview,
+which does render, small and dark against a grey panel.
+
+Still wrong, and each has an entry above or below: the scope mask; the muzzle
+flash and shell casings, which do not appear although the shot registers; and
+bullet holes, which do not appear on a wall that is being hit.
 
 - [ ] Resources: blockstate format, recipe ingredient form. The item definition
       JSON is written for the items that have models; what is left is `ammo_box`,
@@ -597,7 +612,7 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt; buffer works, mask is wrong** — see phase 2 | high; changes how every optical scope looks | the stencil buffer itself is confirmed live in game (the inverted circle does cut a hole, which it could not if the attachment were missing); what is wrong is where the mask lands — aiming through an optical scope paints the screen black with the world showing in a ring *around* the tube instead of through it. Iron sights aim correctly, so only the scope path is affected |
+| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt; measured broken** — see phase 2 | high; changes how every optical scope looks | measured in game: the framebuffer the render passes actually use reports `stencilAttachment=0`, so every stencil test passes and every write is dropped, and the black ocular mask draws unclipped. The packed depth+stencil texture *is* created and *is* attached — to a different FBO than the one in use. That mismatch is the open question |
 | Every renderer has to move to extract-and-submit | **done except the mixins** | high; it is most of the client port | the five render-state mixins are the tail — see phase 2 |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | **resolved** — one `tacz:dynamic` type forwards to the mod's own renderers | high | — |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |

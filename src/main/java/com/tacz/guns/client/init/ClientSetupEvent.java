@@ -2,6 +2,7 @@ package com.tacz.guns.client.init;
 
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.client.other.ThirdPersonManager;
+import com.tacz.guns.client.renderer.item.AmmoBoxStatueProperty;
 import com.tacz.guns.client.gui.overlay.GunHudOverlay;
 import com.tacz.guns.client.gui.overlay.HeatBarOverlay;
 import com.tacz.guns.client.gui.overlay.InteractKeyTextOverlay;
@@ -99,13 +100,10 @@ public class ClientSetupEvent {
         // 注册自己的的硬编码第三人称动画
         ThirdPersonManager.registerDefault();
 
-        // TODO: 弹药盒的染色。物品的 ColorProviderRegistry 没了 —— 1.21.4 之后物品染色是
-        //  模型里的 tints，要注册一个 ItemTintSource 再在 items/ammo_box.json 里引用。
-        //  和上面那条变种一起做。
-
-        // TODO: 弹药盒的变种。ItemProperties 和模型里的 overrides 一起没了，1.21.4 之后
-        //  要改成 items/ammo_box.json 里的 minecraft:select 加一个注册过的物品模型属性。
-        //  和 ammo_box 的模型迁移一起做。
+        /* 弹药盒的九种外观。旧的 ItemProperties + 模型 overrides 换成了
+         * items/ammo_box.json 里的 range_dispatch，属性本体在这里注册。
+         * 染色不用再写代码：原版的 minecraft:dye 就是读 DyedItemColor，默认色写在那个 json 里。*/
+        AmmoBoxStatueProperty.register();
 
         // 初始化自己的枪包下载器
 //       ClientGunPackDownloadManager.init();

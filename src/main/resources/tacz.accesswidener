@@ -13,3 +13,6 @@ extendable method net/minecraft/world/entity/vehicle/VehicleEntity getDropItem (
 
 accessible method net/minecraft/client/renderer/block/model/ItemTransforms$Deserializer <init> ()V
 accessible method net/minecraft/client/renderer/block/model/ItemTransform$Deserializer <init> ()V
+
+# 弹药盒的 tacz:ammo_statue 要往这张表里注册，原版把它留成了私有
+accessible field net/minecraft/client/renderer/item/properties/numeric/RangeSelectItemModelProperties ID_MAPPER Lnet/minecraft/util/ExtraCodecs$LateBoundIdMapper;

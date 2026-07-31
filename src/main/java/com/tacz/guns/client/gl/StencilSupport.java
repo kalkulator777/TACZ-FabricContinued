@@ -10,6 +10,8 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import org.lwjgl.opengl.ARBDirectStateAccess;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import java.util.OptionalDouble;
@@ -83,9 +85,23 @@ public final class StencilSupport {
     /**
      * 把深度纹理同时挂到 GL_STENCIL_ATTACHMENT 上。原版只挂了 GL_DEPTH_ATTACHMENT，
      * 而 DEPTH32F_STENCIL8 的模板面需要单独挂一次才能用。
+     * <p>
+     * 走 glNamedFramebufferTexture，和原版 DirectStateAccess.Core.bindFrameBufferTextures
+     * 挂颜色和深度用的是同一个函数。先前这里是「绑 FBO — 挂纹理 — 绑回去」，而
+     * {@link GlStateManager#_glBindFramebuffer} 会跳过它认为多余的绑定：只要它记的当前值
+     * 和要绑的值一样，就一次 GL 调用都不发。于是模板面被挂到了当时真正绑着的那个 FBO 上，
+     * 而不是参数里的那个 —— 诊断打出来的就是这个结果：附件挂到了 25 号，而实际在画的那个
+     * 帧缓冲查出来 stencilAttachment=0。DSA 不碰绑定状态，也就没有这个问题。
      */
     public static void attachStencilTo(int fbo, int depthTextureId) {
+        ScopeDebug.note("attachStencilTo fbo=" + fbo + " depthTexture=" + depthTextureId);
+        if (GL.getCapabilities().GL_ARB_direct_state_access) {
+            ARBDirectStateAccess.glNamedFramebufferTexture(fbo, GL_STENCIL_ATTACHMENT, depthTextureId, 0);
+            return;
+        }
+        // 没有 DSA 的驱动上只能绑定后再挂。先绑一个别的，逼 GlStateManager 把绑定真的发出去。
         int previous = GlStateManager.getFrameBuffer(GL_DRAW_FRAMEBUFFER);
+        GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
         GlStateManager._glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, depthTextureId, 0);
         GlStateManager._glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previous);
@@ -95,6 +111,7 @@ public final class StencilSupport {
 
     public static void enableTest() {
         RenderSystem.assertOnRenderThread();
+        ScopeDebug.note("enableTest");
         Minecraft.getInstance().getMainRenderTarget().tacz$enableStencil();
         GL11.glEnable(GL11.GL_STENCIL_TEST);
     }
@@ -138,7 +155,8 @@ public final class StencilSupport {
             GL11.glStencilMask(0xFF);
             GL11.glClearStencil(0);
             GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
-            ScopeDebug.dumpAttachmentOnce();
+            ScopeDebug.dumpAttachmentOnChange();
+            ScopeDebug.noteTargetTextures(target);
         }
     }
 }

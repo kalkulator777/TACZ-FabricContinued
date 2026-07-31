@@ -37,6 +37,14 @@ loom {
             if (project.hasProperty("quickPlay")) {
                 programArgs("--quickPlaySingleplayer", project.property("quickPlay").toString())
             }
+            /* -PclientProps=a=1,b=2 把系统属性透给客户端 JVM。诊断开关（比如
+             * tacz.scopeDebug）是给运行中的客户端看的，不是给 Gradle 看的，-D 到不了那儿。*/
+            if (project.hasProperty("clientProps")) {
+                project.property("clientProps").toString().split(",").each {
+                    def kv = it.split("=", 2)
+                    property kv[0], kv.length > 1 ? kv[1] : "true"
+                }
+            }
         }
         datagen {
             property "fabric-api.datagen.modid", "tacz"

@@ -28,7 +28,8 @@ public final class ScopeDebug {
 
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    private static boolean attachmentDumped = false;
+    private static String lastAttachmentState = null;
+    private static final java.util.Set<String> NOTED = new java.util.HashSet<>();
 
     private ScopeDebug() {
     }
@@ -37,19 +38,46 @@ public final class ScopeDebug {
      * 必须在一个已经绑定了主渲染目标的渲染通道内部调用 —— 通道之间绑的是窗口默认帧缓冲，
      * 在那儿问出来的附件信息是别人的。
      */
-    public static void dumpAttachmentOnce() {
-        if (!ENABLED || attachmentDumped) {
+    public static void dumpAttachmentOnChange() {
+        if (!ENABLED) {
             return;
         }
-        attachmentDumped = true;
         int fbo = GlStateManager.getFrameBuffer(StencilSupport.GL_DRAW_FRAMEBUFFER);
         int status = GL30.glCheckFramebufferStatus(StencilSupport.GL_DRAW_FRAMEBUFFER);
         int attachment = GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
                 StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
-        int bits = GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
+        /* 附件为 0 时问 STENCIL_SIZE 本身就是 GL_INVALID_OPERATION —— 每帧问一次，
+         * 日志里就是每秒几百行驱动报错。只有真挂上了才值得问位数。*/
+        int bits = attachment == 0 ? 0 : GL30.glGetFramebufferAttachmentParameteri(StencilSupport.GL_DRAW_FRAMEBUFFER,
                 StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE);
-        LOGGER.info("[tacz/scope] fbo={} complete={} stencilAttachment={} stencilBits={} stencilTest={}",
+        String state = String.format("fbo=%d complete=%s stencilAttachment=%d stencilBits=%d stencilTest=%s",
                 fbo, status == GL30.GL_FRAMEBUFFER_COMPLETE, attachment, bits, GL11.glIsEnabled(GL11.GL_STENCIL_TEST));
+        if (!state.equals(lastAttachmentState)) {
+            lastAttachmentState = state;
+            LOGGER.info("[tacz/scope] {}", state);
+        }
+    }
+
+    /** 同一条消息只打一次，用来记录「这条路走过了」这类一次性事实。 */
+    public static void note(String message) {
+        if (ENABLED && NOTED.add(message)) {
+            LOGGER.info("[tacz/scope] {}", message);
+        }
+    }
+
+    /**
+     * 主渲染目标的颜色和深度纹理的 GL id。诊断到现在卡在一个问题上：模板挂上去的那个 FBO
+     * 和渲染通道真正绑的那个不是同一个。要往下走，先得知道通道用的是哪一对纹理。
+     */
+    public static void noteTargetTextures(com.mojang.blaze3d.pipeline.RenderTarget target) {
+        if (!ENABLED) {
+            return;
+        }
+        note("main target colour=" + glId(target.getColorTexture()) + " depth=" + glId(target.getDepthTexture()));
+    }
+
+    private static String glId(@org.jetbrains.annotations.Nullable com.mojang.blaze3d.textures.GpuTexture texture) {
+        return texture instanceof com.mojang.blaze3d.opengl.GlTexture gl ? Integer.toString(gl.glId()) : String.valueOf(texture);
     }
 
     public static void logCircle(int ocular, float aimingProgress, float radiusModifier, float radius,
