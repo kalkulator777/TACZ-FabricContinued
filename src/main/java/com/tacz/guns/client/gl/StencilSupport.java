@@ -138,6 +138,7 @@ public final class StencilSupport {
             GL11.glStencilMask(0xFF);
             GL11.glClearStencil(0);
             GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+            ScopeDebug.dumpAttachmentOnce();
         }
     }
 }
