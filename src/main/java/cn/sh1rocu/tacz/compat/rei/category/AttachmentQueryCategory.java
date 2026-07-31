@@ -58,7 +58,7 @@ public class AttachmentQueryCategory implements DisplayCategory<AttachmentQueryD
         if (inputs.size() > AttachmentQueryCategory.MAX_GUN_SHOW_COUNT) {
             Font font = Minecraft.getInstance().font;
             widgets.add(Widgets.createDrawableWidget((guiGraphics, mouseX, mouseY, delta) ->
-                    guiGraphics.drawString(font, Component.translatable("jei.tacz.attachment_query.more"), startX + 128, startY + 134, 0x555555, false)));
+                    guiGraphics.drawString(font, Component.translatable("jei.tacz.attachment_query.more"), startX + 128, startY + 134, 0xFF555555, false)));
             widgets.add(Widgets.createSlot(new Point(startX + xOffset + 18, startY + yOffset)).entries(inputs.get(inputs.size() - 1)));
         }
 

@@ -52,7 +52,7 @@ public class CrosshairDropdown {
                             graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, 0xff191919);
                         }
                         FormattedCharSequence text = this.toTextFunction.apply(this.r).getVisualOrderText();
-                        int color = isHover ? 0xffffff : 0x888888;
+                        int color = isHover ? 0xFFFFFFFF : 0xFF888888;
                         graphics.drawString(Minecraft.getInstance().font, text, (int) (x + 6 + 18), (int) (y + 6), color, false);
 
                         Identifier location = CrosshairType.getTextureLocation(this.r);

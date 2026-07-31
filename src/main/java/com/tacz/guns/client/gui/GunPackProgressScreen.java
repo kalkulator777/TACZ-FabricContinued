@@ -37,11 +37,11 @@ public class GunPackProgressScreen extends Screen implements ProgressListener {
         } else {
             this.renderBackground(gui, mouseX, mouseY, partialTick);
             if (this.header != null) {
-                gui.drawCenteredString(this.font, this.header, this.width / 2, 70, 16777215);
+                gui.drawCenteredString(this.font, this.header, this.width / 2, 70, 0xFFFFFFFF);
             }
             if (this.stage != null && this.progress > 0) {
                 MutableComponent text = this.stage.copy().append(" " + this.progress + "%");
-                gui.drawCenteredString(this.font, text, this.width / 2, 90, 16777215);
+                gui.drawCenteredString(this.font, text, this.width / 2, 90, 0xFFFFFFFF);
             }
             super.render(gui, mouseX, mouseY, partialTick);
         }

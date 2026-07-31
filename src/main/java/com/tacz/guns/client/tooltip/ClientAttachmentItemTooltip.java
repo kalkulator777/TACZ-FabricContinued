@@ -128,7 +128,7 @@ public class ClientAttachmentItemTooltip implements ClientTooltipComponent {
         int minY = components.size() * 10 + 3;
         int maxX = getWidth(font);
         gui.fill(mouseX, mouseY + minY, mouseX + maxX, mouseY + minY + 11, 0x8F00b0ff);
-        gui.drawString(font, support, mouseX + 2, mouseY + minY + 2, 0xe3f2fd);
+        gui.drawString(font, support, mouseX + 2, mouseY + minY + 2, 0xFFe3f2fd);
 
         for (int i = 0; i < showGuns.size(); i++) {
             ItemStack stack = showGuns.get(i);

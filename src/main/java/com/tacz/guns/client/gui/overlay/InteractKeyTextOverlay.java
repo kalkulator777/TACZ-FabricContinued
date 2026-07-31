@@ -91,10 +91,10 @@ public class InteractKeyTextOverlay implements HudElement {
 
     private static void renderText(GuiGraphics graphics, int width, int height, Font font, String keyName, boolean willFilterByHand) {
         Component title = Component.translatable("gui.tacz.interact_key.text.desc", StringUtils.capitalize(keyName));
-        graphics.drawString(font, title, (int) ((width - font.width(title)) / 2.0f), (int) (height / 2.0f - 25), ChatFormatting.YELLOW.getColor(), false);
+        graphics.drawString(font, title, (int) ((width - font.width(title)) / 2.0f), (int) (height / 2.0f - 25), ChatFormatting.YELLOW.getColor() | 0xFF000000, false);
         if (willFilterByHand) {
             Component filter = Component.translatable("gui.tacz.interact_key.text.gun_smith_table_filter");
-            graphics.drawString(font, filter, (int) ((width - font.width(filter)) / 2.0f), (int) (height / 2.0f - 14), ChatFormatting.GRAY.getColor(), false);
+            graphics.drawString(font, filter, (int) ((width - font.width(filter)) / 2.0f), (int) (height / 2.0f - 14), ChatFormatting.GRAY.getColor() | 0xFF000000, false);
         }
     }
 }

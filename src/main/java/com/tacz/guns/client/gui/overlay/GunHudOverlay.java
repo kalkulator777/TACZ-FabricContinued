@@ -87,21 +87,23 @@ public class GunHudOverlay implements HudElement {
         int ammoCount = useInventoryAmmo ? cacheInventoryAmmoCount + (iGun.hasBulletInBarrel(stack) && gunData.getBolt() != Bolt.OPEN_BOLT ? 1 : 0) :
                 iGun.getCurrentAmmoCount(stack) + (iGun.hasBulletInBarrel(stack) && gunData.getBolt() != Bolt.OPEN_BOLT ? 1 : 0);
         ammoCount = Math.min(ammoCount, MAX_AMMO_COUNT);
-        // 弹药颜色
+        /* 弹药颜色。这几个常量原来都是不带 alpha 的六位 RGB —— 以前 Font 会自己把
+         * alpha 补满，现在 drawString 遇到 alpha 为 0 的颜色直接不画，弹药数就整个消失了，
+         * 只剩下面那行本来就写了 0xff 的版本号。所以这里必须把 alpha 显式写上。*/
         int ammoCountColor;
         if (ammoCount < (cacheMaxAmmoCount * 0.25) && ammoCount < 10 || overheatLocked) {
             // 红色
-            ammoCountColor = 0xFF5555;
+            ammoCountColor = 0xFFFF5555;
         } else {
             // 如果背包直读并且使用虚拟备弹为青色，否则背包直读为黄色，其他为白色
-            ammoCountColor = useInventoryAmmo && useDummyAmmo ? 0x55FFFF : useInventoryAmmo ? 0xFFFF55 : 0xFFFFFF;
+            ammoCountColor = useInventoryAmmo && useDummyAmmo ? 0xFF55FFFF : useInventoryAmmo ? 0xFFFFFF55 : 0xFFFFFFFF;
         }
         // 备弹颜色
         int inventoryAmmoCountColor;
         if (!useInventoryAmmo && useDummyAmmo) {
-            inventoryAmmoCountColor = 0x55FFFF;
+            inventoryAmmoCountColor = 0xFF55FFFF;
         } else {
-            inventoryAmmoCountColor = 0xAAAAAA;
+            inventoryAmmoCountColor = 0xFFAAAAAA;
         }
 
         // 当前枪械弹药数显示

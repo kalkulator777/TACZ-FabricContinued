@@ -50,7 +50,7 @@ public class GunAttachmentSlot extends Button implements IStackTooltip {
             if (this.selected && !attachmentItem.isEmpty()) {
                 yOffset = this.getY() + 30;
             }
-            graphics.drawCenteredString(font, Component.translatable(nameKey), this.getX() + this.getWidth() / 2, yOffset, ChatFormatting.WHITE.getColor());
+            graphics.drawCenteredString(font, Component.translatable(nameKey), this.getX() + this.getWidth() / 2, yOffset, ChatFormatting.WHITE.getColor() | 0xFF000000);
         }
         ItemStack gunItem = inventory.getItem(gunItemIndex);
         IGun iGun = IGun.getIGunOrNull(gunItem);
