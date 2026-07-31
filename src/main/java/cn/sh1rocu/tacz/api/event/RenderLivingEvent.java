@@ -5,15 +5,18 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
 
 @Environment(EnvType.CLIENT)
-public abstract class RenderLivingEvent<T extends LivingEntity, M extends EntityModel<?>> extends BaseEvent {
+/**
+ * 1.21.2 起 LivingEntityRenderer 多了一个渲染状态的类型参数，成了三个泛型，而这里从来没用过
+ * 它们中的任何一个 —— 事件只是把渲染器原样递出去。所以干脆去掉泛型。
+ */
+public abstract class RenderLivingEvent extends BaseEvent {
     private final LivingEntity entity;
-    private final LivingEntityRenderer<T, M> renderer;
+    private final LivingEntityRenderer<?, ?, ?> renderer;
     private final float partialTick;
     private final PoseStack poseStack;
     private final MultiBufferSource multiBufferSource;
@@ -26,10 +29,10 @@ public abstract class RenderLivingEvent<T extends LivingEntity, M extends Entity
     });
 
     public interface PostCallback {
-        void post(Post<?, ?> event);
+        void post(Post event);
     }
 
-    protected RenderLivingEvent(LivingEntity entity, LivingEntityRenderer<T, M> renderer, float partialTick, PoseStack poseStack,
+    protected RenderLivingEvent(LivingEntity entity, LivingEntityRenderer<?, ?, ?> renderer, float partialTick, PoseStack poseStack,
                                 MultiBufferSource multiBufferSource, int packedLight) {
         this.entity = entity;
         this.renderer = renderer;
@@ -43,7 +46,7 @@ public abstract class RenderLivingEvent<T extends LivingEntity, M extends Entity
         return entity;
     }
 
-    public LivingEntityRenderer<T, M> getRenderer() {
+    public LivingEntityRenderer<?, ?, ?> getRenderer() {
         return renderer;
     }
 
@@ -63,8 +66,8 @@ public abstract class RenderLivingEvent<T extends LivingEntity, M extends Entity
         return packedLight;
     }
 
-    public static class Post<T extends LivingEntity, M extends EntityModel<?>> extends RenderLivingEvent<T, M> {
-        public Post(LivingEntity entity, LivingEntityRenderer<T, M> renderer, float partialTick, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight) {
+    public static class Post extends RenderLivingEvent {
+        public Post(LivingEntity entity, LivingEntityRenderer<?, ?, ?> renderer, float partialTick, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight) {
             super(entity, renderer, partialTick, poseStack, multiBufferSource, packedLight);
         }
     }

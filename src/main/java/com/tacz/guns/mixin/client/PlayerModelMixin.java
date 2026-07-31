@@ -5,6 +5,7 @@ import com.tacz.guns.api.item.IGun;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -17,7 +18,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(PlayerModel.class)
-public class PlayerModelMixin<T extends LivingEntity> extends HumanoidModel<T> {
+// TODO: 这个混入还指着 1.21.1 的 setupAnim(LivingEntity, ...)。模型现在从渲染状态摆姿势
+//  （setupAnim(S)），拿不到实体，所以「主手拿枪」那个判断得先提取进渲染状态。留给混入那一轮。
+public class PlayerModelMixin<T extends HumanoidRenderState> extends HumanoidModel<T> {
     @Shadow
     @Final
     public ModelPart leftSleeve;
@@ -31,10 +34,6 @@ public class PlayerModelMixin<T extends LivingEntity> extends HumanoidModel<T> {
 
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At(value = "TAIL"))
     private void setRotationAnglesTail(T entityIn, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, CallbackInfo ci) {
-        if (!(entityIn instanceof Player player)) {
-            return;
-        }
-
         // 用于清除默认的手臂旋转
         // 当第一人称渲染是，ageInTicks 正好是 0
         ItemStack currentItem = KeepingItemRenderer.getRenderer().getCurrentItem();

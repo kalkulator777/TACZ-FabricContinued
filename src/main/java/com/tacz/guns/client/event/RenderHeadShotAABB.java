@@ -18,8 +18,9 @@ import net.minecraft.world.phys.AABB;
 
 @Environment(EnvType.CLIENT)
 public class RenderHeadShotAABB {
-    public static void onRenderEntity(RenderLivingEvent.Post<?, ?> event) {
-        boolean canRender = Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes();
+    public static void onRenderEntity(RenderLivingEvent.Post event) {
+        // shouldRenderHitBoxes 没了，碰撞箱调试现在直接读那个按键的状态
+        boolean canRender = Minecraft.getInstance().options.keyDebugShowHitboxes.isDown();
         if (!canRender) {
             return;
         }

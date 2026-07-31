@@ -36,6 +36,7 @@ import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.resources.FileToIdConverter;
 import com.tacz.guns.resource.serialize.IdentifierTypeAdapter;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.PreparableReloadListener.SharedState;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
@@ -116,7 +117,7 @@ public enum ClientAssetsManager {
                 }
 
                 @Override
-                public CompletableFuture<Void> reload(PreparationBarrier barrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+                public CompletableFuture<Void> reload(SharedState sharedState, Executor backgroundExecutor, PreparationBarrier barrier, Executor gameExecutor) {
                     return barrier.wait(Void.TYPE).thenRunAsync(ClientIndexManager::reload, gameExecutor);
                 }
             });

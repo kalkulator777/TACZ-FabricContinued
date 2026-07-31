@@ -90,7 +90,7 @@ public class CameraSetupEvent {
         if (!event.usedConfiguredFov()) {
             return; // 只修改世界渲染的 fov，因此如果是手部渲染 fov 事件，则返回
         }
-        Entity entity = event.getCamera().getEntity();
+        Entity entity = event.getCamera().entity();
         if (entity instanceof LivingEntity livingEntity) {
             ItemStack stack = KeepingItemRenderer.getRenderer().getCurrentItem();
             if (!(stack.getItem() instanceof IGun iGun)) {
@@ -117,7 +117,7 @@ public class CameraSetupEvent {
         if (event.usedConfiguredFov()) {
             return; // 只修改手部物品的 fov，因此如果是世界渲染 fov 事件，则返回
         }
-        Entity entity = event.getCamera().getEntity();
+        Entity entity = event.getCamera().entity();
         if (entity instanceof LivingEntity livingEntity) {
             ItemStack stack = KeepingItemRenderer.getRenderer().getCurrentItem();
             if (!(stack.getItem() instanceof IGun iGun)) {

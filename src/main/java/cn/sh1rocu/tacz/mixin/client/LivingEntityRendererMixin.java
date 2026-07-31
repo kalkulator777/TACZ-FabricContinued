@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LivingEntityRendererMixin {
     @Inject(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V", at = @At("TAIL"))
     public void tacz$onPostEvent(LivingEntity entity, float entityYaw, float partialTicks, PoseStack matrixStack, MultiBufferSource buffer, int packedLight, CallbackInfo ci) {
-        var event = new RenderLivingEvent.Post<>(entity, (LivingEntityRenderer<?, ?>) (Object) this, partialTicks, matrixStack, buffer, packedLight);
+        var event = new RenderLivingEvent.Post(entity, (LivingEntityRenderer<?, ?, ?>) (Object) this, partialTicks, matrixStack, buffer, packedLight);
         RenderLivingEvent.POST.invoker().post(event);
     }
 }

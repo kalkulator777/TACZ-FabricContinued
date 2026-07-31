@@ -13,7 +13,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import com.tacz.guns.api.client.renderer.IDynamicItemRenderer;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;

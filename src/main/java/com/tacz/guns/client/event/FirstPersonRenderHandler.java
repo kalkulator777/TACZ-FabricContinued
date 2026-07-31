@@ -130,7 +130,7 @@ public final class FirstPersonRenderHandler {
         IFPAnimationInstance instance = getActiveAnimationInstance();
         if (instance != null) {
             instance.triggerDraw();
-            instance.tick(event.getDeltaTracker().getGameTimeDeltaPartialTick(true));
+            instance.tick(event.getTimer().getGameTimeDeltaPartialTick(true));
         }
     }
 
