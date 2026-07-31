@@ -277,7 +277,7 @@ Nothing on the dependency list now blocks the version bump.
 
 **In progress.** The tree does not compile, which is expected and is why phases 0
 and 1 emptied everything they could out of this one first. Progress is measured
-in distinct compile errors: **4756 at the bump, 361 now**, and what is left is
+in distinct compile errors: **4756 at the bump, 253 now**, and what is left is
 almost entirely client rendering.
 
 - [x] **Toolchain.** Loom 1.17 — 1.17 split the plugin, and `fabric-loom-remap` is
@@ -325,14 +325,48 @@ almost entirely client rendering.
         overwrites the first one's animation and both draw the same.
       - **GPU state moved into `RenderPipeline`.** `GlStateManager` is gone and
         `RenderSystem` no longer has `enableBlend`, `depthMask`, `stencilFunc` or
-        any of it. This is 114 of the remaining errors and it is where the scope
-        stencil mask lives — §8's first risk, now confirmed rather than suspected.
+        any of it. Colour and depth masking, the depth test and blending are now
+        properties of a pipeline, reapplied on every `setPipeline`, so they cannot
+        be flipped around a draw — a state change means a second `RenderType`.
+        `RenderStateShard` and `CompositeState` are gone the same way; a
+        `RenderType` is a pipeline plus a texture and a handful of leftovers
+        (`RenderSetup`).
+
+        The scope stencil mask — §8's first risk — is done and described below.
+        The laser beam and the bullet hole particle are done. What is left of this
+        cluster is the GUI, where the 3D item preview needs a picture-in-picture
+        renderer rather than a model-view matrix.
       - **Item rendering** without `BuiltinItemRendererRegistry` or
         `BlockEntityWithoutLevelRenderer`.
       - 2D `GuiGraphics`, HUD on `HudElementRegistry`, and the widgets — the only
         genuinely mechanical part of the four.
 - [ ] Mixins last — they only validate in a running game. `KeyboardHandler.keyPress`
       and `MouseHandler.onPress` have already changed shape underneath them.
+
+**The scope stencil mask.** Nothing in vanilla touches the stencil buffer any
+more — not `RenderSystem`, not `RenderPipeline` — so it had to be rebuilt from
+three separate pieces rather than ported call for call.
+
+- *The buffer.* `RenderTarget`'s depth attachment is a `GpuTexture` in `DEPTH32`,
+  with no stencil bits, and the FBO is assembled inside the GL backend where the
+  old mixin used to reach. `RenderTargetMixin` marks the depth texture when a
+  scope asks for stencil, `GlDeviceMixin` allocates it as `DEPTH32F_STENCIL8`
+  instead — same depth precision, eight bits more — and `GlTextureMixin` hangs it
+  on `GL_STENCIL_ATTACHMENT` when the FBO is built.
+- *The state.* Because vanilla never touches stencil, raw GL survives untouched
+  between passes. `StencilSupport` wraps it. The clear is the exception: between
+  render passes the bound draw framebuffer is the window's, so a `glClear` there
+  wipes the wrong thing. It runs inside an empty render pass on the main target,
+  which is the cheapest way to get the right FBO bound.
+- *The masking.* Since colour and depth writes are pipeline properties, the
+  stencil-only pass and the reticle pass each get their own `RenderType` with the
+  state baked in. That is also why `BedrockAttachmentModel.render` now takes the
+  texture: a `RenderType` cannot be asked what it draws with, so the variants have
+  to be keyed on the identifier from the call site.
+
+None of it can be checked without a GPU. It compiles and the algorithm is
+unchanged, but **every scope needs looking at in game before this is trusted** —
+and the first thing to check is that the framebuffer is still complete.
 - [ ] Resources: item definition JSON, blockstate format, recipe ingredient form.
 - [ ] Adapt the Shoulder Surfing plugin to the 5.x `register` signature.
 - [ ] Re-check the Iris buffer flush against the Iris release for the target.
@@ -462,7 +496,7 @@ a begin/part/end protocol over batches plus gzip, which pack JSON compresses ver
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **confirmed as a redesign**, outcome still open | high; changes how every optical scope looks | prototype it before committing to the render port |
+| The scope stencil mask cannot be reproduced — the new GPU abstraction has no stencil concept | **rebuilt, unverified** — see phase 2 | high; changes how every optical scope looks | it compiles and the algorithm is unchanged; needs a GPU to confirm the framebuffer is complete and the mask lands where it used to |
 | Every renderer has to move to extract-and-submit | certain | high; it is most of the client port | do the block entities first — they are the smallest of the four renderers |
 | `SpecialModelRenderer` does not cover what the mod needs from item rendering | low | high | prototype on a single item first |
 | No replacement for the current camera/FOV discriminator | medium | medium; scope zoom and gun model FOV depend on it | find a new discriminator during the client port |
