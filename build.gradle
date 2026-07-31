@@ -203,7 +203,9 @@ dependencies {
     // Zoomify
     modCompileOnly "maven.modrinth:zoomify:2.15.2+1.21.11"
 
-    modCompileOnly "maven.modrinth:immediatelyfast:1.14.3+1.21.11-fabric"
+    // ImmediatelyFast 只留运行时：它的 hud_batching 已经没有了，我们那段兼容也随之删掉，
+    // 编译期不再需要它，但开发环境里还是想带着它一起跑一跑
+    modRuntimeOnly "maven.modrinth:immediatelyfast:1.14.3+1.21.11-fabric"
 
     modRuntimeOnly "maven.modrinth:tweakeroo:0.27.11"
     modRuntimeOnly "maven.modrinth:malilib:0.27.16"

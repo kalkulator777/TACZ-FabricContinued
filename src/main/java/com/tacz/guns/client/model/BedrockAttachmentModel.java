@@ -12,7 +12,6 @@ import com.tacz.guns.client.model.functional.TextShowRender;
 import com.tacz.guns.client.resource.pojo.display.gun.TextShow;
 import com.tacz.guns.client.resource.pojo.model.BedrockModelPOJO;
 import com.tacz.guns.client.resource.pojo.model.BedrockVersion;
-import com.tacz.guns.compat.iris.IrisCompat;
 import com.tacz.guns.util.RenderHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -267,9 +266,7 @@ public class BedrockAttachmentModel extends BedrockAnimatedModel {
         MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
         VertexConsumer vertexConsumer = bufferSource.getBuffer(renderType);
         part.render(poseStack, transformType, vertexConsumer, light, overlay);
-        if (!IrisCompat.endBatch(bufferSource)) {
-            bufferSource.endBatch(renderType);
-        }
+        bufferSource.endBatch(renderType);
         part.visible = false;
         poseStack.popPose();
     }

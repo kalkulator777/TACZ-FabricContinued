@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.tacz.guns.client.model.IFunctionalRenderer;
 import com.tacz.guns.client.resource.pojo.model.*;
-import com.tacz.guns.compat.iris.IrisCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -411,9 +410,7 @@ public class BedrockModel {
             model.render(matrixStack, transformType, builder, light, overlay, red, green, blue, alpha);
         }
         matrixStack.popPose();
-        if (!IrisCompat.endBatch(bufferSource)) {
-            bufferSource.endBatch(renderType);
-        }
+        bufferSource.endBatch(renderType);
 
         for (IFunctionalRenderer renderer : delegateRenderers) {
             renderer.render(matrixStack, builder, transformType, light, overlay);

@@ -7,7 +7,7 @@ import com.mrcrayfish.controllable.client.binding.context.InGameContext;
 import com.mrcrayfish.controllable.client.binding.handlers.OnPressAndReleaseHandler;
 import com.mrcrayfish.controllable.client.input.Buttons;
 import com.mrcrayfish.controllable.client.input.Controller;
-import com.mrcrayfish.framework.api.event.TickEvents;
+import com.mrcrayfish.framework.api.event.client.FrameworkClientTickEvents;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IGun;
@@ -71,7 +71,8 @@ public class ControllableInner {
         Controllable.getBindingRegistry().register(INTERACT);
         Controllable.getBindingRegistry().register(INSPECT);
 
-        TickEvents.END_CLIENT.register(ControllableInner::onClientTickEnd);
+        // Framework 给事件类都加上了 Framework 前缀，客户端的那几个也搬进了 .client 包
+        FrameworkClientTickEvents.END_CLIENT.register(ControllableInner::onClientTickEnd);
     }
 
     public static void onClientTickEnd() {

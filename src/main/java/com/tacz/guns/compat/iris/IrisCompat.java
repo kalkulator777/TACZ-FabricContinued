@@ -2,9 +2,12 @@ package com.tacz.guns.compat.iris;
 
 import com.tacz.guns.init.CompatRegistry;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.renderer.MultiBufferSource;
 
 /**
+ * Iris 用来插队实体绘制的那套 batchedentityrendering 在 1.10 里没有了 —— 原版自己的提交管线
+ * 接管了同一件事。所以那个「按我们说的地方冲刷缓冲」的口子也一起删了：它本来就是 §8 里记着的
+ * 那笔债，唯一没有 api.v0 对应物、每次 Iris 更新都得重看一遍的地方。
+ * <p>
  * Nothing here touches an Iris class directly — that happens in {@link IrisCompatInner}, which is
  * only reached once {@link #installed} is true, so the JVM never has to resolve an Iris type on an
  * installation without Iris. This is the same shape the Shoulder Surfing and Controllable
@@ -34,10 +37,4 @@ public final class IrisCompat {
         return installed && IrisCompatInner.isRenderingShadowPass();
     }
 
-    /**
-     * @return true if the buffer really was flushed, false if it is not one of Iris's batched sources
-     */
-    public static boolean endBatch(MultiBufferSource.BufferSource bufferSource) {
-        return installed && IrisCompatInner.endBatch(bufferSource);
-    }
 }

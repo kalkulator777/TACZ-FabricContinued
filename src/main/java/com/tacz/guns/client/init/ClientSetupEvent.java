@@ -13,7 +13,6 @@ import com.tacz.guns.client.tooltip.ClientAttachmentItemTooltip;
 import com.tacz.guns.client.tooltip.ClientBlockItemTooltip;
 import com.tacz.guns.client.tooltip.ClientGunTooltip;
 import com.tacz.guns.compat.controllable.ControllableCompat;
-import com.tacz.guns.compat.immediatelyfast.ImmediatelyFastCompat;
 import com.tacz.guns.compat.playeranimator.PlayerAnimatorCompat;
 import com.tacz.guns.compat.shouldersurfing.ShoulderSurfingCompat;
 import com.tacz.guns.compat.zoomify.ZoomifyCompat;
@@ -121,7 +120,6 @@ public class ClientSetupEvent {
         ControllableCompat.init();
 
         ZoomifyCompat.init();
-        ImmediatelyFastCompat.init();
 
         // 模板缓冲不在这里开了：recordRenderCall 没了，而且 StencilSupport 用到的时候
         // 自己会开，第一支瞄具渲染时才付这个代价
