@@ -1,4 +1,4 @@
-## Timeless and Classics Zero: Refabricated
+## Timeless and Classics Zero: Refreshed
 
 An unofficial Fabric port of [Timeless and Classics Zero](https://github.com/MCModderAnchor/TACZ),
 a gun mod for Minecraft.
