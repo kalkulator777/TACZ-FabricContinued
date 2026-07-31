@@ -3,9 +3,7 @@ package com.tacz.guns.client.event;
 import net.minecraft.client.renderer.RenderPipelines;
 
 import cn.sh1rocu.tacz.api.event.RenderTickEvent;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.tacz.guns.GunMod;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.client.animation.statemachine.AnimationStateContext;
@@ -24,6 +22,8 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.Identifier;
@@ -97,8 +97,6 @@ public class RenderCrosshairEvent {
                 renderCrosshair(guiGraphics, window);
             }
         });
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     public static void onRenderTick(RenderTickEvent event) {
@@ -128,12 +126,10 @@ public class RenderCrosshairEvent {
 
         Identifier location = CrosshairType.getTextureLocation(RenderConfig.CROSSHAIR_TYPE.get());
 
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        RenderSystem.setShaderColor(1F, 1F, 1F, 0.9f);
         float x = width / 2f - 8;
         float y = height / 2f - 8;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, location, (int) x, (int) y, 0, 0, 16, 16, 16, 16);
+        // 混合是管线自带的，颜色是 blit 的参数。0.9 的 alpha 就是原来那句 setShaderColor
+        graphics.blit(RenderPipelines.GUI_TEXTURED, location, (int) x, (int) y, 0, 0, 16, 16, 16, 16, 0xE6FFFFFF);
     }
 
     private static void renderHitMarker(GuiGraphics graphics, Window window) {
@@ -160,18 +156,14 @@ public class RenderCrosshairEvent {
         float x = width / 2f - 8;
         float y = height / 2f - 8;
 
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        if (remainHeadShotTime > KEEP_TIME) {
-            RenderSystem.setShaderColor(1F, 1F, 1F, 1 - fadeTime / KEEP_TIME);
-        } else {
-            RenderSystem.setShaderColor(1F, 0, 0, 1 - fadeTime / KEEP_TIME);
-        }
+        // 淡出和爆头的红色都进了 blit 的颜色参数
+        int alpha = Math.round(Mth.clamp(1 - fadeTime / KEEP_TIME, 0F, 1F) * 255F);
+        int color = ARGB.color(alpha, 255, remainHeadShotTime > KEEP_TIME ? 255 : 0, remainHeadShotTime > KEEP_TIME ? 255 : 0);
 
-        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x - offset), (int) (y - offset), 0, 0, 8, 8, 16, 16);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x + 8 + offset), (int) (y - offset), 8, 0, 8, 8, 16, 16);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x - offset), (int) (y + 8 + offset), 0, 8, 8, 8, 16, 16);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x + 8 + offset), (int) (y + 8 + offset), 8, 8, 8, 8, 16, 16);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x - offset), (int) (y - offset), 0, 0, 8, 8, 16, 16, color);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x + 8 + offset), (int) (y - offset), 8, 0, 8, 8, 16, 16, color);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x - offset), (int) (y + 8 + offset), 0, 8, 8, 8, 16, 16, color);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, HIT_ICON, (int) (x + 8 + offset), (int) (y + 8 + offset), 8, 8, 8, 8, 16, 16, color);
     }
 
     public static void markHitTimestamp() {

@@ -10,6 +10,8 @@ import com.tacz.guns.client.resource.pojo.PackInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.util.ARGB;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
@@ -55,8 +57,8 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
 
         this.byHandCheckbox = new Checkbox(0, 0, 10, 10, Component.translatable("gui.tacz.gun_smith_table.filter.handgun"), false) {
             @Override
-            public void onPress() {
-                super.onPress();
+            public void onPress(InputWithModifiers input) {
+                super.onPress(input);
                 parent.init();
                 parent.setIndexPage(0);
             }
@@ -65,8 +67,8 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
 
         Checkbox checkbox1 = new Checkbox(0, 0, 10, 10, Component.translatable("gui.tacz.gun_smith_table.filter.all"), true) {
             @Override
-            public void onPress() {
-                super.onPress();
+            public void onPress(InputWithModifiers input) {
+                super.onPress(input);
                 gunPackList.forEach((checkbox) -> checkbox.selected = this.selected);
                 updateSelectedNamespaces();
             }
@@ -79,8 +81,8 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
 
             Checkbox checkbox = new Checkbox(0, 0, 10, 10, name, namespace, true) {
                 @Override
-                public void onPress() {
-                    super.onPress();
+                public void onPress(InputWithModifiers input) {
+                    super.onPress(input);
                     checkbox1.selected = gunPackList.stream().allMatch(Checkbox::selected);
                     updateSelectedNamespaces();
                 }
@@ -118,35 +120,15 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
         parent.setIndexPage(0);
     }
 
-    protected int getScrollbarPosition() {
-        return this.getRight() - 2;
-    }
-
+    /**
+     * 原来这里整段抄了一遍原版的列表绘制循环，只为了加一层半透明底和自画滚动条。
+     * 1.21.9 之后入口是 renderWidget，滚动条由 AbstractScrollArea 自己画，条目也自己知道位置，
+     * 所以只剩下底色这一件事。
+     */
     @Override
-    protected void renderContents(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderListBackground(pGuiGraphics);
-        pGuiGraphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x80000000);
-        int i = this.getScrollbarPosition();
-        int j = i + 6;
-
-        this.enableScissor(pGuiGraphics);
-        this.renderListItems(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
-        pGuiGraphics.disableScissor();
-        this.renderListSeparators(pGuiGraphics);
-
-        int i2 = this.getMaxScroll();
-        if (i2 > 0) {
-            int j2 = (int) ((float) ((this.getBottom() - this.getY()) * (this.getBottom() - this.getY())) / (float) this.getMaxPosition());
-            j2 = Mth.clamp(j2, 32, this.getBottom() - this.getY() - 8);
-            int k1 = (int) this.getScrollAmount() * (this.getBottom() - this.getY() - j2) / i2 + this.getY();
-            if (k1 < this.getY()) {
-                k1 = this.getY();
-            }
-            pGuiGraphics.fill(i, k1, j, k1 + j2, -8355712);
-            pGuiGraphics.fill(i, k1, j - 1, k1 + j2 - 1, -4144960);
-        }
-        this.renderDecorations(pGuiGraphics, pMouseX, pMouseY);
-
+    protected void renderListBackground(GuiGraphics graphics) {
+        super.renderListBackground(graphics);
+        graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), 0x80000000);
     }
 
     public int getRowLeft() {
@@ -170,9 +152,9 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
         }
 
         @Override
-        public void render(GuiGraphics pGuiGraphics, int pIndex, int pTop, int pLeft, int pWidth, int pHeight, int pMouseX, int pMouseY, boolean pHovering, float pPartialTick) {
-            this.widget.setX(pLeft);
-            this.widget.setY(pTop);
+        public void renderContent(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, boolean hovered, float pPartialTick) {
+            this.widget.setX(this.getX());
+            this.widget.setY(this.getY());
             this.widget.render(pGuiGraphics, pMouseX, pMouseY, pPartialTick);
         }
 
@@ -210,7 +192,8 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
             return id;
         }
 
-        public void onPress() {
+        @Override
+        public void onPress(InputWithModifiers input) {
             this.selected = !this.selected;
         }
 
@@ -233,7 +216,6 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
         protected void renderContents(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
             Minecraft minecraft = Minecraft.getInstance();
             Font font = minecraft.font;
-            pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, this.alpha);
             Identifier texture;
             if (this.isFocused()) {
                 if (this.selected) {
@@ -248,8 +230,7 @@ public class GunPackList extends ContainerObjectSelectionList<GunPackList.Entry>
                     texture = CHECKBOX;
                 }
             }
-            pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, this.getX(), this.getY(), 0.0F, 0.0F, 10, 10, 10, 10);
-            pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            pGuiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, this.getX(), this.getY(), 0.0F, 0.0F, 10, 10, 10, 10, ARGB.white(this.alpha));
             if (this.showLabel) {
                 pGuiGraphics.drawString(font, this.getMessage(), this.getX() + 24, this.getY() + (this.height - 8) / 2, 14737632 | Mth.ceil(this.alpha * 255.0F) << 24);
             }
