@@ -487,9 +487,16 @@ diagnostic is on) puts the flame on screen at the muzzle. At 60 fps two or three
 frames fall inside 50 ms and it would be visible normally.
 
 So "effect not seen under software rendering" is not evidence of anything. Shell
-casings are on the same short timer and should be treated the same way. Bullet
-holes are not — those are persistent, and a wall that is being hit staying clean
-is still an open item.
+casings are on the same short timer and should be treated the same way.
+
+Bullet holes turned out not to be broken either, for a duller reason: the run
+that reported a clean wall was firing a gun with an empty magazine, so nothing
+was ever shot. With a loaded one the decal is there — one particle created, a
+valid sprite off the block atlas, extracted every frame for its whole life, and
+a small dark square on the stone where the round landed. The quad offset that
+lifts it off the surface is `0.01 * quadSize`, the same as 1.21.1; it was worth
+checking, because at 0.0005 blocks it is close enough to the face to be a
+plausible z-fighting suspect, but it matches upstream and it draws.
 
 - [ ] Resources: blockstate format, recipe ingredient form. The item definition
       JSON is written for the items that have models; what is left is `ammo_box`,
