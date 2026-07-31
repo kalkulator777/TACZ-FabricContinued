@@ -96,6 +96,20 @@ public final class RenderDebug {
         return texture instanceof com.mojang.blaze3d.opengl.GlTexture gl ? Integer.toString(gl.glId()) : String.valueOf(texture);
     }
 
+    /**
+     * 枪口火焰的显示窗口，毫秒。只有诊断开着时 {@code -Dtacz.muzzleFlashMs=…} 才生效。
+     * <p>
+     * 存在的理由：窗口本身是 50 毫秒，而软件渲染下一帧就要 80 毫秒 —— 开火之后的第一帧
+     * 已经在 86 毫秒，永远落不进窗口。看不到火焰不等于火焰画错了，把窗口临时拉长才能
+     * 把这两件事分开。
+     */
+    public static long muzzleFlashWindow(long defaultMs) {
+        if (!ENABLED) {
+            return defaultMs;
+        }
+        return Long.getLong("tacz.muzzleFlashMs", defaultMs);
+    }
+
     /** 每次都打。给那些「发生了多少次、间隔多久」才有意义的观察用。 */
     public static void log(String format, Object... args) {
         if (ENABLED) {

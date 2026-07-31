@@ -471,9 +471,25 @@ counter decrements and the target dies), the gun smith table block with its full
 model, and that table's screen — recipe list, tooltips, and the rotating preview,
 which does render, small and dark against a grey panel.
 
-Still wrong, and each has an entry above or below: the scope mask; the muzzle
-flash and shell casings, which do not appear although the shot registers; and
-bullet holes, which do not appear on a wall that is being hit.
+The muzzle flash is not broken either, and the way that was established is worth
+recording because the same trap is waiting for every short-lived effect in this
+mod. It never appears in game here, and the shot plainly registers, which reads
+like a defect. The trace says the chain is whole — `GunFireEvent` arrives on the
+client, `onShoot` runs, the renderer is reached with `isSelf` true — and then
+prints the thing that actually matters:
+
+    muzzle flash: 86 ms since shot, window is 50 ms
+
+The flash lasts 50 ms. Under llvmpipe a frame takes about 80 ms, so the first
+frame after a shot is already past the window and no frame ever lands inside it.
+Widening the window with `-Dtacz.muzzleFlashMs=1500` (only honoured when the
+diagnostic is on) puts the flame on screen at the muzzle. At 60 fps two or three
+frames fall inside 50 ms and it would be visible normally.
+
+So "effect not seen under software rendering" is not evidence of anything. Shell
+casings are on the same short timer and should be treated the same way. Bullet
+holes are not — those are persistent, and a wall that is being hit staying clean
+is still an open item.
 
 - [ ] Resources: blockstate format, recipe ingredient form. The item definition
       JSON is written for the items that have models; what is left is `ammo_box`,

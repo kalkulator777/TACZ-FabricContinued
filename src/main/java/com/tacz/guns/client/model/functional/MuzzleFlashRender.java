@@ -118,10 +118,11 @@ public class MuzzleFlashRender implements IFunctionalRenderer {
         long time = System.currentTimeMillis() - shootTimeStamp;
         /* 关心的是「开火之后最近的一帧，离开火过了多久」。50 毫秒的窗口在软件渲染下
          * 很可能一帧都落不进去，所以这里要看真实数值，不是看有没有进来过。*/
+        long window = com.tacz.guns.client.gl.RenderDebug.muzzleFlashWindow(TIME_RANGE);
         if (time < 2000) {
-            com.tacz.guns.client.gl.RenderDebug.log("muzzle flash: {} ms since shot, window is {} ms", time, TIME_RANGE);
+            com.tacz.guns.client.gl.RenderDebug.log("muzzle flash: {} ms since shot, window is {} ms", time, window);
         }
-        if (time > TIME_RANGE) {
+        if (time > window) {
             return;
         }
         ItemStack currentGunItem = bedrockGunModel.getCurrentGunItem();
