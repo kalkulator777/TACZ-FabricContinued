@@ -72,16 +72,22 @@ public final class CycleTaskHelper {
             }
             float duration = (System.currentTimeMillis() - timestamp) / 1000f + compensation;
             if (delayS > 0) {
-                if (delayS > duration) {
-                    // 延迟还没结束，减少延迟，继续tick
-                    delayS = delayS - duration;
+                /* duration 是从构造那一刻算起的总时长，而延迟路径上 timestamp 从来不往前挪，
+                 * 所以原来每 tick 都从 delayS 里扣掉一整段「至今为止的时间」—— 倒计时按 tick
+                 * 数平方地缩短，1 秒的延迟六个 tick 就到期了。而且到期那一支里 delayS 已经被
+                 * 置 0，紧接着的 duration - delayS 什么也没减掉，整段延迟时间被当成欠账，
+                 * 下面的 while 会把 delay/period 次调用一口气补完。
+                 * 延迟到期就干脆利落地跑一次，然后从此刻重新起算周期。*/
+                if (duration < delayS) {
                     return true;
-                } else {
-                    // 延迟执行结束，将延迟设为 0
-                    // 减少 duration 再加上一个 period，使得后续循环中 task 至少被执行一次。
-                    delayS = 0;
-                    duration = duration - delayS + periodS;
                 }
+                delayS = 0;
+                compensation = 0;
+                timestamp = System.currentTimeMillis();
+                if (cycles > 0 && ++count > cycles) {
+                    return false;
+                }
+                return task.getAsBoolean();
             }
             if (duration > periodS) {
                 compensation = duration;

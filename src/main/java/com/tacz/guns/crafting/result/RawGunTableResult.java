@@ -87,6 +87,8 @@ public class RawGunTableResult {
                     .setAmmoCount(ammoCount)
                     .setAmmoInBarrel(false)
                     .putAllAttachment(attachments)
+                    // 和创造模式物品栏那边保持一致，否则工作台造出来的枪没有热量标签，热量条不显示
+                    .setHeatData(gunIndex.getGunData().hasHeatData())
                     .setFireMode(gunIndex.getGunData().getFireModeSet().getFirst()).build(provider);
             String raw = gunIndex.getType();
             if (!raw.contains(":")) {

@@ -251,7 +251,8 @@ public class BedrockGunModel extends BedrockAnimatedModel {
         currentExtendMagLevel = 0;
         adapterToRender.clear();
         // 更新配件物品的缓存，以供渲染使用
-        for (AttachmentType type : AttachmentType.values()) {
+        // values() 每次都克隆一份数组，而这里每帧每把枪都要走一遍；类里已经缓存了一份
+        for (AttachmentType type : AttachmentType.getValues()) {
             if (type == AttachmentType.NONE) {
                 continue;
             }

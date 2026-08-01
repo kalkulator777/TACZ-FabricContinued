@@ -148,25 +148,38 @@ public class AmmoBoxItem extends Item implements AmmoBoxItemDataAccessor {
                 if (slotAmmoId.equals(DefaultAssets.EMPTY_AMMO_ID)) {
                     return false;
                 }
-                // 如果盒子的子弹 ID 为空，变成当前点击的类型
-                if (boxAmmoId.equals(DefaultAssets.EMPTY_AMMO_ID)) {
-                    this.setAmmoId(ammoBox, slotAmmoId);
-                } else if (!slotAmmoId.equals(boxAmmoId)) {
+                if (!boxAmmoId.equals(DefaultAssets.EMPTY_AMMO_ID) && !slotAmmoId.equals(boxAmmoId)) {
                     return false;
                 }
-                TimelessAPI.getCommonAmmoIndex(slotAmmoId).ifPresent(index -> {
-                    // 创造模式弹药箱，那就直接存入最大
-                    if (isCreative(ammoBox)) {
-                        this.setAmmoCount(ammoBox, Integer.MAX_VALUE);
-                        return;
-                    }
-                    int boxAmmoCount = this.getAmmoCount(ammoBox);
-                    int boxLevelMultiplier = this.getAmmoLevel(ammoBox) + 1;
-                    int maxSize = index.getStackSize() * SyncConfig.AMMO_BOX_STACK_SIZE.get() * boxLevelMultiplier;
-                    int needCount = maxSize - boxAmmoCount;
-                    ItemStack takeItem = slot.safeTake(slotItem.getCount(), needCount, player);
-                    this.setAmmoCount(ammoBox, boxAmmoCount + takeItem.getCount());
-                });
+                /* 盒子的子弹 ID 原来是在查索引之前就写进去的，而写完之后既不检查索引查没查到，
+                 * 也不检查真的装进去几发 —— 于是有两个后果：拿一个空盒子点一发所属枪包没加载的
+                 * 子弹，盒子被打上那个 ID 而数量是 0，取出那条路又在数量不大于 0 时直接返回，
+                 * 这个 ID 就再也换不掉，盒子从此拒收其它一切子弹；而一个装满的盒子，safeTake
+                 * 什么都没拿到，照样播放装入音效并汇报成功。所以改成先确认，再落笔。*/
+                var ammoIndex = TimelessAPI.getCommonAmmoIndex(slotAmmoId);
+                if (ammoIndex.isEmpty()) {
+                    return false;
+                }
+                // 创造模式弹药箱，那就直接存入最大
+                if (isCreative(ammoBox)) {
+                    this.setAmmoId(ammoBox, slotAmmoId);
+                    this.setAmmoCount(ammoBox, Integer.MAX_VALUE);
+                    this.playInsertSound(player);
+                    return true;
+                }
+                int boxAmmoCount = this.getAmmoCount(ammoBox);
+                int boxLevelMultiplier = this.getAmmoLevel(ammoBox) + 1;
+                int maxSize = ammoIndex.get().getStackSize() * SyncConfig.AMMO_BOX_STACK_SIZE.get() * boxLevelMultiplier;
+                int needCount = maxSize - boxAmmoCount;
+                if (needCount <= 0) {
+                    return false;
+                }
+                ItemStack takeItem = slot.safeTake(slotItem.getCount(), needCount, player);
+                if (takeItem.isEmpty()) {
+                    return false;
+                }
+                this.setAmmoId(ammoBox, slotAmmoId);
+                this.setAmmoCount(ammoBox, boxAmmoCount + takeItem.getCount());
                 // 播放取出声音
                 this.playInsertSound(player);
                 return true;

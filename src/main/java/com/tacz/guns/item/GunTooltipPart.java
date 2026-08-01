@@ -1,10 +1,7 @@
 package com.tacz.guns.item;
 
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.util.Unit;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 
@@ -28,18 +25,17 @@ public enum GunTooltipPart {
     }
 
     /**
-     * 1.21.5 把 HIDE_TOOLTIP 和 HIDE_ADDITIONAL_TOOLTIP 两个组件合成了一个 TOOLTIP_DISPLAY：
-     * 整条提示的开关加上一份要隐藏的组件清单。第一位还是「整条不显示」，
-     * 第二位原来是「不显示物品自己追加的那部分」，现在用隐藏 CUSTOM_DATA 表达。
+     * 这里的 mask 是本枚举的位掩码 —— 一位对应一段 TACZ 自己的提示（描述、弹药、基础属性……），
+     * 和原版 HIDE_TOOLTIP / HIDE_ADDITIONAL_TOOLTIP 的位不是一回事。
+     * <p>
+     * 之前这里把它当成原版的位来解释，映射到 1.21.5 新的 TOOLTIP_DISPLAY 上：第 0 位当成
+     * 「整条提示不显示」，第 1 位当成「隐藏 CUSTOM_DATA」。于是写进去的和 {@link #getHideFlags}
+     * 读出来的根本不是一个地方 —— 读的是 CUSTOM_DATA 里的 HideFlags，而这个方法从不写它。
+     * 结果是 {@code /tacz hide_tooltip_part} 对所有分段都无效，唯独 mask 1 会把整条提示抹掉，
+     * mask 2 会隐藏一个毫不相干的组件，而命令还照样报告改了多少把枪。
+     * 写回读的那个地方就对了。
      */
     public static void setHideFlags(ItemStack stack, int mask) {
-        TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
-        if ((mask & 1) == 1) {
-            display = new TooltipDisplay(true, display.hiddenComponents());
-        }
-        if ((mask & 2) == 2) {
-            display = display.withHidden(DataComponents.CUSTOM_DATA, true);
-        }
-        stack.set(DataComponents.TOOLTIP_DISPLAY, display);
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt("HideFlags", mask));
     }
 }

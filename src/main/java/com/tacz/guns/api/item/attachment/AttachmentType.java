@@ -77,4 +77,12 @@ public enum AttachmentType implements StringRepresentable {
     }
 
     private static final AttachmentType[] VALUES = AttachmentType.values();
+
+    /**
+     * The same array {@link #values()} would hand out, without the defensive copy. Callers must not
+     * write to it. Meant for the render path, which walks it once per gun per frame.
+     */
+    public static AttachmentType[] getValues() {
+        return VALUES;
+    }
 }

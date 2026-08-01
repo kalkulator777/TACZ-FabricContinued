@@ -107,6 +107,10 @@ public final class GunItemBuilder {
             iGun.setFireMode(gun, this.fireMode);
             iGun.setCurrentAmmoCount(gun, this.ammoCount);
             iGun.setBulletInBarrel(gun, this.bulletInBarrel);
+            /* forceBuild 写了这一句，build 漏了 —— 而创造模式物品栏和枪械工作台都走 build。
+             * hasHeatData(ItemStack) 判断的就是「HeatAmount 这个标签在不在」，所以刚拿到手的
+             * 枪一直到开出第一枪之前都不算有热量数据，热量条和过热提示也就一直不显示。*/
+            if (heatData) iGun.setHeatAmount(gun, 0f);
             this.attachments.forEach((type, id) -> {
                 ItemStack attachmentStack = AttachmentItemBuilder.create().setId(id).build();
                 iGun.installAttachment(provider, gun, attachmentStack);

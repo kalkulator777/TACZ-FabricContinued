@@ -528,8 +528,11 @@ public class EntityKineticBullet extends Projectile implements IEntityWithComple
         float base = 0;
         // 遍历进行判断
         double playerDistance = hitVec.distanceTo(this.startPos);
-        for (DistanceDamagePair pair : this.damageAmount) {
-            float effectiveDistance = this.damageAmount.getFirst().getDistance() == pair.getDistance() ? this.distanceAmount : pair.getDistance();
+        /* 「是不是第一段」原来是拿距离值去比的，于是枪包只要写了两段距离相同的
+         * damage_adjust，第二段也会被当成第一段，跟着换成有效射程。按下标判断。*/
+        for (int i = 0; i < this.damageAmount.size(); i++) {
+            DistanceDamagePair pair = this.damageAmount.get(i);
+            float effectiveDistance = i == 0 ? this.distanceAmount : pair.getDistance();
             if (playerDistance < effectiveDistance) {
                 float damage = pair.getDamage();
                 base = Math.max(damage * this.damageModifier, 0F);

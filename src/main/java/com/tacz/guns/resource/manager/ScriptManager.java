@@ -28,7 +28,11 @@ import java.util.function.Supplier;
 public class ScriptManager extends SimplePreparableReloadListener<List<Map.Entry<String, Supplier<LuaTable>>>> implements IdentifiableResourceReloadListener {
     private static final Marker MARKER = MarkerFactory.getMarker("ScriptLoader");
     private Globals globals;
-    private final Map<String, LuaTable> scriptMap = Maps.newHashMap();
+    /* 这张表由主线程在资源重载时重建，由 tacz-client-asset-preload 线程读（getScript ←
+     * ClientAssetsManager.getScript ← GunDisplayInstance.checkAnimation）。上一轮重载排出去的
+     * 预热任务没人取消，下一轮 apply 就可能和它们撞上，所以既不能是普通 HashMap，也不能
+     * 原地 clear 再填 —— 那中间有一段谁读谁拿空。整张换掉，读的一侧要么看见旧表要么看见新表。*/
+    private volatile Map<String, LuaTable> scriptMap = Map.of();
     private final FileToIdConverter filetoidconverter;
     private final List<LuaLibrary> libraries;
 
@@ -59,8 +63,9 @@ public class ScriptManager extends SimplePreparableReloadListener<List<Map.Entry
 
     @Override
     protected void apply(List<Map.Entry<String, Supplier<LuaTable>>> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
-        scriptMap.clear();
-        pObject.forEach(entry -> scriptMap.put(entry.getKey(), entry.getValue().get()));
+        Map<String, LuaTable> loaded = Maps.newHashMapWithExpectedSize(pObject.size());
+        pObject.forEach(entry -> loaded.put(entry.getKey(), entry.getValue().get()));
+        scriptMap = loaded;
     }
 
     private Map.Entry<String, Supplier<LuaTable>> wrapLoadingFunction(Identifier rawResourceLocation, Resource resource) {

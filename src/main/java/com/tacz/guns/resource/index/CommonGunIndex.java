@@ -58,6 +58,10 @@ public class CommonGunIndex {
         Preconditions.checkArgument(data.getReloadData().getType() != null, "reload type is error");
         Preconditions.checkArgument(!data.getFireModeSet().isEmpty(), "fire mode is empty");
         Preconditions.checkArgument(!data.getFireModeSet().contains(null) && !data.getFireModeSet().contains(FireMode.UNKNOWN), "fire mode is error");
+        /* heat.max 是除数：lerpRPM、lerpInaccuracy 和 shootOnce 里的热量百分比都要除它。写 0
+         * 的话不光会得到 NaN，还会一枪把枪废掉 —— handleShootHeat 把热量夹到 0，然后因为
+         * 0 >= 0 判定过热上锁，而 defaultTickHeat 在热量不大于 0 时提前返回，压根走不到解锁。*/
+        Preconditions.checkArgument(data.getHeatData() == null || data.getHeatData().getHeatMax() > 0, "heat max must > 0");
         checkInaccuracy(data);
         checkRecoil(data);
         checkScript(data, index);
