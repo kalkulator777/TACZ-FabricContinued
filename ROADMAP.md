@@ -866,6 +866,38 @@ permission level 2.
   a `float[]` per channel per frame; `PapiManager` evaluates every placeholder
   whether the string uses it or not.
 
+**What is still open, and why each one needs a decision rather than a patch**
+
+Everything else from this audit is fixed — see the changelog and the two commits
+that followed it. What is left is left on purpose:
+
+- **A real Lua sandbox.** Closing the reflective path means handing scripts an
+  explicit wrapper that exposes only whitelisted methods and never returns a bare
+  `JavaInstance`. The set of classes is bounded and the work is not large, but it
+  will break any third-party pack that reaches through a coerced object today, and
+  there is no way to tell from here how many do. The execution budget is already in,
+  so the remaining exposure is code execution by a pack the player chose to install,
+  not a hang.
+- **Rate limiting the C2S packets.** Fire-select, draw and zoom each do real work
+  per packet with no cooldown. A limiter is easy; picking the numbers is not, because
+  too tight a limit eats legitimate rapid input and the right value depends on how
+  the server is played.
+- **Narrowing the hit broadcast.** `sendToDimension` to everyone could become
+  tracking-players-only. The handler already ignores what it cannot resolve, so the
+  change looks free — but "looks free" is what this session has been wrong about
+  before, and it is a networking change with no way to test it here.
+- **The three no-argument `endBatch()` calls.** Draining every buffer is wasteful,
+  but which layer the arms and the text land in depends on it. That is a visual
+  change and this environment cannot judge visual changes.
+- **`SecondOrderDynamics`.** Six threads spinning for the life of the JVM and a
+  cross-thread race on plain floats. It is byte-identical to 1.21.1, so fixing it is
+  a behaviour change to inherited code — the fixed `t = 0.05` per 6 ms iteration is
+  presumably how the constants were tuned, and a correct fixed-step integrator would
+  feel different.
+- **Gating the per-entity `RenderLivingEvent` allocation.** Fabric's `Event` has no
+  `hasListeners()`, and every alternative copies the listener's own checks into the
+  mixin. Small cost, no clean fix.
+
 **Rejected**
 
 `ServerMessageSwapItem.handle` was reported as racing the client thread for want of
