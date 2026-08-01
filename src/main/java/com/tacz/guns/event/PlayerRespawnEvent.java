@@ -18,6 +18,13 @@ public class PlayerRespawnEvent {
             api.setItemStack(itemStack);
             api.setShooter(newPlayer);
 
+            /* 枪械索引查不到的时候 setItemStack 会把 gunIndex 置空 —— 枪包被删掉、或者直接
+             * /give 一把 id 是 tacz:empty 的枪，都会走到这里。其它调用点都判了空，就这里没判。
+             * 一旦抛出来，异常会穿过 AFTER_RESPAWN 回调打断 PlayerList.respawn，而且 forEach
+             * 也断在这一格，后面的枪一把都换不上弹。*/
+            if (api.getGunIndex() == null) {
+                return;
+            }
 
             // 针对背包直读特殊处理
             var useInventoryAmmo = api.getGunIndex().getGunData().getReloadData().getType() == FeedType.INVENTORY;

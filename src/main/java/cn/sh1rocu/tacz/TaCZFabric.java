@@ -124,7 +124,7 @@ public class TaCZFabric implements ModInitializer {
 
         AttackBlockCallback.EVENT.register(PreventGunClick::onLeftClickBlock);
 
-        ServerTickEvents.START_SERVER_TICK.register(ServerTickEvent::onServerTick);
+        // 一次就够。Forge 那边是一个事件两个阶段，处理器自己挑阶段；这里注册两次等于每 tick 跑两遍
         ServerTickEvents.END_SERVER_TICK.register(ServerTickEvent::onServerTick);
 
         EntityJoinLevelEvent.CALLBACK.register(SyncBaseTimestamp::onPlayerJoinWorld);

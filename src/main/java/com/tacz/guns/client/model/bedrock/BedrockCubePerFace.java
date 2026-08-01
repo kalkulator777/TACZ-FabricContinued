@@ -76,20 +76,23 @@ public class BedrockCubePerFace implements BedrockCube {
         Matrix4f matrix4f = pose.pose();
         Matrix3f matrix3f = pose.normal();
 
+        /* 每个多边形一个 Vector3f、每个顶点一个 Vector4f —— 一把千来个方块的枪就是每帧几万个
+         * 短命对象，再乘上每个配件和场上每一把第三人称的枪。原版 ModelPart.Cube.compile 全程
+         * 只用一个 Vector3f，法线先取成三个 float，同一块 scratch 接着装顶点坐标。颜色对整次
+         * 调用是常量，原来却在每个顶点上重算。*/
+        int color = ARGB.colorFromFloat(alpha, red, green, blue);
+        Vector3f scratch = new Vector3f();
+
         for (BedrockPolygon polygon : this.polygons) {
-            Vector3f vector3f = new Vector3f(polygon.normal);
-            vector3f.mul(matrix3f);
-            float nx = vector3f.x();
-            float ny = vector3f.y();
-            float nz = vector3f.z();
+            Vector3f normal = polygon.normal;
+            matrix3f.transform(normal.x(), normal.y(), normal.z(), scratch);
+            float nx = scratch.x();
+            float ny = scratch.y();
+            float nz = scratch.z();
 
             for (BedrockVertex vertex : polygon.vertices) {
-                float x = vertex.pos.x() / 16.0F;
-                float y = vertex.pos.y() / 16.0F;
-                float z = vertex.pos.z() / 16.0F;
-                Vector4f vector4f = new Vector4f(x, y, z, 1.0F);
-                vector4f.mul(matrix4f);
-                consumer.addVertex(vector4f.x(), vector4f.y(), vector4f.z(), ARGB.colorFromFloat(alpha, red, green, blue), vertex.u, vertex.v, overlay, light, nx, ny, nz);
+                matrix4f.transformPosition(vertex.pos.x() / 16.0F, vertex.pos.y() / 16.0F, vertex.pos.z() / 16.0F, scratch);
+                consumer.addVertex(scratch.x(), scratch.y(), scratch.z(), color, vertex.u, vertex.v, overlay, light, nx, ny, nz);
             }
         }
     }

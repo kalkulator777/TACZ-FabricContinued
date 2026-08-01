@@ -2,7 +2,6 @@ package com.tacz.guns.client.model.bedrock;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import net.fabricmc.api.EnvType;
@@ -82,17 +81,20 @@ public class BedrockPart {
     public void translateAndRotateAndScale(PoseStack poseStack) {
         poseStack.translate(this.offsetX, this.offsetY, this.offsetZ);
         poseStack.translate((this.x / 16.0F), (this.y / 16.0F), (this.z / 16.0F));
-        if (this.zRot != 0.0F) {
-            poseStack.mulPose(Axis.ZP.rotation(this.zRot));
+        /* 三个轴分开转，就是三个 Quaternionf 和三次 mulPose，而 mulPose 每次都要把姿势矩阵和
+         * 法线矩阵各转一遍。原版 ModelPart 用一次 rotationZYX 做完，顺序相同（Z、Y、X），这里
+         * 照抄。附加旋转和缩放原本是无条件应用的：一根没有动画的骨头也要老实乘一遍单位四元数
+         * 和 (1,1,1) 的缩放，而这个方法每帧要跑一百多次，路径遍历还会再额外跑几次。*/
+        if (this.zRot != 0.0F || this.yRot != 0.0F || this.xRot != 0.0F) {
+            poseStack.mulPose(new Quaternionf().rotationZYX(this.zRot, this.yRot, this.xRot));
         }
-        if (this.yRot != 0.0F) {
-            poseStack.mulPose(Axis.YP.rotation(this.yRot));
+        if (additionalQuaternion.x != 0.0F || additionalQuaternion.y != 0.0F
+                || additionalQuaternion.z != 0.0F || additionalQuaternion.w != 1.0F) {
+            poseStack.mulPose(additionalQuaternion);
         }
-        if (this.xRot != 0.0F) {
-            poseStack.mulPose(Axis.XP.rotation(this.xRot));
+        if (xScale != 1.0F || yScale != 1.0F || zScale != 1.0F) {
+            poseStack.scale(xScale, yScale, zScale);
         }
-        poseStack.mulPose(additionalQuaternion);
-        poseStack.scale(xScale, yScale, zScale);
     }
 
     public void compile(PoseStack.Pose pose, VertexConsumer consumer, int light, int overlay, float red, float green, float blue, float alpha) {

@@ -35,7 +35,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 public class LocalPlayerShoot {
@@ -260,8 +262,27 @@ public class LocalPlayerShoot {
         // 连发计数器
         AtomicInteger count = new AtomicInteger(0);
 
-        LocalPlayerDataHolder.SCHEDULED_EXECUTOR_SERVICE.scheduleAtFixedRate(() -> {
+        /* 原来这两处停止条件写的是 (ScheduledFuture<?>) Thread.currentThread() —— Thread 从来
+         * 不是 ScheduledFuture，所以那句每次都抛 ClassCastException，cancel 根本没执行到。
+         * 任务确实停了，但停的原因是周期任务一旦抛异常就不再重排，而异常被塞进没人接的
+         * future 里，日志里一个字都没有。也就是说行为对，纯属巧合：只要有人给这个任务加上
+         * 日志、或者换掉 scheduleAtFixedRate，连发就会开始丢弹或者刷屏。
+         * 改成正经的取消。首次延迟可能是 0，任务有可能在 handle 赋值之前就跑完，所以用
+         * done 兜一手：谁先到都行，最后一定取消掉。*/
+        AtomicReference<ScheduledFuture<?>> handle = new AtomicReference<>();
+        AtomicBoolean done = new AtomicBoolean(false);
+        Runnable stopTask = () -> {
+            done.set(true);
+            ScheduledFuture<?> scheduled = handle.get();
+            if (scheduled != null) {
+                scheduled.cancel(false);
+            }
+        };
 
+        Runnable shootTask = () -> {
+            if (done.get()) {
+                return;
+            }
             if (count.get() == 0) {
                 // 转换 isRecord 状态，允许下一个tick的开火检测。
                 data.isShootRecorded = true;
@@ -269,15 +290,13 @@ public class LocalPlayerShoot {
             //Handle Heat Data
             if (gunData.hasHeatData()) {
                 if (iGun.isOverheatLocked(mainHandItem)) {
-                    ScheduledFuture<?> future = (ScheduledFuture<?>) Thread.currentThread();
-                    future.cancel(false); // 取消当前任务
+                    stopTask.run();
                     return;
                 }
             }
             // 如果达到最大连发次数，或者玩家已经死亡，取消任务
             if (count.get() >= maxCount || player.isDeadOrDying()) {
-                ScheduledFuture<?> future = (ScheduledFuture<?>) Thread.currentThread();
-                future.cancel(false); // 取消当前任务
+                stopTask.run();
                 return;
             }
 
@@ -320,7 +339,13 @@ public class LocalPlayerShoot {
             });
 
             count.getAndIncrement();
-        }, delay, period, TimeUnit.MILLISECONDS);
+        };
+
+        handle.set(LocalPlayerDataHolder.SCHEDULED_EXECUTOR_SERVICE
+                .scheduleAtFixedRate(shootTask, delay, period, TimeUnit.MILLISECONDS));
+        if (done.get()) {
+            handle.get().cancel(false);
+        }
     }
 
     private boolean useSilenceSound() {

@@ -99,27 +99,27 @@ public class GunSmithTableMenu extends AbstractContainerMenu {
                 Int2IntArrayMap recordCount = new Int2IntArrayMap();
                 List<GunSmithTableIngredient> ingredients = recipe.getInputs();
 
+                /* recordCount 是所有材料共用的，键只有槽位号，所以每种材料都必须按「这个槽
+                 * 还剩多少没被别的材料占掉」来算，占用要累加而不是覆盖。原来是直接 put，
+                 * 后一种材料把前一种的占用抹掉：配方要 10 个铁锭再加 1 个 #c:ingots/iron，
+                 * 而玩家的铁都在同一个槽里，两次检查都通过，最后只扣 1 个。*/
                 for (GunSmithTableIngredient ingredient : ingredients) {
-                    int count = 0;
-                    for (int slotIndex = 0; slotIndex < handler.getContainerSize(); slotIndex++) {
+                    int need = ingredient.getCount();
+                    for (int slotIndex = 0; slotIndex < handler.getContainerSize() && need > 0; slotIndex++) {
                         ItemStack stack = handler.getItem(slotIndex);
-                        int stackCount = stack.getCount();
-                        if (!stack.isEmpty() && ingredient.getIngredient().test(stack)) {
-                            count = count + stackCount;
-                            // 记录扣除的 slot 和数量
-                            if (count <= ingredient.getCount()) {
-                                // 如果数量不足，全扣
-                                recordCount.put(slotIndex, stackCount);
-                            } else {
-                                //  数量够了，只扣需要的数量
-                                int remaining = count - ingredient.getCount();
-                                recordCount.put(slotIndex, stackCount - remaining);
-                                break;
-                            }
+                        if (stack.isEmpty() || !ingredient.getIngredient().test(stack)) {
+                            continue;
                         }
+                        int available = stack.getCount() - recordCount.get(slotIndex);
+                        if (available <= 0) {
+                            continue;
+                        }
+                        int take = Math.min(available, need);
+                        recordCount.put(slotIndex, recordCount.get(slotIndex) + take);
+                        need -= take;
                     }
                     // 数量不够，不执行后续逻辑，合成失败
-                    if (count < ingredient.getCount()) {
+                    if (need > 0) {
                         return;
                     }
                 }

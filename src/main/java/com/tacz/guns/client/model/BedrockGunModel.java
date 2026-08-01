@@ -293,7 +293,10 @@ public class BedrockGunModel extends BedrockAnimatedModel {
         // 镜子需要先渲染，写入模板值
         ItemStack attachmentItem = currentAttachmentItem.get(AttachmentType.SCOPE);
         IAttachment iAttachment = IAttachment.getIAttachmentOrNull(attachmentItem);
-        if (scopePosPath != null && attachmentItem != null && !attachmentItem.isEmpty()) {
+        /* 只有真的画了瞄具才碰过模板缓冲。没装瞄具时，末尾那趟 clear 是白开一个渲染通道去
+         * 全屏清一块没人写过的缓冲，每帧一次。*/
+        boolean touchedStencil = scopePosPath != null && attachmentItem != null && !attachmentItem.isEmpty();
+        if (touchedStencil) {
             matrixStack.pushPose();
             for (BedrockPart bedrockPart : scopePosPath) {
                 bedrockPart.translateAndRotateAndScale(matrixStack);
@@ -314,10 +317,14 @@ public class BedrockGunModel extends BedrockAnimatedModel {
                 });
             }
         }
-        StencilSupport.op(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        if (touchedStencil) {
+            StencilSupport.op(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+        }
         super.render(matrixStack, transformType, renderType, light, overlay);
-        RenderHelper.disableItemEntityStencilTest();
-        StencilSupport.clear();
+        if (touchedStencil) {
+            RenderHelper.disableItemEntityStencilTest();
+            StencilSupport.clear();
+        }
     }
 
     /**

@@ -199,10 +199,13 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
                 return;
             }
             TimelessAPI.getCommonAmmoIndex(ammoId).ifPresent(ammoIndex -> {
-                int stackSize = ammoIndex.getStackSize();
+                int stackSize = Math.max(1, ammoIndex.getStackSize());
                 int tmpAmmoCount = ammoCount;
-                int roundCount = tmpAmmoCount / (stackSize + 1);
-                for (int i = 0; i <= roundCount; i++) {
+                /* 要返还的堆数是 ceil(总数 / 每堆)。原来写的是 总数 / (每堆 + 1) 再循环到
+                 * 包含边界，那个式子在弹匣大于两堆左右的时候少算一堆的一部分 —— 而弹匣是
+                 * 无条件清零的，少还的那几发就凭空没了。64 一堆时 193 发的弹鼓只还 192。*/
+                int roundCount = (tmpAmmoCount + stackSize - 1) / stackSize;
+                for (int i = 0; i < roundCount; i++) {
                     int count = Math.min(tmpAmmoCount, stackSize);
                     ItemStack ammoItem = AmmoItemBuilder.create().setId(ammoId).setCount(count).build();
                     giveAmmoToPlayer(player, ammoItem);
@@ -472,10 +475,14 @@ public abstract class AbstractGunItem extends Item implements IGun, IAnimationIt
                     .map(gunData -> {
                         FireMode fireMode = getFireMode(gun);
                         int rpm = gunData.getRoundsPerMinute(fireMode);
-                        if (iGun.hasHeatData(gun)) {
-                            rpm *= (int) iGun.lerpRPM(gun);
+                        /* 两处都错了，和 GunData.getShootInterval 里已经修过的那处是同一个错。
+                         * (int) 只作用在 lerpRPM 上，而它返回的是一个小数倍率 —— 任何把倍率
+                         * 设到 1 以下的枪包都会得到 0。判断也该看枪械数据有没有热量，而不是看
+                         * 物品 NBT 里有没有写过热量标签，后者在开第一枪之前一直是 false。*/
+                        if (gunData.hasHeatData()) {
+                            rpm = (int) (rpm * iGun.lerpRPM(gun));
                         }
-                        return rpm;
+                        return Math.max(rpm, 1);
                     }).orElse(300);
         }
         return 300;

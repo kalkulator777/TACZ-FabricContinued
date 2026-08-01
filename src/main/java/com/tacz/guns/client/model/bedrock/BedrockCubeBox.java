@@ -7,7 +7,6 @@ import net.minecraft.util.ARGB;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-import org.joml.Vector4f;
 
 public class BedrockCubeBox implements BedrockCube {
     public final float minX;
@@ -79,20 +78,20 @@ public class BedrockCubeBox implements BedrockCube {
         Matrix4f matrix4f = pose.pose();
         Matrix3f matrix3f = pose.normal();
 
+        // 见 BedrockCubePerFace.compile 里的说明，这两处是同一份代码
+        int color = ARGB.colorFromFloat(alpha, red, green, blue);
+        Vector3f scratch = new Vector3f();
+
         for (BedrockPolygon polygon : this.polygons) {
-            Vector3f vector3f = new Vector3f(polygon.normal);
-            vector3f.mul(matrix3f);
-            float nx = vector3f.x();
-            float ny = vector3f.y();
-            float nz = vector3f.z();
+            Vector3f normal = polygon.normal;
+            matrix3f.transform(normal.x(), normal.y(), normal.z(), scratch);
+            float nx = scratch.x();
+            float ny = scratch.y();
+            float nz = scratch.z();
 
             for (BedrockVertex vertex : polygon.vertices) {
-                float x = vertex.pos.x() / 16.0F;
-                float y = vertex.pos.y() / 16.0F;
-                float z = vertex.pos.z() / 16.0F;
-                Vector4f vector4f = new Vector4f(x, y, z, 1.0F);
-                vector4f.mul(matrix4f);
-                consumer.addVertex(vector4f.x(), vector4f.y(), vector4f.z(), ARGB.colorFromFloat(alpha, red, green, blue), vertex.u, vertex.v, overlay, light, nx, ny, nz);
+                matrix4f.transformPosition(vertex.pos.x() / 16.0F, vertex.pos.y() / 16.0F, vertex.pos.z() / 16.0F, scratch);
+                consumer.addVertex(scratch.x(), scratch.y(), scratch.z(), color, vertex.u, vertex.v, overlay, light, nx, ny, nz);
             }
         }
     }

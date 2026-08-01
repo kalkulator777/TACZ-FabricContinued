@@ -376,20 +376,27 @@ public class BedrockModel {
                        RenderType renderType, int light, int overlay,
                        float red, float green, float blue, float alpha, @Nullable Runnable poseModel) {
         List<BedrockPart> parts = List.copyOf(shouldRender);
-        List<IFunctionalRenderer> delegates = delegateRenderers;
-        delegateRenderers = new ArrayList<>();
         collector.submitCustomGeometry(matrixStack, renderType, (pose, builder) -> {
             if (poseModel != null) {
                 poseModel.run();
             }
             PoseStack local = new PoseStack();
             local.last().set(pose);
+            /* 委托渲染器不是提交前就有的，是部件在渲染过程中登记的：part.render 走到
+             * FunctionalBedrockPart，那里才调 AttachmentRender，后者再回头 delegateRender。
+             * 所以清空、渲染、再取，三步都必须在回调里做。
+             * 原来在提交前就把列表换走了，取到的永远是上一次提交攒下的那批 —— 第一次提交
+             * 一个附件都不画，而模型实例是按枪械 id 共享的，两个人拿同一把枪就会互相
+             * 播放对方的委托，连同委托里捕获的矩阵，第三人称的附件挂到别人身上。*/
+            delegateRenderers.clear();
             for (BedrockPart part : parts) {
                 part.render(local, transformType, builder, light, overlay, red, green, blue, alpha);
             }
-            for (IFunctionalRenderer renderer : delegates) {
-                renderer.render(local, builder, transformType, light, overlay);
+            // 下标遍历：委托在渲染时还可能再登记委托，for-each 会撞上并发修改
+            for (int i = 0; i < delegateRenderers.size(); i++) {
+                delegateRenderers.get(i).render(local, builder, transformType, light, overlay);
             }
+            delegateRenderers.clear();
         });
     }
 

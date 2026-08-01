@@ -103,8 +103,9 @@ public class TaCZFabricClient implements ClientModInitializer {
 
         RenderLivingEvent.POST.register(RenderHeadShotAABB::onRenderEntity);
 
+        /* 只挂开始阶段。这个重载没有阶段判断，注册在两个阶段上就等于每 tick 给状态机
+         * 送两遍 idle/walk/run；隔壁那个 RenderTickEvent 重载是自己判断 phase 的。*/
         ClientTickEvents.START_CLIENT_TICK.register(TickAnimationEvent::tickAnimation);
-        ClientTickEvents.END_CLIENT_TICK.register(TickAnimationEvent::tickAnimation);
         RenderTickEvent.EVENT.register(TickAnimationEvent::tickAnimation);
 
         ItemTooltipCallback.EVENT.register(TooltipEvent::onTooltip);
