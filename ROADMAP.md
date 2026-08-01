@@ -741,6 +741,141 @@ for it turned out to be wrong.
 - `-PquickPlay=<save>` on `runClient` — straight into a save, no menu.
 - `-PclientProps=a=1,b=2` — passes system properties to the client JVM.
 
+#### Findings from the five-way audit
+
+Five parallel auditors over pack loading and Lua, networking and the trust
+boundary, client rendering, gameplay logic, and threading. Everything below marked
+**verified** was re-read in this tree by hand afterwards; everything marked
+*reported* is the auditor's, plausible, and still needs that second read. One
+finding was checked and **rejected** — see the end.
+
+**Security**
+
+- **verified — a gun pack can execute arbitrary code.** The port already replaced
+  `JsePlatform.standardGlobals()` with `LuaSandbox` (ae06a32), which drops `io`,
+  `os`, `luajava` and `debug`. It is not enough. Every entry point hands the script
+  a live Java object through `CoerceJavaToLua.coerce(...)` — about twenty sites in
+  `LuaAnimationState`, `LuaStateMachineFactory`, `ModernKineticGunItem`. In the
+  bundled luaj (`FiguraMC 3.0.8-figura`), `JavaClass` builds its method map from
+  `Class.getMethods()` filtered only on `Modifier.isPublic`, so the inherited
+  `getClass()` is exposed; `CoerceJavaToLua` maps a `Class` to a `JavaClass`, whose
+  members are then those of `java.lang.Class`. Reflection reaches the whole JVM
+  from there, and the removed libraries are not on that path. Packs run on the
+  client and on the server. The fix is to stop passing raw coerced objects: an
+  explicit wrapper exposing only whitelisted methods, never returning a bare
+  `JavaInstance`. That can break third-party packs that use reflection today.
+- **verified — no execution budget on pack scripts.** No `DebugLib` means no hook
+  mechanism, so `while true do end` in a pack hangs the client or the server tick
+  with no recovery. Cheap fix: install `DebugLib`, immediately clear the `debug`
+  global, keep `setHook`, abort after N instructions.
+- **verified — no rate limit on any of the 15 C2S packets.** Three do real work
+  ungated. `ClientMessagePlayerFireSelect` is a `StreamCodec.unit` — about 20 bytes
+  — and each one writes item NBT, broadcasts a full serialised `ItemStack` to every
+  player tracking the shooter, and re-evaluates the pack's Lua attachment
+  modifiers. Draw and zoom are the same shape.
+- **verified — every hit and kill goes to the whole dimension.**
+  `EntityKineticBullet` sends through `sendToDimension` (`PlayerLookup.world`), and
+  the payload carries victim id, shooter id, damage and the headshot flag. Clients
+  out of tracking range cannot use it; a hostile one gets a live feed of every
+  engagement. One packet per player per pellet.
+- *reported* — the legacy pack converter streams entries with no cap on
+  decompressed size. Admin-initiated on a local file, so low.
+
+What the auditors checked and found sound, which is worth recording: hits are
+simulated server-side and the client supplies no positions, damage or results; lag
+compensation uses the server-measured ping, clamped by config; slot indices are
+range-checked; melee checks distance, cone and line of sight; commands need
+permission level 2.
+
+**Correctness**
+
+- **verified, port regression — the collector path replays the previous
+  submission's delegates.** `BedrockModel.render(..., collector, ...)` snapshots
+  `delegateRenderers` and swaps in a fresh list *before* `submitCustomGeometry`,
+  but the list is filled from inside the deferred callback (`part.render` →
+  `FunctionalBedrockPart` → `AttachmentRender.delegateRender`). So the loop draws
+  what the last submission produced, and nothing at all on the first. Worse, one
+  `BedrockGunModel` is shared per gun id, so with two players holding the same gun
+  each replays the other's delegates and their captured matrices — third-person
+  attachments at the wrong entity. The immediate path is correct; only the
+  collector path, which is new for 1.21.9, is wrong.
+- **verified — the gun smith table under-charges.** `GunSmithTableMenu.doCraft`
+  declares `recordCount` outside the per-ingredient loop and keys it by slot index,
+  so a second ingredient matching the same stack overwrites the first reservation
+  instead of adding to it. Ten iron plus one by tag deducts one. No shipped recipe
+  triggers it; packs can.
+- **verified — `(ScheduledFuture<?>) Thread.currentThread()`** at
+  `LocalPlayerShoot.java:272` and `:279`. `Thread` implements no such interface, so
+  every shot throws `ClassCastException`. It behaves correctly only because
+  `ScheduledThreadPoolExecutor` drops a periodic task that throws — which is what
+  the unreachable `cancel(false)` was for.
+- **verified — `AbstractGunItem.getRPM`** does `rpm *= (int) iGun.lerpRPM(gun)`.
+  The cast binds to `lerpRPM`, which returns a fractional multiplier, so any pack
+  setting it below 1.0 gets zero. The sibling in `GunData.getShootInterval` was
+  already fixed; this one was missed. Public API, used by addons.
+- **verified — unloading a magazine loses rounds.** `AbstractGunItem` computes
+  `roundCount = ammoCount / (stackSize + 1)` and loops `i <= roundCount`, where the
+  answer is `ceil(n / stackSize)`, then zeroes the magazine regardless. With a
+  64-round stack a 193-round drum returns 192. It can only lose, never duplicate.
+- **verified — handlers registered on both tick phases with no discriminator.**
+  `ServerTickEvent::onServerTick` on start and end, and
+  `TickAnimationEvent::tickAnimation(Minecraft)` likewise, so the animation state
+  machine gets its movement input twice per tick. The sibling overload does check
+  the phase, which is what makes this an oversight — it is the Forge
+  `TickEvent.phase` idiom lost in the port.
+- **verified, and inherited, not ours** — `SecondOrderDynamics` is byte-identical
+  to 1.21.1. Each instance submits an endless `while (!stop)` loop with a 6 ms sleep
+  to a static 15-thread non-daemon pool; `stop()` has no callers. Six instances
+  exist, so six threads spin for the life of the JVM, in the main menu too. `py`,
+  `pyd`, `px`, `target` and `stop` are plain fields written by both that worker and
+  the render thread. The loop also advances a fixed `t = 0.05` every ~6 ms, i.e.
+  about 8x real time — presumably how the constants were tuned, but it means the
+  smoothing is not in seconds. Note this is *not* the cause of the play-test reports
+  above: 1.21.1 behaves the same.
+- *reported* — respawn NPE with `AutoReloadWhenRespawn` on and a gun whose pack is
+  gone; `hide_tooltip_part` writes one key and reads another, and mask 1 blanks the
+  whole tooltip; `heat.max` unvalidated, and zero bricks the gun after one shot;
+  the heat bar never shows until the first shot because `GunItemBuilder.build`
+  drops `setHeatData`; `CycleTaskHelper` delays expire quadratically early and then
+  burn the whole cycle budget at once; ammo box reports success on an insert that
+  moved nothing and can be locked to an id from an unloaded pack.
+- *reported* — threading: `ScriptManager.scriptMap` is a plain `HashMap` cleared on
+  the main thread during a reload while the asset-preload thread reads it;
+  `SoundConsumerStorage` leaks a consumer whenever a channel is released before its
+  play task runs; the handshake handler blocks a netty loop on a `CountDownLatch`
+  (configuration handlers, unlike play handlers, do run on netty); `join()` on the
+  render thread against a single-threaded asset executor can stall on everything
+  queued ahead of it after a reload.
+
+**Performance** — all verified by reading the code, none measured in a profiler.
+
+- `BedrockCubeBox.compile` allocates a `Vector3f` per polygon and a `Vector4f` per
+  vertex, and recomputes `ARGB.colorFromFloat` per vertex for a value constant
+  across the call. Vanilla's equivalent allocates one `Vector3f` per cube and
+  transforms into it. The stock m4a1 is ~1000 cubes, so this is tens of thousands
+  of objects per gun per frame.
+- `BedrockPart.translateAndRotateAndScale` allocates three `Quaternionf` per bone
+  per frame where vanilla uses one `rotationZYX`, and applies `mulPose` and `scale`
+  unconditionally — a full rotate and scale against identity for every static bone.
+- `StencilSupport.clear()` runs at the end of every first-person gun render even
+  with no optic fitted: an extra render pass and a full-target clear per frame.
+- `endBatch()` with no argument in `LeftHandRender`, `RightHandRender` and
+  `TextShowRender` drains every buffered render type, not just theirs.
+- *reported* — `HumanoidOffhandRender` runs a complete extra gun render per
+  back-slung gun per visible player per frame; the animation interpolators allocate
+  a `float[]` per channel per frame; `PapiManager` evaluates every placeholder
+  whether the string uses it or not.
+
+**Rejected**
+
+`ServerMessageSwapItem.handle` was reported as racing the client thread for want of
+`context.client().execute(...)`. It does not. Fabric's own javadoc for
+`ClientPlayNetworking.PlayPayloadHandler.receive` says it "is called on the render
+thread, and can safely call client methods" — the API marshals before invoking. The
+`execute(...)` in our other play handlers is redundant. Configuration handlers are
+the exception and genuinely do run on netty, which is why the handshake item above
+stands.
+
 #### A caution that cost most of a day
 
 Four rendering "defects" were called from screenshots this session. One was real.
