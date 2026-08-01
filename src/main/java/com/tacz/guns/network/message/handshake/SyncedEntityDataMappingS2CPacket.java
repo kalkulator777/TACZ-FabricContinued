@@ -16,7 +16,6 @@ import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 public class SyncedEntityDataMappingS2CPacket implements IHandshakeMessage {
     public static final CustomPacketPayload.Type<SyncedEntityDataMappingS2CPacket> TYPE = new CustomPacketPayload.Type<>(
@@ -33,6 +32,8 @@ public class SyncedEntityDataMappingS2CPacket implements IHandshakeMessage {
     }
 
     private static final Marker HANDSHAKE = MarkerFactory.getMarker("TACZ_HANDSHAKE");
+    /** Far above any real key count; this only has to stop a bogus length from driving the loop. */
+    private static final int MAX_KEYS = 65536;
     private Map<Identifier, List<Pair<Identifier, Integer>>> keyMap;
 
     public SyncedEntityDataMappingS2CPacket() {
@@ -56,6 +57,10 @@ public class SyncedEntityDataMappingS2CPacket implements IHandshakeMessage {
 
     public static SyncedEntityDataMappingS2CPacket decode(FriendlyByteBuf buffer) {
         int size = buffer.readInt();
+        // 长度是对面给的，用它开循环之前先看一眼。原版的集合编解码器同样是先夹紧再分配
+        if (size < 0 || size > MAX_KEYS) {
+            throw new IllegalArgumentException("Synced data key count out of range: " + size);
+        }
         Map<Identifier, List<Pair<Identifier, Integer>>> keyMap = new HashMap<>();
         for (int i = 0; i < size; i++) {
             Identifier classId = buffer.readIdentifier();
@@ -69,18 +74,19 @@ public class SyncedEntityDataMappingS2CPacket implements IHandshakeMessage {
     @Override
     public void handle(ClientConfigurationNetworking.Context context) {
         GunMod.LOGGER.debug(HANDSHAKE, "Received synced key mappings from server");
-        CountDownLatch block = new CountDownLatch(1);
+        /* 配置阶段的处理器和游戏阶段的不一样，它跑在 netty 的事件循环上，所以原来那个
+         * CountDownLatch 是拿网络线程去等主线程排空任务队列。而且等的意义也不存在：
+         * HandshakeNetworking.SyncedEntityDataTask.run 发完包就直接 completeTask，服务端
+         * 根本不等这个 ack。
+         * 应答改到 execute 里发，顺序仍然是「先套用映射，再应答」，只是不再堵住网络线程。
+         * 配置阶段结束的那个包同样要经 ensureRunningOnSameThread 排到主线程队列，排在这件
+         * 事之后，所以进入游戏阶段之前映射一定已经生效。*/
         context.client().execute(() -> {
             if (!SyncedEntityData.instance().updateMappings(this.keyMap)) {
                 context.responseSender().disconnect(Component.literal("Connection closed - [TacZ] Received unknown synced data keys."));
+                return;
             }
-            block.countDown();
+            context.responseSender().sendPacket(AcknowledgeC2SPacket.INSTANCE);
         });
-        try {
-            block.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        context.responseSender().sendPacket(AcknowledgeC2SPacket.INSTANCE);
     }
 }

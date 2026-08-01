@@ -41,7 +41,6 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 
 /**
@@ -173,19 +172,15 @@ public class GunDisplayInstance {
         if (modelLoaded || modelLoadFailed) {
             return;
         }
-        CompletableFuture<Void> task = modelWarmUpTask;
-        if (task == null) {
-            try {
-                loadModelIfNecessary();
-            } catch (Throwable throwable) {
-                handleModelLoadFailure(throwable);
-            }
-            return;
-        }
+        /* 原来这里是 join 后台预热任务，而预热器只有一根线程 —— 资源重载之后 ClientIndexManager
+         * 会把整条快捷栏和整个背包排进去，join 等的是排在自己前面的全部任务，不是自己那一个。
+         * 渲染线程碰上一把还没预热的枪，就要陪着等完整条队列。
+         * 三个 loadXxxIfNecessary 都是双重检查加同一把 loadLock，所以直接在这儿做即可：还没
+         * 轮到就自己做掉（后台任务之后看见标志位直接返回），正在做就只等这一个。*/
         try {
-            task.join();
-        } catch (CompletionException exception) {
-            handleModelLoadFailure(exception.getCause() == null ? exception : exception.getCause());
+            loadModelIfNecessary();
+        } catch (Throwable throwable) {
+            handleModelLoadFailure(throwable);
         }
     }
 
@@ -193,19 +188,11 @@ public class GunDisplayInstance {
         if (lodLoaded || lodLoadFailed) {
             return;
         }
-        CompletableFuture<Void> task = lodWarmUpTask;
-        if (task == null) {
-            try {
-                loadLodIfNecessary();
-            } catch (Throwable throwable) {
-                handleLodLoadFailure(throwable);
-            }
-            return;
-        }
+        // 同 ensureModelLoaded：不排队等，自己做
         try {
-            task.join();
-        } catch (CompletionException exception) {
-            handleLodLoadFailure(exception.getCause() == null ? exception : exception.getCause());
+            loadLodIfNecessary();
+        } catch (Throwable throwable) {
+            handleLodLoadFailure(throwable);
         }
     }
 
@@ -218,19 +205,11 @@ public class GunDisplayInstance {
             animationLoadFailed = true;
             return;
         }
-        CompletableFuture<Void> task = animationWarmUpTask;
-        if (task == null) {
-            try {
-                loadAnimationAfterModelReady();
-            } catch (Throwable throwable) {
-                handleAnimationLoadFailure(throwable);
-            }
-            return;
-        }
+        // 同 ensureModelLoaded：不排队等，自己做
         try {
-            task.join();
-        } catch (CompletionException exception) {
-            handleAnimationLoadFailure(exception.getCause() == null ? exception : exception.getCause());
+            loadAnimationAfterModelReady();
+        } catch (Throwable throwable) {
+            handleAnimationLoadFailure(throwable);
         }
     }
 
