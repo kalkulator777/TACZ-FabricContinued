@@ -832,20 +832,22 @@ permission level 2.
   about 8x real time — presumably how the constants were tuned, but it means the
   smoothing is not in seconds. Note this is *not* the cause of the play-test reports
   above: 1.21.1 behaves the same.
-- *reported* — respawn NPE with `AutoReloadWhenRespawn` on and a gun whose pack is
-  gone; `hide_tooltip_part` writes one key and reads another, and mask 1 blanks the
-  whole tooltip; `heat.max` unvalidated, and zero bricks the gun after one shot;
-  the heat bar never shows until the first shot because `GunItemBuilder.build`
-  drops `setHeatData`; `CycleTaskHelper` delays expire quadratically early and then
-  burn the whole cycle budget at once; ammo box reports success on an insert that
-  moved nothing and can be locked to an id from an unloaded pack.
-- *reported* — threading: `ScriptManager.scriptMap` is a plain `HashMap` cleared on
-  the main thread during a reload while the asset-preload thread reads it;
-  `SoundConsumerStorage` leaks a consumer whenever a channel is released before its
-  play task runs; the handshake handler blocks a netty loop on a `CountDownLatch`
-  (configuration handlers, unlike play handlers, do run on netty); `join()` on the
-  render thread against a single-threaded asset executor can stall on everything
-  queued ahead of it after a reload.
+- **verified on a second read, all fixed** — respawn NPE with
+  `AutoReloadWhenRespawn` on and a gun whose pack is gone; `hide_tooltip_part`
+  writing one key and reading another, with mask 1 blanking the whole tooltip;
+  `heat.max` unvalidated, zero bricking the gun after one shot; the heat bar never
+  showing until the first shot because `GunItemBuilder.build` dropped
+  `setHeatData`; `CycleTaskHelper` delays expiring quadratically early and then
+  burning the whole cycle budget at once; the ammo box reporting success on an
+  insert that moved nothing, and lockable to an id from an unloaded pack.
+- **verified on a second read, all fixed** — threading: `ScriptManager.scriptMap`
+  was a plain `HashMap` cleared on the main thread during a reload while the
+  asset-preload thread read it; `SoundConsumerStorage` leaked a consumer whenever a
+  channel was released before its play task ran; the handshake handler parked a
+  netty loop on a `CountDownLatch` waiting for an acknowledgement the server never
+  waits for (configuration handlers, unlike play handlers, do run on netty);
+  `join()` on the render thread against a single-threaded asset executor waited on
+  everything queued ahead of the task rather than on the task.
 
 **Performance** — all verified by reading the code, none measured in a profiler.
 
