@@ -725,11 +725,19 @@ for it turned out to be wrong.
     the reticle with the caller's plain `RenderTypes.entityCutout` — the same
     call 1.21.1 made.
 
-  So the remaining suspects are the stencil mask, not the reticle's own
-  rasterisation: the circle in `drawStencilCircle` is positioned from
-  `getBedrockPartCenter`, and the breathing animation moves that centre every
-  frame. Worth measuring before anything else: which of the two paths the scope
-  in question takes, and whether the thinning tracks the circle's edge.
+  Two answers since, from the player: the scope is a Mark 5, so it is the
+  eyepiece path — `renderScope` → `renderOcularAndDivision`, which draws the
+  reticle with the caller's plain `entityCutout`, the same call 1.21.1 made. And
+  the reticle "floated as a whole", not thinned at the rim.
+
+  That last one moves the suspicion off the stencil circle. A mask clipping the
+  reticle would eat its edges; a reticle that drifts bodily is the reticle's own
+  geometry moving against the eyepiece it is supposed to sit in. The division node
+  and the ocular node are separate bones, and the breathing animation drives them
+  through `translateAndRotateAndScale` — so the question is whether both are still
+  reached by the same transform chain, or whether one of them now picks up a pose
+  the other does not. `renderTempPart` walks the path itself and flushes per part;
+  compare the pose the division node ends up with against the ocular's.
 
 #### Diagnostics and dev affordances that exist now
 
