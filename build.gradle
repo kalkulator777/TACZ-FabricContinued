@@ -37,6 +37,11 @@ loom {
             if (project.hasProperty("quickPlay")) {
                 programArgs("--quickPlaySingleplayer", project.property("quickPlay").toString())
             }
+            /* -PquickJoin=<地址> 直接连服务端。这个环境里没有鼠标，单机世界建不出来，
+             * 所以要进世界只能连本地服务端，见上面 server 的 runDir 注释。*/
+            if (project.hasProperty("quickJoin")) {
+                programArgs("--quickPlayMultiplayer", project.property("quickJoin").toString())
+            }
             /* -PclientProps=a=1,b=2 把系统属性透给客户端 JVM。诊断开关（比如
              * tacz.scopeDebug）是给运行中的客户端看的，不是给 Gradle 看的，-D 到不了那儿。*/
             if (project.hasProperty("clientProps")) {
@@ -48,6 +53,12 @@ loom {
         }
         datagen {
             property "fabric-api.datagen.modid", "tacz"
+        }
+        /* 服务端单独一个工作目录。渲染问题要在世界里看，而这个环境里没法用鼠标建世界，
+         * 所以走「起个本地服务端，客户端 --quickPlayMultiplayer 连上去」这条路，
+         * 两个进程同时跑，共用 run/ 会互相踩。*/
+        server {
+            runDir = "run/server"
         }
     }
 }
@@ -187,7 +198,22 @@ dependencies {
      * 模组解析阶段。等 Iris 发出兼容版本后再把 modRuntimeOnly 加回来，届时着色器兼容代码
      * （com.tacz.guns.compat.iris）才能在开发环境里真正跑到。*/
     modCompileOnly "maven.modrinth:iris:${iris_version}"
-    modRuntimeOnly "maven.modrinth:sodium:${sodium_version}"
+    /* 加 -Pshaders 就把 Iris 也放进运行时，用来复现和验证光影下的渲染问题。
+     * 代价是 Sodium 要退回 0.8.7：0.8.13 声明 breaks iris <=1.10.7，而 1.10.7 是 Iris 面向
+     * 1.21.11 的最新版；0.8.7 只 breaks iris <=1.10.5，所以这一对能一起加载。默认不带这个
+     * 属性时运行时仍然只有最新的 Sodium，和以前一样。*/
+    if (project.hasProperty("shaders")) {
+        modRuntimeOnly "maven.modrinth:iris:${iris_version}"
+        modRuntimeOnly "maven.modrinth:sodium:${sodium_shaders_version}"
+        /* Iris 把 jcpp、glsl-transformer、antlr 三个库嵌在自己的 jar 里（META-INF/jars）。
+         * 开发环境不会把嵌套 jar 摊开，于是加载着色器包时 NoClassDefFoundError:
+         * org/anarres/cpp/LexerException。按坐标单独加一遍，版本对着 iris jar 里的文件名。*/
+        runtimeOnly "org.anarres:jcpp:1.4.14"
+        runtimeOnly "io.github.douira:glsl-transformer:3.0.0-pre3"
+        runtimeOnly "org.antlr:antlr4-runtime:4.13.1"
+    } else {
+        modRuntimeOnly "maven.modrinth:sodium:${sodium_version}"
+    }
 
     /* Carry On 在 Modrinth 上一个版本条目同时挂着三个加载器的文件，maven 无法区分，
      * 按坐标取到的是 NeoForge 那个 jar，所以这里还是钉在 CurseForge 的文件 id 上 */
@@ -220,9 +246,16 @@ dependencies {
     // Zoomify
     modCompileOnly "maven.modrinth:zoomify:2.15.2+1.21.11"
 
-    // ImmediatelyFast 只留运行时：它的 hud_batching 已经没有了，我们那段兼容也随之删掉，
-    // 编译期不再需要它，但开发环境里还是想带着它一起跑一跑
-    modRuntimeOnly "maven.modrinth:immediatelyfast:1.14.3+1.21.11-fabric"
+    /* ImmediatelyFast 只留运行时：它的 hud_batching 已经没有了，我们那段兼容也随之删掉，
+     * 编译期不再需要它，但开发环境里还是想带着它一起跑一跑。
+     *
+     * 带 -Pshaders 时它必须摘掉：它的 IrisCompat 一见到 Iris 就去用 net.lenni0451.reflect，
+     * 那是它 jar 里嵌套的库，开发环境不会把嵌套 jar 摊到 classpath 上，于是
+     * RenderSystem.initRenderer 里直接 NoClassDefFoundError，客户端起不来。
+     * 这是开发环境的打包问题，不是我们的兼容问题。*/
+    if (!project.hasProperty("shaders")) {
+        modRuntimeOnly "maven.modrinth:immediatelyfast:1.14.3+1.21.11-fabric"
+    }
 
     modRuntimeOnly "maven.modrinth:tweakeroo:0.27.11"
     modRuntimeOnly "maven.modrinth:malilib:0.27.16"
