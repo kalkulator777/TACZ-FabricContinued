@@ -170,6 +170,30 @@ Changes made in this fork on top of [Sh1roCu/TACZ-Refabricated](https://github.c
 
 **Fixed**
 
+- Shader packs work again. With Iris driving the pipeline, the world froze at the
+  frame the pack was enabled on and the screen went black when scoping. Both come
+  from the scope's stencil mask, and neither is repairable while a pack is loaded:
+
+  - The mod swapped the main render target's depth texture to a packed
+    `GL_DEPTH32F_STENCIL8` but left blaze3d still calling it `TextureFormat.DEPTH32`
+    — the vanilla enum has no combined format to declare. Iris reads that name to
+    size `depthtex1` and `depthtex2`, then fills them each frame with
+    `glCopyImageSubData`, which requires the two internal formats to match. Measured
+    on the same driver, same call, only the format differing: `GL_NO_ERROR` before
+    the swap, `GL_INVALID_OPERATION` after. Iris does not check, so the depth
+    textures silently stop updating, and every pack that reads `depthtex1` — fog,
+    water, reflections, translucency in Photon and Complementary alike — stays welded
+    to the last frame that copied.
+  - The mask itself cannot work anyway: Iris binds its own gbuffer framebuffer for
+    every draw and those carry no stencil attachment, so the stencil test always
+    passes and the ocular's black mask — which is exactly what the stencil trims down
+    to the tube's circle — covers the whole screen.
+
+  So with a pack loaded the mod now stays off that path entirely and hands the depth
+  texture back in vanilla format at the next frame boundary. The scope degrades: the
+  body, the ring and the reticle still draw, the circular view and "no gun body
+  inside the lens" do not. Getting them back under a deferred pipeline means an
+  offscreen mask texture instead of the stencil buffer, which is in the roadmap.
 - Firing a gun with heat data no longer divides by zero. The heat multiplier was
   applied after the rounds-per-minute value had been clamped, so enough heat drove
   it to zero and the exception came out of the server tick loop. The same call also

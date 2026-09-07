@@ -296,8 +296,11 @@ public class BedrockGunModel extends BedrockAnimatedModel {
         IAttachment iAttachment = IAttachment.getIAttachmentOrNull(attachmentItem);
         /* 只有真的画了瞄具才碰过模板缓冲。没装瞄具时，末尾那趟 clear 是白开一个渲染通道去
          * 全屏清一块没人写过的缓冲，每帧一次。*/
-        boolean touchedStencil = scopePosPath != null && attachmentItem != null && !attachmentItem.isEmpty();
-        if (touchedStencil) {
+        boolean hasScope = scopePosPath != null && attachmentItem != null && !attachmentItem.isEmpty();
+        /* 有光影时模板那条路整个不能走，理由见 StencilSupport#isUsable。瞄具照画，
+         * 只是不再往模板缓冲里写值，也就不再有「镜内不渲染枪体」这一层。*/
+        boolean touchedStencil = hasScope && StencilSupport.isUsable();
+        if (hasScope) {
             matrixStack.pushPose();
             for (BedrockPart bedrockPart : scopePosPath) {
                 bedrockPart.translateAndRotateAndScale(matrixStack);
@@ -305,7 +308,7 @@ public class BedrockGunModel extends BedrockAnimatedModel {
             AttachmentRender.renderAttachment(attachmentItem, currentGunItem, matrixStack, transformType, light, overlay);
             matrixStack.popPose();
             // 开启模板测试，因为镜内不渲染枪体
-            if (iAttachment != null) {
+            if (touchedStencil && iAttachment != null) {
                 Optional<ClientAttachmentIndex> attachmentIndex = TimelessAPI.getClientAttachmentIndex(iAttachment.getAttachmentId(attachmentItem));
                 attachmentIndex.ifPresent(index -> {
                     if (index.isScope() && index.isSight()) { // 组合镜

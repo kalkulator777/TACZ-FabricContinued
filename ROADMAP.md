@@ -739,14 +739,88 @@ for it turned out to be wrong.
   the other does not. `renderTempPart` walks the path itself and flushes per part;
   compare the pose the division node ends up with against the ocular's.
 
+#### Shader packs, and what the scope costs under them
+
+Reported from real hardware: with Iris and Photon or Complementary the world froze
+at the frame the pack was turned on — move the camera and you keep seeing the
+geometry from where the camera was — and the screen went black when scoping. Both
+were reproduced and measured in the dev environment (see the affordances below for
+how it is now possible to run Iris here at all).
+
+**Why the world freezes.** `GlDeviceMixin` changed the main depth texture's GL
+internal format to `GL_DEPTH32F_STENCIL8` but not what blaze3d calls it — the
+vanilla `TextureFormat` enum has no combined depth+stencil constant to name, so it
+stayed `DEPTH32`. Iris reads that name (`IrisRenderingPipeline`, via
+`GlConst.toGlInternalId`) to allocate `depthtex1` and `depthtex2`, then refills them
+every frame with `glCopyImageSubData`, which requires both internal formats to
+match. Measured on the same driver, in one run, with nothing changing but the
+format:
+
+```
+depth copy probe before: glCopyImageSubData -> 0x0     GL_NO_ERROR
+depth copy probe after:  glCopyImageSubData -> 0x502   GL_INVALID_OPERATION
+```
+
+Iris does not check the error. So the copy stops working the moment a scope is
+first drawn, `depthtex1` keeps whatever was in it, and every pack that reads it —
+fog, water, reflections, translucency — renders against a scene frozen at that
+frame. `RenderTargets.resizeIfNeeded` only resets the dirty flags when the format
+or the size changes, and neither does here, so it never re-enters the
+`glCopyTexImage2D` path that would have worked.
+
+**Why the mask cannot be saved.** Iris binds its own gbuffer framebuffer for every
+draw (`ExtendedShader`), and those carry no stencil attachment. With no stencil
+buffer the test always passes and `glStencilOp` writes nothing, so the ocular's
+black mask — which the stencil is what trims to the tube's circle — covers
+everything. The mod's own `glClear(GL_STENCIL_BUFFER_BIT)` lands on the vanilla
+main framebuffer, which is not the one being drawn into.
+
+**What is done:** with a pack loaded the mod stays off the stencil path entirely
+(`StencilSupport.isUsable`) and gives the depth texture back in vanilla format at
+the next frame boundary (`syncWithShaderPack`). The scope degrades to body, ring
+and reticle.
+
+**What is left:** the circular view and "no gun body inside the lens" are gone
+under shaders. Getting them back means the offscreen mask texture design recorded
+in §6 — draw the ocular into a dedicated target and sample it where the stencil is
+tested now. That works under a deferred pipeline and would replace `StencilSupport`
+rather than sit beside it.
+
+Two things found while measuring and deliberately not fixed here, so they do not
+ride along with a rendering change:
+
+- Not one of the four `enableTest` / `disableTest` pairs is `try`-guarded, and
+  `renderOcularAndDivision` can throw between them (`> 127` ocular nodes, from a
+  malformed pack). Nothing in vanilla, Sodium or Iris ever calls
+  `glDisable(GL_STENCIL_TEST)`, so a leak is for the rest of the session.
+  `BedrockGunModel` also leaves `glStencilFunc` non-default on the normal path.
+- `BedrockAttachmentModel.render` calls `super.render` twice in first person —
+  once inside `renderScope`/`renderBoth`/`renderSight` and once at the end of
+  `render`. Same geometry, same depth, so it is invisible; it is still half the
+  attachment's draw calls.
+
 #### Diagnostics and dev affordances that exist now
 
 - `-Dtacz.renderDebug=true` — `RenderDebug`, off and free otherwise. Framebuffer
   and stencil attachment state, scope circle geometry, one-shot notes.
+- `-Dtacz.forceStencil=true` — with the above, converts the main depth texture on
+  the first frame in a world, without needing a gun with a scope in hand, and runs
+  `glCopyImageSubData` against a `DEPTH32` texture before and after to ask the
+  driver what the swap actually costs. This is what produced the numbers above.
 - `-Dtacz.muzzleFlashMs=<ms>` — widens the 50 ms muzzle flash window, honoured
   only with the diagnostic on. Needed because a frame here is longer than the
   window; see the muzzle flash note above.
 - `-PquickPlay=<save>` on `runClient` — straight into a save, no menu.
+- `-PquickJoin=<address>` on `runClient` — connects straight to a server. A
+  headless environment cannot click through world creation, so `runServer` (its
+  own run directory, `run/server`) plus this is how you get into a world.
+- `-Pshaders` — puts Iris in the dev runtime. It costs Sodium 0.8.7 instead of
+  0.8.13, because 0.8.13 declares `breaks iris <=1.10.7` and 1.10.7 is Iris's
+  newest 1.21.11 release, while 0.8.7 only breaks `<=1.10.5`. It also adds Iris's
+  three nested libraries (jcpp, glsl-transformer, antlr) by coordinate — a dev
+  runtime does not unpack `META-INF/jars`, and without them loading any shader pack
+  throws `NoClassDefFoundError` — and drops ImmediatelyFast, whose own Iris
+  compatibility hits the same nested-jar problem and takes the client down with it.
 - `-PclientProps=a=1,b=2` — passes system properties to the client JVM.
 
 #### Findings from the five-way audit

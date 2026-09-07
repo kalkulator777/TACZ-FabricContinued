@@ -5,6 +5,7 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import com.tacz.guns.compat.iris.IrisCompat;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.fabricmc.api.EnvType;
@@ -121,8 +122,52 @@ public final class StencilSupport {
 
     // ---------------------------------------------------------------- 模板状态
 
+    /**
+     * 光影包在跑的时候，模板遮罩这条路整个不成立，一处都不成立：
+     * <ul>
+     *     <li>Iris 的每个 gbuffer 绘制最后都会绑回它自己的帧缓冲（ExtendedShader 里
+     *         writingToBeforeTranslucent / writingToAfterTranslucent），那些 FBO 只挂了颜色和
+     *         深度。按 GL 的规定，没有模板缓冲时模板测试恒真、glStencilOp 什么也不写 ——
+     *         于是「只在镜筒圆内画目镜黑色遮罩」变成「整片画目镜黑色遮罩」。</li>
+     *     <li>我们把主渲染目标的深度纹理换成了 packed depth+stencil，但 blaze3d 那边的
+     *         TextureFormat 还是 DEPTH32（原版枚举里根本没有带模板的那一档）。Iris 照着
+     *         getFormat() 去分配 depthtex1/depthtex2，然后每帧用 glCopyImageSubData 从主深度
+     *         往里拷 —— 这个调用要求两边内部格式一致，于是它每帧静静地失败，深度就永远停在
+     *         开启光影后的第一帧上。光影包用 depthtex1 算雾、水面和反射，画面也就跟着停在那一帧。</li>
+     * </ul>
+     * 所以有光影时不是「模板效果差一点」，而是必须整条路都不要走，并且把已经换过的深度纹理
+     * 换回去。瞄具因此退化成没有遮罩的画法，见 BedrockAttachmentModel。
+     */
+    public static boolean isUsable() {
+        return !IrisCompat.isShaderPackInUse();
+    }
+
+    /**
+     * 每帧在帧边界上调一次：光影包一旦开起来，就把深度纹理换回原版格式。
+     * <p>
+     * 不能等到下次渲染瞄具时再判断 —— 格式是会一直留着的，玩家只要在开光影之前拿过一次
+     * 带瞄具的枪，之后整局游戏的深度纹理都是 packed 的，即使他再也不举枪。
+     * <p>
+     * 放在帧边界而不是随手就地做，是因为 resize 会把主渲染目标的颜色和深度纹理删掉重建：
+     * 在一帧中间做这件事，等于把这一帧已经画好的东西连同 Iris 手里那些指向旧纹理的 FBO
+     * 一起扔掉。
+     */
+    public static void syncWithShaderPack() {
+        if (!IrisCompat.isShaderPackInUse()) {
+            return;
+        }
+        RenderTarget target = Minecraft.getInstance().getMainRenderTarget();
+        if (target.tacz$isStencilEnabled()) {
+            RenderDebug.note("shader pack in use -> giving the packed depth texture back");
+            target.tacz$disableStencil();
+        }
+    }
+
     public static void enableTest() {
         RenderSystem.assertOnRenderThread();
+        if (!isUsable()) {
+            return;
+        }
         RenderDebug.note("enableTest");
         Minecraft.getInstance().getMainRenderTarget().tacz$enableStencil();
         GL11.glEnable(GL11.GL_STENCIL_TEST);

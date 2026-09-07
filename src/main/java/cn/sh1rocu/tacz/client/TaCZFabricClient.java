@@ -6,6 +6,8 @@ import cn.sh1rocu.tacz.api.event.RenderTickEvent;
 import cn.sh1rocu.tacz.api.event.ViewportEvent;
 import cn.sh1rocu.tacz.api.event.*;
 import cn.sh1rocu.tacz.api.extension.IItem;
+import com.tacz.guns.client.gl.RenderDebug;
+import com.tacz.guns.client.gl.StencilSupport;
 import com.tacz.guns.api.client.event.BeforeRenderHandEvent;
 import com.tacz.guns.api.client.event.RenderItemInHandBobEvent;
 import com.tacz.guns.client.animation.FirstPersonClock;
@@ -74,6 +76,14 @@ public class TaCZFabricClient implements ClientModInitializer {
         /* The first-person driver, absorbed from SimpleBedrockModel along with the events it
          * runs on. Its client entrypoint used to register these. */
         RenderTickEvent.EVENT.register(FirstPersonClock::onRenderTick);
+        /* 帧边界上跟一次光影包的状态：开了光影就把主渲染目标的深度纹理换回原版格式，
+         * 理由见 StencilSupport#syncWithShaderPack。没装 Iris 时这是一次静态布尔判断。
+         * 顺带挂上模板的诊断开关，见 RenderDebug#FORCE_STENCIL。*/
+        RenderTickEvent.EVENT.register(event -> {
+            StencilSupport.syncWithShaderPack();
+            RenderDebug.forceStencilOnce();
+            RenderDebug.probeRecovery();
+        });
         ClientPlayConnectionEvents.DISCONNECT.register(FirstPersonClock::onLoggingOut);
         ClientPlayConnectionEvents.DISCONNECT.register(FirstPersonRenderHandler::onPlayerLoggedOut);
         SwapItemWithOffHand.CALLBACK.register(FirstPersonRenderHandler::onSwapItemWithOffHand);

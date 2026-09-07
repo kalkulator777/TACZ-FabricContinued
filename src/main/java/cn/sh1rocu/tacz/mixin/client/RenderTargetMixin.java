@@ -78,6 +78,15 @@ public abstract class RenderTargetMixin implements RenderTargetStencil {
     }
 
     @Override
+    public void tacz$disableStencil() {
+        if (this.tacz$stencilEnabled) {
+            this.tacz$stencilEnabled = false;
+            com.tacz.guns.client.gl.RenderDebug.note("tacz$disableStencil -> resize " + this.width + "x" + this.height);
+            this.resize(this.width, this.height);
+        }
+    }
+
+    @Override
     public boolean tacz$isStencilEnabled() {
         return this.tacz$stencilEnabled;
     }

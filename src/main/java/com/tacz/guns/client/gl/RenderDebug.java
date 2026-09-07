@@ -26,6 +26,20 @@ import org.slf4j.Logger;
 public final class RenderDebug {
     public static final boolean ENABLED = Boolean.getBoolean("tacz.renderDebug");
 
+    /**
+     * {@code -Dtacz.forceStencil=true}：进世界后第一帧就把模板缓冲挂上，不用真的拿着一把
+     * 装了瞄具的枪。
+     * <p>
+     * 存在的理由：模板那条路平时只有「第一人称 + 枪 + 装了瞄具」才会走到，而自动化环境里
+     * 凑齐这三样要点半天鼠标。要单独回答「把主渲染目标的深度纹理换成 packed 格式，光影下
+     * 会发生什么」，这一个开关就够了 —— 它把格式切换和瞄具遮罩本身分开。
+     */
+    public static final boolean FORCE_STENCIL = ENABLED && Boolean.getBoolean("tacz.forceStencil");
+
+    private static boolean stencilForced = false;
+    private static boolean recoveryProbed = false;
+    private static int framesSinceForced = 0;
+
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private static String lastAttachmentState = null;
@@ -72,6 +86,69 @@ public final class RenderDebug {
                 StencilSupport.GL_STENCIL_ATTACHMENT, GL30.GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE);
         LOGGER.info("[tacz/render] in draw pass: fbo={} stencilAttachment={} stencilBits={} stencilTest={}",
                 fbo, attachment, bits, GL11.glIsEnabled(GL11.GL_STENCIL_TEST));
+    }
+
+    /** 见 {@link #FORCE_STENCIL}。每帧调用，只有第一次真的做事。 */
+    public static void forceStencilOnce() {
+        if (!FORCE_STENCIL || stencilForced) {
+            return;
+        }
+        net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+        if (minecraft.level == null) {
+            return;
+        }
+        stencilForced = true;
+        probeDepthCopy("before");
+        log("forceStencil: attaching the stencil buffer without a scope");
+        /* 故意绕过 StencilSupport#isUsable 直接换格式。要测的正是最坏的那一路：玩家先举了一次
+         * 带瞄具的枪、格式已经换过，之后才开光影包。那时候只有帧边界上的 syncWithShaderPack
+         * 能把它换回来，下面那次 "recovered" 探测就是在看它换没换回来。*/
+        minecraft.getMainRenderTarget().tacz$enableStencil();
+        probeDepthCopy("after");
+    }
+
+    /** 换回原版格式之后再探一次。{@link #forceStencilOnce()} 之后隔几帧调用。 */
+    public static void probeRecovery() {
+        if (!FORCE_STENCIL || !stencilForced || recoveryProbed || framesSinceForced++ < 20) {
+            return;
+        }
+        recoveryProbed = true;
+        probeDepthCopy("recovered");
+    }
+
+    /**
+     * 用 Iris 每帧复制深度用的那个调用，试着把主渲染目标的深度拷进一张 DEPTH_COMPONENT32 纹理，
+     * 然后问 GL 出没出错。
+     * <p>
+     * 这是整件事的关键一步，值得单独测：{@code glCopyImageSubData} 要求源和目标的内部格式
+     * 匹配，而 Iris 是照着 {@code GpuTexture.getFormat()} 分配 depthtex1/depthtex2 的 ——
+     * 那个值我们没改，还是 DEPTH32。所以「换了格式之后这个拷贝还成不成立」不能靠推理，
+     * 得让驱动自己回答。前后各测一次，同一台机器同一个驱动，只有格式变了。
+     * <p>
+     * 全程走 DSA，不绑定任何纹理，免得把 GlStateManager 记的绑定状态搞乱。
+     */
+    private static void probeDepthCopy(String when) {
+        com.mojang.blaze3d.pipeline.RenderTarget target = net.minecraft.client.Minecraft.getInstance().getMainRenderTarget();
+        if (!(target.getDepthTexture() instanceof com.mojang.blaze3d.opengl.GlTexture depth)) {
+            return;
+        }
+        if (!org.lwjgl.opengl.GL.getCapabilities().GL_ARB_direct_state_access) {
+            log("depth copy probe {}: skipped, no DSA", when);
+            return;
+        }
+        int width = target.width;
+        int height = target.height;
+        int destination = org.lwjgl.opengl.ARBDirectStateAccess.glCreateTextures(GL11.GL_TEXTURE_2D);
+        org.lwjgl.opengl.ARBDirectStateAccess.glTextureStorage2D(destination, 1, 0x81A7 /* GL_DEPTH_COMPONENT32 */, width, height);
+        while (GL11.glGetError() != GL11.GL_NO_ERROR) {
+            // 把之前积下的错误清干净，否则读到的不是这次的
+        }
+        org.lwjgl.opengl.GL43.glCopyImageSubData(depth.glId(), GL11.GL_TEXTURE_2D, 0, 0, 0, 0,
+                destination, GL11.GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
+        int error = GL11.glGetError();
+        LOGGER.info("[tacz/render] depth copy probe {}: source={} {}x{} glCopyImageSubData -> 0x{}",
+                when, depth.glId(), width, height, Integer.toHexString(error));
+        GL11.glDeleteTextures(destination);
     }
 
     /** 同一条消息只打一次，用来记录「这条路走过了」这类一次性事实。 */

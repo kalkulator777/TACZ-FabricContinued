@@ -162,7 +162,9 @@ public class BedrockAttachmentModel extends BedrockAnimatedModel {
         this.currentGunItem = currentGunItem;
         this.attachmentItem = attachmentItem;
         if (transformType.firstPerson()) {
-            if (isScope && isSight) {
+            if (!StencilSupport.isUsable()) {
+                renderWithoutStencil(matrixStack, transformType, renderType, texture, light, overlay);
+            } else if (isScope && isSight) {
                 renderBoth(matrixStack, transformType, renderType, texture, light, overlay);
             } else if (isScope) {
                 renderScope(matrixStack, transformType, renderType, texture, light, overlay);
@@ -355,6 +357,33 @@ public class BedrockAttachmentModel extends BedrockAnimatedModel {
                 }
             }
         }
+    }
+
+    /**
+     * 没有模板缓冲时的退化画法。开着光影包时走这一条，理由见 {@link StencilSupport#isUsable()}。
+     * <p>
+     * 镜身、目镜外环、分划照画；唯独跳过目镜的黑色遮罩。那块遮罩本来是靠模板裁成镜筒里那个
+     * 圆的，没有模板它就是一整片不透明的面，正对着镜头 —— 光影下「瞄准时一片黑」就是它。
+     * 分划走不做深度测试的那条路，和红点镜一样，这样它仍然浮在镜身之上。
+     * <p>
+     * 代价是镜内看得见枪体，圆形视野也没有了。这是退化，不是等价实现：要在延迟管线下拿回
+     * 遮罩，得改成把目镜画进一张离屏遮罩纹理再采样，那是另一件工程，记在 ROADMAP 里。
+     */
+    private void renderWithoutStencil(PoseStack matrixStack, ItemDisplayContext transformType, RenderType renderType,
+                                      Identifier texture, int light, int overlay) {
+        if (ocularRingPath != null) {
+            renderTempPart(matrixStack, transformType, renderType, light, overlay, ocularRingPath);
+        }
+        if (scopeBodyPath != null) {
+            renderTempPart(matrixStack, transformType, renderType, light, overlay, scopeBodyPath);
+        }
+        if (!divisionNodePaths.isEmpty()) {
+            RenderType noDepthTest = ScopeRenderTypes.noDepthTest(texture);
+            for (List<BedrockPart> divisionNodePath : divisionNodePaths) {
+                renderTempPart(matrixStack, transformType, noDepthTest, light, overlay, divisionNodePath);
+            }
+        }
+        super.render(matrixStack, transformType, renderType, light, overlay);
     }
 
     private void renderBoth(PoseStack matrixStack, ItemDisplayContext transformType, RenderType renderType, Identifier texture, int light, int overlay) {
